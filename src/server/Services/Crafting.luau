@@ -14,6 +14,8 @@ local function apply(profile, line, level)
 	local id = line.id
 	if id == "pick" then
 		profile.tools.pick = level
+	elseif id == "axe" then
+		profile.tools.axe = level
 	elseif id == "vacuum" then
 		profile.tools.vacuum = level
 	elseif id == "sanctuary" then

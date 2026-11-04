@@ -103,9 +103,9 @@ end
 
 local function label(part, text, height)
 	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.new(0, 190, 0, 44)
+	bb.Size = UDim2.new(0, 230, 0, 50)
 	bb.StudsOffsetWorldSpace = Vector3.new(0, height, 0)
-	bb.MaxDistance = 60
+	bb.MaxDistance = 85
 	bb.LightInfluence = 0
 	bb.Parent = part
 	local t = Instance.new("TextLabel")

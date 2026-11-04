@@ -22,10 +22,11 @@ local S = {
 	Raid = require(Services.Raid),
 	Commerce = require(Services.Commerce),
 	DevTools = require(Services.DevTools),
+	Gifts = require(Services.Gifts),
 }
 
 local ORDER = { "Data", "Net", "Plots", "Inventory", "Mining", "Capture", "Progress", "Crafting", "Production",
-	"Alchemy", "Essence", "Fusion", "Raid", "Commerce", "DevTools" }
+	"Alchemy", "Essence", "Fusion", "Raid", "Commerce", "DevTools", "Gifts" }
 
 S.World.Build()
 
@@ -39,6 +40,7 @@ end
 S.Net.Register("hello", function(player)
 	S.Net.PushNow(player)
 	S.Capture.Resend(player)
+	S.Gifts.Resend(player)
 	for id, secs in pairs(S.Mining.RespawnTimes(player)) do
 		S.Net.Fire(player, "NodeState", id, secs)
 	end

@@ -339,9 +339,29 @@ function WorldFx.Init()
 	CollectionService:GetInstanceRemovedSignal("PortalSwirl"):Connect(function(p)
 		swirls[p] = nil
 	end)
+	local spinners = {}
+	local function addSpinner(m)
+		if m:IsA("Model") then
+			spinners[m] = m:GetPivot()
+		end
+	end
+	for _, m in ipairs(CollectionService:GetTagged("SpinY")) do
+		addSpinner(m)
+	end
+	CollectionService:GetInstanceAddedSignal("SpinY"):Connect(addSpinner)
+	CollectionService:GetInstanceRemovedSignal("SpinY"):Connect(function(m)
+		spinners[m] = nil
+	end)
 	local spin = 0
 	RunService.RenderStepped:Connect(function(dt)
 		spin = spin + dt * 0.8
+		for m, base in pairs(spinners) do
+			if m.Parent then
+				m:PivotTo(base * CFrame.Angles(0, spin * 0.35, 0))
+			else
+				spinners[m] = nil
+			end
+		end
 		for p, base in pairs(swirls) do
 			if p.Parent then
 				p.CFrame = base * CFrame.Angles(0, 0, spin)

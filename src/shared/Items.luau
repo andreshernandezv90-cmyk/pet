@@ -48,6 +48,15 @@ Items.Picks = {
 	{ level = 5, name = "Pico de cristal", damage = 4.5, unlocks = "Zuarita" },
 }
 
+-- Hachas para talar (agregado en GDD 1.1): mas daño a los arboles y mas madera
+Items.Axes = {
+	{ level = 1, name = "Hacha rustica", damage = 1.0, wood = 0.00 },
+	{ level = 2, name = "Hacha de piedra", damage = 1.6, wood = 0.15 },
+	{ level = 3, name = "Hacha de cobre", damage = 2.3, wood = 0.30 },
+	{ level = 4, name = "Hacha de hierro", damage = 3.2, wood = 0.50 },
+	{ level = 5, name = "Hacha de cristal", damage = 4.5, wood = 0.75 },
+}
+
 -- Succionador de Resonancia (GDD 06) -------------------------------------------
 Items.Vacuums = {
 	{ level = 1, name = "Succionador basico", chance = 0.00, speed = 0.00, range = 14, raid = 1.0 },

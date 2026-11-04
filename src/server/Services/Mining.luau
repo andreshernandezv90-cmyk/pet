@@ -59,7 +59,8 @@ local function hit(player, node)
 		profile.story.visitedMines = true
 	end
 	local agg = Stats.Aggregate(profile, t)
-	local dmg = Stats.MineDamage(agg, profile.tools.pick)
+	local isTree = node.type == "tree"
+	local dmg = isTree and Stats.ChopDamage(agg, profile.tools.axe) or Stats.MineDamage(agg, profile.tools.pick)
 	local hp = (st.hp[node.id] or def.hp) - dmg
 	if hp > 0 then
 		st.hp[node.id] = hp
@@ -71,7 +72,7 @@ local function hit(player, node)
 	st.respawn[node.id] = t + def.respawn
 	local rng = Random.new()
 	local base = rng:NextInteger(def.yield[1], def.yield[2])
-	local amount = math.max(1, math.floor(base * Stats.YieldMult(agg, def.resource) + rng:NextNumber()))
+	local amount = math.max(1, math.floor(base * Stats.YieldMult(agg, def.resource, profile.tools.axe) + rng:NextNumber()))
 	local added = PetStore.AddToBackpack(profile, def.resource, amount)
 	local extras = {}
 	if node.type == "tree" and rng:NextNumber() < 0.15 then

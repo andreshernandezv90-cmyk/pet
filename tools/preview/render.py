@@ -258,7 +258,7 @@ def main():
         "top": (loc(0, 150, -1), loc(0, 0, 0), None, 3.0),
         "overview": ([0, 380, -560], [0, 0, 60], None, 6.0),
         "aerial": (loc(0, 95, -150), loc(0, 0, 10), None, 3.0),
-        "plaza": ([0, 40, -95], [0, 2, 10], None, 2.5),
+        "plaza": ([0, 34, -110], [0, 10, 10], None, 2.5),
     }
     eye, target, _, step = views[args.view]
     if args.view == "aerial":
@@ -267,7 +267,7 @@ def main():
     elif args.view == "overview":
         bounds = (-460, 460, -460, 460)
     elif args.view == "plaza":
-        bounds = (-120, 120, -130, 120)
+        bounds = (-140, 140, -150, 140)
     else:
         c = P
         bounds = (c[0] - 120, c[0] + 120, c[2] - 120, c[2] + 120)

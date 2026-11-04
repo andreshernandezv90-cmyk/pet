@@ -18,7 +18,7 @@ local remotes = {}
 local buckets = {} -- [player] = { tokens, last }
 local dirty = {}
 
-local EVENTS = { "State", "Notify", "Encounters", "NodeState", "Raid", "Fx", "OpenPanel" }
+local EVENTS = { "State", "Notify", "Encounters", "NodeState", "Raid", "Fx", "OpenPanel", "Gifts" }
 
 function Net.Init(services)
 	S = services

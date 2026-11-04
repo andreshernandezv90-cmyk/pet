@@ -20,7 +20,7 @@ function ProfileSchema.Default()
 		playTime = 0,
 
 		res = { backpack = {}, storage = {} },
-		tools = { pick = 1, vacuum = 1 },
+		tools = { pick = 1, vacuum = 1, axe = 1 },
 		buildings = { sanctuary = 1, forge = 1, petStorage = 0, garden = 0, alchemy = 0, bait = 0, fusionLab = 0 },
 		decorations = {},
 		stations = stations,
@@ -53,6 +53,7 @@ function ProfileSchema.Default()
 		receiptOrder = {},
 
 		raidsJoined = 0,
+		giftsOpened = 0,
 
 		-- v2: Mundo PET continuo
 		world = {

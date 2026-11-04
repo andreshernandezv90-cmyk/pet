@@ -145,13 +145,20 @@ function Stats.MineDamage(agg, pickLevel)
 	return pick.damage * (1 + agg.stats.mineSpeed + agg.stats.mineDamage)
 end
 
+-- Dano por golpe de hacha (arboles)
+function Stats.ChopDamage(agg, axeLevel)
+	local axe = Items.Axes[axeLevel or 1] or Items.Axes[1]
+	return axe.damage * (1 + agg.stats.mineSpeed * 0.5)
+end
+
 -- Multiplicador de botin para un recurso
-function Stats.YieldMult(agg, resource)
+function Stats.YieldMult(agg, resource, axeLevel)
 	local m = 1 + agg.stats.oreYield
 	if resource == "cobre" then
 		m = m + agg.stats.copperFind
 	elseif resource == "madera" then
-		m = 1 + agg.stats.woodYield
+		local axe = Items.Axes[axeLevel or 1] or Items.Axes[1]
+		m = 1 + agg.stats.woodYield + axe.wood
 	end
 	return m
 end

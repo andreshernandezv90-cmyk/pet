@@ -156,6 +156,7 @@ end
 local function apply(pp, line, lv)
 	local id = line.id
 	if id == "pick" then pp.tools.pick = lv
+	elseif id == "axe" then pp.tools.axe = lv
 	elseif id == "vacuum" then pp.tools.vacuum = lv
 	elseif id == "sanctuary" then pp.buildings.sanctuary = lv
 	elseif id == "forge" then pp.buildings.forge = lv

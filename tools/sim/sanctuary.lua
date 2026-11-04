@@ -23,7 +23,7 @@ end
 -- 1. Distribucion: ninguna reserva se superpone con otra
 local items = {}
 local function circle(name, x, z, r) table.insert(items, { name = name, x = x, z = z, r = r }) end
-circle("portal", Layout.Portal.x, Layout.Portal.z, Layout.Portal.r)
+circle("fogata", Layout.Campfire.x, Layout.Campfire.z, Layout.Campfire.r)
 circle("spawn", Layout.Spawn.x, Layout.Spawn.z, Layout.Spawn.r)
 circle("letrero", Layout.Sign.x, Layout.Sign.z, Layout.Sign.r)
 circle("estanque", Layout.Pond.x, Layout.Pond.z, Layout.Pond.r + 3)
@@ -65,23 +65,39 @@ for id, s in pairs(Layout.Spots) do
 end
 check(#blocked == 0, "ninguna estacion tapa un camino " .. table.concat(blocked, ","))
 
--- 2. Las 8 parcelas tienen bosque, arboles talables y su portal
+-- 2. Las 8 parcelas tienen bosque, arboles talables, areas de trabajo y NINGUN portal propio
 check(#World.PlotCenters == 8, "8 parcelas")
 local plotsFolder = workspace.World.Hogar.Parcelas
 for i = 1, 8 do
 	local pf = plotsFolder:FindFirstChild("Parcela" .. i)
 	check(pf ~= nil and count(pf) > 200, "parcela " .. i .. " con bosque y decoracion (" .. count(pf) .. " partes)")
-	local portal = World.PlotPortals[i]
-	check(portal and portal:IsDescendantOf(pf), "parcela " .. i .. " tiene su portal")
+	check(pf:FindFirstChild("Portal", true) == nil, "parcela " .. i .. " sin portal propio")
+	local signs, arches = 0, 0
+	for _, d in ipairs(pf:GetDescendants()) do
+		if d.Name == "Letrero" then signs = signs + 1 end
+		if d.Name == "ArcoLetrero" then arches = arches + 1 end
+	end
+	check(signs >= 4 and arches == 2, "parcela " .. i .. ": letreros de areas (" .. signs .. " + " .. arches .. " arcos)")
+	check(pf:FindFirstChild("Fogata") ~= nil, "parcela " .. i .. ": fogata frente a la casa")
 	local chop = 0
 	for _, n in pairs(World.Nodes) do
 		if n.type == "tree" and n.model:IsDescendantOf(pf) then chop = chop + 1 end
 	end
 	check(chop >= 4, "parcela " .. i .. ": " .. chop .. " arboles talables")
 end
-local plotPortals = 0
-for _, p in ipairs(World.Portals) do if p.plot then plotPortals = plotPortals + 1 end end
-check(plotPortals == 8, "un portal por casa registrado para viajar")
+local central = 0
+for _, p in ipairs(World.Portals) do
+	check(not p.plot, "ningun portal por parcela registrado")
+	if p.central then central = central + 1 end
+end
+check(central == 1 and World.CentralPortal ~= nil, "un unico portal central en la plaza")
+-- terreno: el interior de las parcelas usa cesped corto (LeafyGrass), los caminos tierra
+local leafy, ground = 0, 0
+for _, o in ipairs(TERRAIN_OPS) do
+	if tostring(o.mat):find("LeafyGrass") then leafy = leafy + 1 end
+	if tostring(o.mat):find("Ground") then ground = ground + 1 end
+end
+check(leafy >= 8 and ground > 50, "cesped corto en parcelas y caminos de tierra clara")
 
 -- 3. La casa se construye en los 5 niveles con presupuesto razonable de partes
 local prev = 0
@@ -134,20 +150,60 @@ plotModel = workspace.Plots:FindFirstChild("Plot_" .. idx)
 local workers = 0
 for _, d in ipairs(plotModel:GetDescendants()) do if d.ClassName == "Model" and d.Name == "Lumi" then workers = workers + 1 end end
 check(workers == 1, "el trabajador aparece junto al extractor")
--- portal de la casa -> Mundo PET (en la Fase B: el Reino actual)
+-- portal central -> Mundo PET (en esta etapa: el Reino actual)
 local portalPrompt
-for _, p in ipairs(World.Portals) do if p.plot == idx then portalPrompt = p.prompt end end
-P.Character.HumanoidRootPart.__props.CFrame = S.Plots.SpawnCFrame(P)
+for _, p in ipairs(World.Portals) do if p.central then portalPrompt = p.prompt end end
+P.Character.HumanoidRootPart.__props.CFrame = World.Spawns.hub
 portalPrompt.Triggered:Fire(P)
 local pos = P.Character:GetPivot().Position
-check(World.AreaAt(pos) == "realm", "el portal de la casa lleva al Mundo PET")
+check(World.AreaAt(pos) == "realm", "el portal central lleva al Mundo PET")
+-- hacha por niveles: mejora el talado
+local Items = require(RS.Shared.Items)
+check(profile.tools.axe == 1, "hacha inicial: " .. Items.Axes[1].name)
+check(act("craft", { line = "axe" }).ok and profile.tools.axe == 2, "fabricar Hacha de piedra")
+local tree
+for _, n in pairs(World.Nodes) do
+	if n.type == "tree" and n.area == "home" then tree = n break end
+end
+P.Character.HumanoidRootPart.__props.CFrame = CFrame.new(tree.pos)
+local OFF = 0
+local realClock = os.clock
+os.clock = function() return realClock() + OFF end
+local hits = 0
+local before = profile.res.backpack.madera or 0
+for _ = 1, 10 do
+	OFF = OFF + 1
+	game:GetService("ProximityPromptService").PromptTriggered:Fire(tree.prompt, P)
+	hits = hits + 1
+	if (profile.res.backpack.madera or 0) > before then break end
+end
+os.clock = realClock
+check(hits == 2, "con Hacha de piedra un arbol cae en 2 golpes (" .. hits .. ")")
+P.Character.HumanoidRootPart.__props.CFrame = S.Plots.SpawnCFrame(P)
 -- spawn dentro de la parcela, frente a la casa
 local sp = S.Plots.SpawnCFrame(P)
 local lp = World.PlotCenters[idx]:PointToObjectSpace(sp.Position)
 check(math.abs(lp.X) < 2 and lp.Z < 0 and World.AreaAt(sp.Position) == "home", "aparicion frente a la casa")
 check(sp.LookVector:Dot((World.PlotCenters[idx] * CFrame.new(0, 4, 36)).Position - sp.Position) > 0, "al aparecer se mira hacia la casa")
 
--- 5. Presupuesto de partes del santuario
+-- 5. Regalos aleatorios: privados, validados y configurables por zona
+local giftsSeen = {}
+RS.Remotes.Gifts.OnClientEvent:Connect(function(list) giftsSeen = list end)
+P:SetAttribute("Area", "z1")
+S.Gifts.ForceSpawn(P, 1)
+check(#giftsSeen == 1, "aparece un regalo en la zona 1")
+local g = giftsSeen[1]
+P.Character.HumanoidRootPart.__props.CFrame = CFrame.new(g.x + 100, 3, g.z)
+check(not act("claimGift", { id = g.id }).ok, "no se abre desde lejos")
+P.Character.HumanoidRootPart.__props.CFrame = CFrame.new(g.x, 3, g.z)
+local opened0 = profile.giftsOpened
+local r = act("claimGift", { id = g.id })
+check(r.ok and profile.giftsOpened == opened0 + 1, "regalo abierto: " .. tostring(r.reward))
+check(not act("claimGift", { id = g.id }).ok and #giftsSeen == 0, "no se puede abrir dos veces")
+local WC = require(RS.Shared.WorldConfig)
+for z = 1, 5 do check(WC.Gifts.byZone[z] and WC.Gifts.byZone[z].chance <= 0.2, "zona " .. z .. ": regalos poco frecuentes") end
+
+-- 6. Presupuesto de partes del santuario
 local static = count(workspace.World.Hogar)
 check(static < 9000, "santuario estatico: " .. static .. " partes")
 print("ALL SANCTUARY TESTS PASSED")

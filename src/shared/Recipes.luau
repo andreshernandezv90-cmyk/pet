@@ -41,6 +41,23 @@ addLine({
 })
 
 addLine({
+	id = "axe", category = "tools", name = "Hacha",
+	get = function(p) return p.tools.axe or 1 end,
+	maxLevel = 5,
+	names = { "Hacha rustica", "Hacha de piedra", "Hacha de cobre", "Hacha de hierro", "Hacha de cristal" },
+	levels = {
+		[2] = { cost = { madera = 25, piedra = 30 } },
+		[3] = { cost = { madera = 60, cobre = 40 } },
+		[4] = { cost = { madera = 100, hierro = 60 } },
+		[5] = { cost = { madera = 160, lunar = 40, hongo = 20 } },
+	},
+	desc = function(lv)
+		local a = Items.Axes[lv]
+		return string.format("Tala %.1fx mas rapido y obtiene +%d%% de madera.", a.damage, a.wood * 100)
+	end,
+})
+
+addLine({
 	id = "vacuum", category = "tools", name = "Succionador",
 	get = function(p) return p.tools.vacuum end,
 	maxLevel = 5,

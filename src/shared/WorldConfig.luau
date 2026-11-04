@@ -165,6 +165,54 @@ WorldConfig.Beacons = {
 	cooldown = 5, -- segundos entre viajes
 }
 
+-- Regalos aleatorios por el Mundo PET ---------------------------------------------------
+-- Son privados por jugador (como los PETs salvajes) y poco frecuentes. Cada
+-- `checkInterval` segundos, si el jugador esta en una zona, se tira el dado con
+-- la probabilidad de esa zona. Las recompensas salen de una tabla ponderada que
+-- se puede cambiar sin tocar el codigo.
+WorldConfig.Gifts = {
+	enabled = true,
+	checkInterval = 45, -- segundos entre tiradas por jugador
+	maxActive = 1, -- regalos sin abrir a la vez por jugador
+	lifetime = 240, -- segundos antes de desaparecer
+	claimDistance = 14,
+	byZone = {
+		-- chance: probabilidad por tirada. rewards: lista ponderada.
+		--   kind = "resource" (id, min, max) | "essence" (de una especie de la zona, min, max)
+		--   kind = "potion" / "bait" (id, n)
+		[1] = { chance = 0.15, rewards = {
+			{ weight = 45, kind = "resource", id = "petalo", min = 3, max = 6 },
+			{ weight = 30, kind = "resource", id = "madera", min = 10, max = 20 },
+			{ weight = 20, kind = "essence", min = 5, max = 12 },
+			{ weight = 5, kind = "potion", id = "fortuna", n = 1 },
+		} },
+		[2] = { chance = 0.14, rewards = {
+			{ weight = 40, kind = "resource", id = "engranaje", min = 3, max = 6 },
+			{ weight = 30, kind = "resource", id = "cobre", min = 6, max = 12 },
+			{ weight = 25, kind = "essence", min = 8, max = 16 },
+			{ weight = 5, kind = "potion", id = "impulso", n = 1 },
+		} },
+		[3] = { chance = 0.13, rewards = {
+			{ weight = 40, kind = "resource", id = "hongo", min = 3, max = 6 },
+			{ weight = 30, kind = "resource", id = "hierro", min = 5, max = 10 },
+			{ weight = 25, kind = "essence", min = 10, max = 20 },
+			{ weight = 5, kind = "potion", id = "instinto", n = 1 },
+		} },
+		[4] = { chance = 0.12, rewards = {
+			{ weight = 40, kind = "resource", id = "elemental", min = 2, max = 5 },
+			{ weight = 30, kind = "resource", id = "lunar", min = 3, max = 6 },
+			{ weight = 25, kind = "essence", min = 12, max = 24 },
+			{ weight = 5, kind = "potion", id = "succion", n = 1 },
+		} },
+		[5] = { chance = 0.12, rewards = {
+			{ weight = 40, kind = "resource", id = "estelar", min = 2, max = 5 },
+			{ weight = 30, kind = "resource", id = "zuarita", min = 1, max = 3 },
+			{ weight = 25, kind = "essence", min = 15, max = 30 },
+			{ weight = 5, kind = "potion", id = "fortuna", n = 2 },
+		} },
+	},
+}
+
 function WorldConfig.Region(id)
 	return WorldConfig.Regions[id]
 end

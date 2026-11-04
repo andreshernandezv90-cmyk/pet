@@ -6,8 +6,7 @@ Sirven para revisar la composición y las proporciones entre fases. Studio se ve
 
 | Archivo | Qué muestra |
 |---|---|
-| `faseB-1-llegada.png` | Vista desde el punto de aparición: casa rústica (nivel 1) al centro y portal al Mundo PET a su lado. |
-| `faseB-2-casa-nivel1.png` | Casa deteriorada de nivel 1: tablas faltantes, lona, ventana tapiada, puerta entreabierta. |
-| `faseB-3-parcela-nivel4.png` | Parcela de nivel 4 desde arriba: casa de dos pisos, extractores, huerto, caldero, estanque y bosque. |
-| `faseB-4-casa-nivel5.png` | Casa de nivel 5: techo dimensional con cristales, balcón y jardineras. |
-| `faseB-5-plaza.png` | Plaza central: fuente mágica, bancos, faroles, caminos a las parcelas. |
+| `faseB2-llegada.png` | Llegada a la parcela: casa rústica (nivel 1), fogata, caminos claros y áreas señalizadas. |
+| `faseB2-parcela.png` | Parcela de nivel 4 desde arriba: patio de extractores, huerto con valla, laboratorios, terrazas del taller y del almacén. |
+| `faseB2-plaza-portal-central.png` | Plaza central con el gran portal dimensional, obeliscos y cristales en órbita. |
+| `mundo-pet-layout.png` | Plano de la propuesta del Mundo PET (ver `docs/MUNDO_PET_LAYOUT.md`). |

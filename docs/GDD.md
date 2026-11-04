@@ -41,6 +41,16 @@ Nota de control: números de producción, probabilidades, tiempos y precios son 
 | Parkours | Actividad de cada zona. | Se conservan como **actividades secundarias opcionales** con recompensas y cofres; no bloquean el progreso principal. |
 | Fabricación | — | **Ninguna receta puede exigir materiales que el jugador todavía no pueda recolectar**; los requisitos derivados se muestran en el Taller. |
 
+## Ajustes 1.1b (aprobados tras probar la Fase B)
+
+| Tema | Antes (1.1) | Vigente (1.1b) |
+|---|---|---|
+| Acceso al Mundo PET | Un portal frente a cada casa. | **Un único gran portal central** en la plaza del santuario, punto social de reunión. Las parcelas ya no tienen portal; frente a la casa hay una fogata. |
+| Hacha | — | Nueva herramienta con **5 niveles** (rústica, piedra, cobre, hierro, cristal): más daño al talar y más madera. Sus costos respetan la regla de materiales recolectables. |
+| Regalos | — | **Regalos aleatorios privados** por zona del Mundo PET, poco frecuentes y con recompensas configurables (`WorldConfig.Gifts`). |
+| Legibilidad del santuario | — | Pasto animado corto y solo en bordes boscosos; césped limpio en zonas transitables; caminos claros; áreas de trabajo con suelo, borde y letrero propios. |
+| Layout del Mundo PET | Bosque continuo de 5 regiones. | Concretado en `docs/MUNDO_PET_LAYOUT.md`: campamento con NPCs al oeste, zonas de oeste a este, minas al norte, bosque y retos al sur. |
+
 ## Minerales por región (probabilidad por ciclo de generación, configurable)
 
 Los porcentajes indican la probabilidad de que un recurso aparezca en un ciclo de generación de nodos de esa mina. No son excluyentes ni deben sumar 100%.
@@ -731,7 +741,7 @@ Los números exactos deben probarse con sesiones de juego y métricas. Este docu
 
 35. La colección debe poder completarse sin compras gracias al almacenamiento del santuario.
 
-36. *(1.1)* Hay un único portal por parcela, frente a la casa, que conecta el santuario con la entrada del Mundo PET.
+36. *(1.1b)* Hay un único gran portal central en la plaza del santuario que conecta con la entrada del Mundo PET (reemplaza al portal por parcela de la 1.1).
 
 37. *(1.1)* Las barreras entre regiones son individuales y permanentes por jugador; el servidor impide el paso a regiones no desbloqueadas.
 
@@ -740,6 +750,10 @@ Los números exactos deben probarse con sesiones de juego y métricas. Este docu
 39. *(1.1)* Los faros de viaje rápido se activan al visitar una región y solo llevan a regiones desbloqueadas.
 
 40. *(1.1)* Ninguna receta exige materiales que el jugador todavía no pueda recolectar.
+
+41. *(1.1b)* El hacha tiene cinco niveles; el pico, el hacha y el succionador se muestran siempre en el HUD.
+
+42. *(1.1b)* Los regalos del Mundo PET son privados por jugador, poco frecuentes y validados por el servidor.
 
 # Anexo B. Guía de entrega para Astra
 

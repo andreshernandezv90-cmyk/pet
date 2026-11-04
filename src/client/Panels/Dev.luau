@@ -15,6 +15,7 @@ function Dev.render(root)
 		{ "unlock", "Desbloquear herramientas, edificios y zonas", K.C.accent },
 		{ "pets", "+3 de cada variante (63) y +2000 esencias", K.C.gold },
 		{ "raid", "Iniciar incursion ahora", Color3.fromRGB(220, 70, 110) },
+		{ "gift", "Crear un regalo en mi zona", Color3.fromRGB(255, 170, 60) },
 		{ "reset", "Reiniciar mi perfil", K.C.bad },
 	}
 	for i, c in ipairs(cmds) do

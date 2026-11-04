@@ -9,15 +9,15 @@ local M = Enum.Material
 
 -- Paleta estilizada (colores mas vivos que los de fabrica)
 local COLORS = {
-	{ M.Grass, Color3.fromRGB(104, 178, 76) },
-	{ M.LeafyGrass, Color3.fromRGB(82, 152, 66) },
-	{ M.Ground, Color3.fromRGB(150, 112, 76) },
+	{ M.Grass, Color3.fromRGB(98, 170, 72) },
+	{ M.LeafyGrass, Color3.fromRGB(112, 182, 84) }, -- cesped corto y limpio de las zonas transitables
+	{ M.Ground, Color3.fromRGB(198, 160, 110) }, -- caminos de tierra clara, faciles de leer
 	{ M.Mud, Color3.fromRGB(116, 86, 62) },
 	{ M.Rock, Color3.fromRGB(126, 122, 132) },
 	{ M.Slate, Color3.fromRGB(110, 108, 118) },
 	{ M.Sand, Color3.fromRGB(226, 206, 160) },
 	{ M.Cobblestone, Color3.fromRGB(168, 160, 150) },
-	{ M.Pavement, Color3.fromRGB(176, 170, 160) },
+	{ M.Pavement, Color3.fromRGB(196, 190, 178) },
 	{ M.Basalt, Color3.fromRGB(70, 66, 80) },
 	{ M.CrackedLava, Color3.fromRGB(255, 120, 50) },
 	{ M.Salt, Color3.fromRGB(230, 225, 240) },
@@ -30,8 +30,14 @@ function Terrain.Init()
 			T:SetMaterialColor(c[1], c[2])
 		end)
 	end
+	-- Pasto animado solo sobre el material Grass (bosques y bordes) y corto, para
+	-- no tapar la vista. Las zonas transitables usan LeafyGrass (cesped sin hojas
+	-- altas), tierra o piedra.
 	pcall(function()
-		T.Decoration = true -- pasto animado (si la experiencia lo permite)
+		T.Decoration = true
+	end)
+	pcall(function()
+		T.GrassLength = 0.3
 	end)
 	pcall(function()
 		T.WaterColor = Color3.fromRGB(70, 170, 200)

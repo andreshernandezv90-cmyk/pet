@@ -485,54 +485,146 @@ function Props.Sign(parent, cf, text, width, textColor)
 end
 
 -- Portal magico: anillo ovalado de piedras con runas y superficie luminosa.
--- cf: centro de la base, mirando hacia -Z. Devuelve el modelo y la superficie.
-function Props.Portal(parent, cf, color, rng)
+-- cf: centro de la base, mirando hacia -Z. k: escala (1 = normal).
+-- Devuelve el modelo y la superficie.
+function Props.Portal(parent, cf, color, rng, k)
+	k = k or 1
 	local m = model(parent, "Portal")
 	local stone = Color3.fromRGB(128, 120, 146)
-	-- Estrado de dos escalones
-	Part(m, cf * CFrame.new(0, 0.3, 0) * CFrame.Angles(0, 0, RAD90), Vector3.new(0.6, 15, 15), Color3.fromRGB(116, 110, 126), M.Slate,
-		{ Shape = Enum.PartType.Cylinder, CanCollide = true })
-	Part(m, cf * CFrame.new(0, 0.8, 0) * CFrame.Angles(0, 0, RAD90), Vector3.new(0.5, 11, 11), Color3.fromRGB(140, 134, 150), M.Slate,
-		{ Shape = Enum.PartType.Cylinder, CanCollide = true })
-	local a, b, cy = 5.2, 6.6, 7.6
-	local n = 16
+	Part(m, cf * CFrame.new(0, 0.3 * k, 0) * CFrame.Angles(0, 0, RAD90), Vector3.new(0.6 * k, 15 * k, 15 * k), Color3.fromRGB(116, 110, 126),
+		M.Slate, { Shape = Enum.PartType.Cylinder, CanCollide = true })
+	Part(m, cf * CFrame.new(0, 0.8 * k, 0) * CFrame.Angles(0, 0, RAD90), Vector3.new(0.5 * k, 11 * k, 11 * k), Color3.fromRGB(140, 134, 150),
+		M.Slate, { Shape = Enum.PartType.Cylinder, CanCollide = true })
+	local a, b, cy = 5.2 * k, 6.6 * k, 7.6 * k
+	local n = k > 1.5 and 22 or 16
 	for i = 0, n - 1 do
 		local t = (i / n) * math.pi * 2
 		local px, py = a * math.cos(t), cy + b * math.sin(t)
-		-- tangente de la elipse para orientar la piedra
 		local ang = math.atan2(b * math.cos(t), -a * math.sin(t))
-		local scl = rng:NextNumber(0.9, 1.15)
+		local scl = rng:NextNumber(0.9, 1.15) * k
 		local sc = cf * CFrame.new(px, py, 0) * CFrame.Angles(0, 0, ang) * CFrame.Angles(rng:NextNumber(-0.08, 0.08), 0, 0)
-		Part(m, sc, Vector3.new(2.3 * scl, 1.6 * scl, 1.8 * scl), vary(stone, rng, 0.08), M.Slate, { CanCollide = true })
+		Part(m, sc, Vector3.new(2.3 * scl * (n == 22 and 0.85 or 1), 1.6 * scl, 1.8 * scl), vary(stone, rng, 0.08), M.Slate, { CanCollide = true })
 		if i % 2 == 0 then
-			Part(m, sc * CFrame.new(0, 0, -0.95 * scl), Vector3.new(0.7, 0.5, 0.1), color, M.Neon, { CastShadow = false })
+			Part(m, sc * CFrame.new(0, 0, -0.95 * scl), Vector3.new(0.7 * k, 0.5 * k, 0.1), color, M.Neon, { CastShadow = false })
 		end
 	end
-	-- piedra clave con gema
-	Part(m, cf * CFrame.new(0, cy + b + 0.6, 0), Vector3.new(2.6, 2.4, 2.2), stone:Lerp(Color3.new(1, 1, 1), 0.1), M.Slate)
-	Blob(m, cf * CFrame.new(0, cy + b + 0.7, -1.1), Vector3.new(1.1, 1.3, 0.6), color, M.Neon, { CastShadow = false })
-	-- superficie del portal
-	local gate = Blob(m, cf * CFrame.new(0, cy, 0), Vector3.new(2 * a - 1.2, 2 * b - 1.2, 0.35), color, M.Neon,
+	Part(m, cf * CFrame.new(0, cy + b + 0.6 * k, 0), Vector3.new(2.6, 2.4, 2.2) * k, stone:Lerp(Color3.new(1, 1, 1), 0.1), M.Slate)
+	Blob(m, cf * CFrame.new(0, cy + b + 0.7 * k, -1.1 * k), Vector3.new(1.1, 1.3, 0.6) * k, color, M.Neon, { CastShadow = false })
+	local gate = Blob(m, cf * CFrame.new(0, cy, 0), Vector3.new(2 * a - 1.2 * k, 2 * b - 1.2 * k, 0.35 * k), color, M.Neon,
 		{ Transparency = 0.3, CastShadow = false, Name = "Gate" })
-	local swirl = Blob(m, cf * CFrame.new(0, cy, -0.12), Vector3.new(2 * a - 4, 2 * b - 4.5, 0.2), color:Lerp(Color3.new(1, 1, 1), 0.45),
-		M.Neon, { Transparency = 0.45, CastShadow = false, Name = "Swirl" })
+	local swirl = Blob(m, cf * CFrame.new(0, cy, -0.12 * k), Vector3.new(2 * a - 4 * k, 2 * b - 4.5 * k, 0.2 * k),
+		color:Lerp(Color3.new(1, 1, 1), 0.45), M.Neon, { Transparency = 0.45, CastShadow = false, Name = "Swirl" })
 	CollectionService:AddTag(swirl, "PortalSwirl")
 	local light = Instance.new("PointLight")
 	light.Color = color
-	light.Range = 22
+	light.Range = math.min(60, 22 * k)
 	light.Brightness = 2
 	light.Parent = gate
 	local e = Instance.new("ParticleEmitter")
 	e.Color = ColorSequence.new(color:Lerp(Color3.new(1, 1, 1), 0.5))
 	e.LightEmission = 1
-	e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 0) })
+	e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35 * k), NumberSequenceKeypoint.new(1, 0) })
 	e.Lifetime = NumberRange.new(1.2, 2)
-	e.Rate = 7
+	e.Rate = 7 * k
 	e.Speed = NumberRange.new(1, 2.5)
 	e.SpreadAngle = Vector2.new(30, 30)
 	e.EmissionDirection = Enum.NormalId.Front
 	e.Parent = gate
 	return m, gate
+end
+
+-- Letrero en arco sobre un camino (postes altos y tablero arriba)
+function Props.ArchSign(parent, cf, text, width, color)
+	local m = model(parent, "ArcoLetrero")
+	local wood = Color3.fromRGB(110, 80, 56)
+	for _, x in ipairs({ -width / 2, width / 2 }) do
+		Part(m, cf * CFrame.new(x, 3.6, 0), Vector3.new(0.7, 7.2, 0.7), wood, M.Wood, { CanCollide = true })
+		Blob(m, cf * CFrame.new(x, 7.4, 0), Vector3.new(1, 1, 1), color or Color3.fromRGB(255, 220, 140), M.Neon, { CastShadow = false })
+	end
+	Part(m, cf * CFrame.new(0, 6.6, 0), Vector3.new(width + 1.4, 0.5, 0.6), wood, M.Wood)
+	local board = Part(m, cf * CFrame.new(0, 5.5, -0.2), Vector3.new(width - 0.6, 2, 0.3), Color3.fromRGB(176, 132, 86), M.WoodPlanks)
+	for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 40
+		gui.LightInfluence = 0.4
+		gui.Parent = board
+		local t = Instance.new("TextLabel")
+		t.BackgroundTransparency = 1
+		t.Size = UDim2.new(1, -12, 1, -6)
+		t.Position = UDim2.new(0, 6, 0, 3)
+		t.Font = Enum.Font.FredokaOne
+		t.TextScaled = true
+		t.TextColor3 = Color3.fromRGB(255, 246, 215)
+		t.TextStrokeTransparency = 0.4
+		t.Text = text
+		t.Parent = gui
+	end
+	return m
+end
+
+-- Fogata acogedora con troncos y piedras
+function Props.Campfire(parent, pos, rng)
+	local m = model(parent, "Fogata")
+	for i = 0, 7 do
+		local a = i / 8 * math.pi * 2
+		Part(m, CFrame.new(pos + Vector3.new(math.cos(a) * 2.2, 0.35, math.sin(a) * 2.2)) * CFrame.Angles(0, a, rng:NextNumber(-0.2, 0.2)),
+			Vector3.new(1.2, 0.8, 1), vary(Color3.fromRGB(130, 126, 120), rng, 0.1), M.Slate, { CanCollide = true })
+	end
+	for i = 0, 3 do
+		local a = i / 4 * math.pi * 2 + 0.4
+		Beam(m, pos + Vector3.new(math.cos(a) * 1.3, 0.25, math.sin(a) * 1.3), pos + Vector3.new(0, 1.3, 0), 0.5,
+			Color3.fromRGB(110, 76, 50), M.Wood)
+	end
+	local flame = Blob(m, CFrame.new(pos + Vector3.new(0, 1.1, 0)), Vector3.new(1.4, 2, 1.4), Color3.fromRGB(255, 150, 50), M.Neon,
+		{ Transparency = 0.2, CastShadow = false })
+	local fire = Instance.new("Fire")
+	fire.Size = 4
+	fire.Heat = 6
+	fire.Color = Color3.fromRGB(255, 130, 40)
+	fire.SecondaryColor = Color3.fromRGB(255, 220, 120)
+	fire.Parent = flame
+	local l = Instance.new("PointLight")
+	l.Color = Color3.fromRGB(255, 160, 80)
+	l.Range = 18
+	l.Brightness = 1.6
+	l.Parent = flame
+	-- troncos para sentarse
+	for _, a in ipairs({ 0.6, 2.4, 4.3 }) do
+		local c = pos + Vector3.new(math.cos(a) * 5, 0.6, math.sin(a) * 5)
+		local dir = Vector3.new(-math.sin(a), 0, math.cos(a)) * 1.8
+		Beam(m, c - dir, c + dir, 1.2, Color3.fromRGB(120, 86, 58), M.Wood, { CanCollide = true })
+	end
+	return m
+end
+
+-- Valla de estacas pintadas (huerto)
+function Props.Picket(parent, a, b, rng, color)
+	local m = model(parent, "Valla")
+	color = color or Color3.fromRGB(236, 226, 206)
+	local d = b - a
+	local n = math.max(1, math.floor(d.Magnitude / 1.4))
+	for i = 0, n do
+		local p = a + d * (i / n)
+		Part(m, CFrame.new(p + Vector3.new(0, 1.1, 0)) * CFrame.Angles(0, math.atan2(d.X, d.Z), 0), Vector3.new(0.5, 2.2, 0.25),
+			vary(color, rng, 0.04), M.WoodPlanks, { CanCollide = true })
+	end
+	Beam(m, a + Vector3.new(0, 1.5, 0), b + Vector3.new(0, 1.5, 0), 0.25, color:Lerp(Color3.new(0, 0, 0), 0.15), M.Wood)
+	return m
+end
+
+-- Bordillo de piedras bajas (separa zonas sin tapar la vista)
+function Props.Curb(parent, a, b, rng)
+	local m = model(parent, "Bordillo")
+	local d = b - a
+	local n = math.max(1, math.floor(d.Magnitude / 2.2))
+	for i = 0, n - 1 do
+		local p = a + d * ((i + 0.5) / n)
+		Part(m, CFrame.new(p + Vector3.new(0, 0.4, 0)) * CFrame.Angles(0, math.atan2(d.X, d.Z) + rng:NextNumber(-0.08, 0.08), 0),
+			Vector3.new(1.2, 0.8, d.Magnitude / n - 0.15), vary(Color3.fromRGB(170, 164, 154), rng, 0.08), M.Slate, { CanCollide = true })
+	end
+	return m
 end
 
 return Props

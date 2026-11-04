@@ -26,6 +26,7 @@ function DevTools.Init(services)
 		elseif cmd == "unlock" then
 			profile.tools.pick = 5
 			profile.tools.vacuum = 5
+			profile.tools.axe = 5
 			profile.buildings.sanctuary = 5
 			profile.buildings.forge = 2
 			profile.buildings.garden = 5
@@ -65,6 +66,13 @@ function DevTools.Init(services)
 				return { ok = true, msg = "La incursion se anunciara en un segundo." }
 			end
 			return { ok = false, msg = "Ya hay una incursion en curso." }
+		elseif cmd == "gift" then
+			local zone = S.World.ZoneOfArea(player:GetAttribute("Area"))
+			if not zone then
+				return { ok = false, msg = "Entra a una zona del Mundo PET para probar los regalos." }
+			end
+			S.Gifts.ForceSpawn(player, zone)
+			return { ok = true, msg = "Regalo de prueba creado en tu zona." }
 		elseif cmd == "reset" then
 			local fresh = ProfileSchema.Default()
 			fresh.createdAt = os.time()

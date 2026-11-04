@@ -112,7 +112,8 @@ src/server/   → ServerScriptService.Server
       StationArt.luau       Aspecto de cada estación (forja, caldero, reactor, torres de extracción, huerto)
       PlotLayout.luau       Distribución de la parcela y reservas (nada tapa estaciones ni caminos)
       Lighting.luau         Atmósfera, cielo, bloom y rayos de sol
-      Home.luau             Santuario: plaza con fuente, 8 parcelas-bosque con su portal, bosque exterior
+      Home.luau             Santuario: plaza con el gran portal central, 8 parcelas-bosque con áreas
+                            de trabajo señalizadas, bosque exterior
       Mines.luau, Realm.luau  Minas y Reino actuales (se rediseñan en las fases C y D)
     DataService.luau        DataStore: bloqueo de sesión, reintentos, autosave, BindToClose
     Net.luau                Remotos, límite de frecuencia y sincronización de estado
@@ -128,6 +129,7 @@ src/server/   → ServerScriptService.Server
     Fusion.luau             Resonancia Dimensional (20 min, recarga 30 min, VIP 2 simultáneas y 24 min)
     Raid.luau               Incursiones: barrera → pilares y ondas → resonancia final → recompensa privada
     Commerce.luau           Recibos idempotentes, VIP y cosméticos
+    Gifts.luau              Regalos aleatorios privados por zona (WorldConfig.Gifts)
     DevTools.luau           Atajos de prueba (solo Studio)
 src/client/   → StarterPlayerScripts.Client
   init.client.luau          Arranque del cliente
@@ -137,6 +139,7 @@ src/client/   → StarterPlayerScripts.Client
   Encounters.luau           PETs salvajes locales + captura con ProximityPrompt
   Followers.luau            Compañeros y fusiones de todos los jugadores, estela, alas, VIP
   WorldFx.luau              Iluminación por zona, gravedad, poderes de los PETs, trampolines, ondas
+  Gifts.luau                Regalos del jugador y su apertura
 ```
 
 ## 5. Correspondencia con el GDD
@@ -192,6 +195,8 @@ python3 tools/preview/render.py scene.json vista.png --plot 1 --view spawn
 
 Vistas disponibles: `spawn`, `house`, `house2`, `front`, `aerial`, `plaza`, `overview`. En `docs/previews/` hay ejemplos.
 
+`python3 tools/preview/layout_map.py docs/previews/mundo-pet-layout.png` dibuja el plano de la propuesta del Mundo PET.
+
 ### Pruebas automáticas fuera de Roblox
 
 `tools/sim/` contiene un simulador mínimo de la API de Roblox para ejecutar el juego real con Lua 5.4. Ejecuta las pruebas desde la raíz del proyecto:
@@ -217,7 +222,7 @@ Qué cubre cada prueba:
 - `shared.lua`: reglas del GDD (63 variantes, 6750 esencias, pilas de 50, mochila, recetas y topes).
 - `smoke.lua`: arranque del servidor, entrada de un jugador, captura, todas las recetas, estaciones, offline, huerto, alquimia, equipo, Reactor con nonce, niveles 0→5, fusiones con VIP, tienda, guardado con bloqueo y los 10 paneles de la interfaz.
 - `raid.lua`: bucles reales (áreas, caídas, zonas bloqueadas) y una incursión completa con recompensa.
-- `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables y portal en las 8 parcelas, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, viaje por el portal de la casa y presupuesto de partes.
+- `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables, áreas señalizadas y fogata en las 8 parcelas, portal central único, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, hacha por niveles, regalos (privados, validados y únicos) y presupuesto de partes.
 
 ## 8. Pendiente para fases posteriores (según el GDD)
 

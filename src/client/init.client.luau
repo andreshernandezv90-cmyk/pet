@@ -8,6 +8,7 @@ local UI = require(script.UI)
 local Encounters = require(script.Encounters)
 local Followers = require(script.Followers)
 local WorldFx = require(script.WorldFx)
+local Gifts = require(script.Gifts)
 
 local Panels = script:WaitForChild("Panels")
 
@@ -45,6 +46,7 @@ end)
 Encounters.Init()
 Followers.Init()
 WorldFx.Init()
+Gifts.Init()
 
 pcall(function()
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)

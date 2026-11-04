@@ -23,6 +23,8 @@ UI.Panels = {}
 UI.current = nil
 
 local gui, hudTop, objectiveLabel, areaLabel, chips, toastHolder, window, windowTitle, content, raidBanner, shotButton
+local progressGrid, progressToggle
+local progressOpen = true
 local depositButton, popup
 local lastScroll = {}
 
@@ -233,9 +235,8 @@ function UI.RefreshHud()
 	local list = {
 		{ "🎒 " .. bp .. "/" .. bpCap, bp >= bpCap and K.C.bad or nil },
 		{ "🫙 " .. tank .. "/" .. tankCap, tank >= tankCap and K.C.bad or nil },
-		{ "⛏️ " .. Items.Picks[d.tools.pick].name },
-		{ "🌀 Succ. Nv." .. d.tools.vacuum },
 	}
+	UI.RefreshProgress(d)
 	if d.activeBait and (d.items.baits[d.activeBait] or 0) > 0 then
 		local b = Items.Baits[d.activeBait]
 		table.insert(list, { b.icon .. " x" .. d.items.baits[d.activeBait] })
@@ -255,6 +256,47 @@ function UI.RefreshHud()
 		l.Parent = chips
 	end
 	depositButton.Visible = area == "home" and (bp > 0 or tank > 0)
+end
+
+-- Tarjeta de progreso: herramientas, extractores y materiales basicos de un vistazo
+local STATION_SHORT = { stone = "🪨", copper = "🟠", iron = "⛓️", moon = "🌙", zuarita = "💎", nexus = "🌀" }
+
+function UI.RefreshProgress(d)
+	if not progressGrid then
+		return
+	end
+	for _, c in ipairs(progressGrid:GetChildren()) do
+		if c:IsA("TextLabel") then
+			c:Destroy()
+		end
+	end
+	progressGrid.Visible = progressOpen
+	progressToggle.Text = progressOpen and "▾ Progreso" or "▸ Progreso"
+	if not progressOpen then
+		return
+	end
+	local axe = d.tools.axe or 1
+	local stations = {}
+	for _, id in ipairs({ "stone", "copper", "iron", "moon", "zuarita", "nexus" }) do
+		local lv = d.stations[id] and d.stations[id].level or 0
+		if lv > 0 then
+			table.insert(stations, STATION_SHORT[id] .. lv)
+		end
+	end
+	local function total(id)
+		return PetStore.ResTotal(d, id)
+	end
+	local rows = {
+		"⛏️ " .. Items.Picks[d.tools.pick].name .. "  " .. K.color(d.tools.pick .. "/5", K.C.muted),
+		"🪓 " .. Items.Axes[axe].name .. "  " .. K.color(axe .. "/5", K.C.muted),
+		"🌀 " .. Items.Vacuums[d.tools.vacuum].name .. "  " .. K.color(d.tools.vacuum .. "/5", K.C.muted),
+		"🏭 Extractores: " .. (#stations > 0 and table.concat(stations, " ") or K.color("ninguno", K.C.warn)),
+		"🪵 Madera " .. K.fmtNum(total("madera")) .. "   🪨 Piedra " .. K.fmtNum(total("piedra")),
+		"🏠 Santuario Nv." .. d.buildings.sanctuary .. "   🔓 Zona " .. d.zones.unlocked .. "/5",
+	}
+	for i, r in ipairs(rows) do
+		K.text(r, 14, K.C.text, { LayoutOrder = i, Parent = progressGrid })
+	end
 end
 
 local BUTTONS = {
@@ -340,6 +382,25 @@ function UI.Init()
 	}, { K.corner(12), K.pad(10), K.vlist(4) })
 	areaLabel = K.title("Portal Pets", 20, { Parent = hudTop, LayoutOrder = 1 })
 	objectiveLabel = K.text("Cargando tu perfil...", 15, K.C.gold, { Parent = hudTop, LayoutOrder = 2 })
+	progressToggle = K.new("TextButton", {
+		Text = "▾ Progreso",
+		TextSize = 14,
+		Font = K.Bold,
+		TextColor3 = K.C.muted,
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Size = UDim2.new(1, 0, 0, 20),
+		LayoutOrder = 3,
+		Parent = hudTop,
+	})
+	progressToggle.Activated:Connect(function()
+		progressOpen = not progressOpen
+		if State.data then
+			UI.RefreshProgress(State.data)
+		end
+	end)
+	progressGrid = K.new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 4, Parent = hudTop }, { K.vlist(1) })
 
 	-- Chips (arriba derecha)
 	chips = K.new("Frame", {
