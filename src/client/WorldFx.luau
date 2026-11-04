@@ -21,8 +21,8 @@ local cc -- ColorCorrection
 local atmosphere
 
 local LOOKS = {
-	home = { clock = 14.5, ambient = Color3.fromRGB(120, 120, 130), outdoor = Color3.fromRGB(140, 140, 150), bright = 2,
-		tint = Color3.fromRGB(255, 255, 255), fog = 900, fogColor = Color3.fromRGB(190, 220, 255) },
+	home = { clock = 15.6, ambient = Color3.fromRGB(112, 106, 122), outdoor = Color3.fromRGB(142, 136, 150), bright = 2.4,
+		tint = Color3.fromRGB(255, 250, 240), fog = 1400, fogColor = Color3.fromRGB(205, 220, 240) },
 	mines = { clock = 17.5, ambient = Color3.fromRGB(90, 80, 75), outdoor = Color3.fromRGB(110, 95, 85), bright = 1.4,
 		tint = Color3.fromRGB(255, 235, 215), fog = 500, fogColor = Color3.fromRGB(110, 90, 80) },
 	realm = { clock = 16, ambient = Color3.fromRGB(120, 100, 150), outdoor = Color3.fromRGB(150, 120, 190), bright = 2,
@@ -321,6 +321,32 @@ function WorldFx.Init()
 				m:PivotTo(w.base * CFrame.new(0, math.abs(math.sin(w.phase)) * 0.8, 0) * CFrame.Angles(0, math.sin(w.phase * 0.5) * 0.4, 0))
 			else
 				workers[m] = nil
+			end
+		end
+	end)
+
+	-- Portales: el remolino interior gira lentamente (solo visual, local)
+	local swirls = {}
+	local function addSwirl(p)
+		if p:IsA("BasePart") then
+			swirls[p] = p.CFrame
+		end
+	end
+	for _, p in ipairs(CollectionService:GetTagged("PortalSwirl")) do
+		addSwirl(p)
+	end
+	CollectionService:GetInstanceAddedSignal("PortalSwirl"):Connect(addSwirl)
+	CollectionService:GetInstanceRemovedSignal("PortalSwirl"):Connect(function(p)
+		swirls[p] = nil
+	end)
+	local spin = 0
+	RunService.RenderStepped:Connect(function(dt)
+		spin = spin + dt * 0.8
+		for p, base in pairs(swirls) do
+			if p.Parent then
+				p.CFrame = base * CFrame.Angles(0, 0, spin)
+			else
+				swirls[p] = nil
 			end
 		end
 	end)

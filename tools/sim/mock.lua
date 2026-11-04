@@ -33,36 +33,98 @@ V3.__eq = function(a, b) return a.X == b.X and a.Y == b.Y and a.Z == b.Z end
 Vector3 = { new = function(x, y, z) return setmetatable({ X = x or 0, Y = y or 0, Z = z or 0 }, V3) end }
 Vector3.zero = Vector3.new(0, 0, 0)
 
--- CFrame (solo posicion; la rotacion se ignora) ---------------------------
+-- CFrame con rotacion real (matriz 3x3 por columnas: right, up, back) ----------
 local CF = {}
+local function mat(r00, r01, r02, r10, r11, r12, r20, r21, r22)
+	return { r00, r01, r02, r10, r11, r12, r20, r21, r22 }
+end
+local IDM = mat(1, 0, 0, 0, 1, 0, 0, 0, 1)
+local function mmul(a, b)
+	local r = {}
+	for i = 0, 2 do
+		for j = 0, 2 do
+			r[i * 3 + j + 1] = a[i * 3 + 1] * b[j + 1] + a[i * 3 + 2] * b[3 + j + 1] + a[i * 3 + 3] * b[6 + j + 1]
+		end
+	end
+	return r
+end
+local function mvec(m, v)
+	return Vector3.new(m[1] * v.X + m[2] * v.Y + m[3] * v.Z, m[4] * v.X + m[5] * v.Y + m[6] * v.Z, m[7] * v.X + m[8] * v.Y + m[9] * v.Z)
+end
+local function mt(m) return mat(m[1], m[4], m[7], m[2], m[5], m[8], m[3], m[6], m[9]) end
+local function newCF(p, m) return setmetatable({ p = p, m = m or IDM }, CF) end
 CF.__index = function(c, k)
 	if k == "Position" then return c.p end
-	if k == "LookVector" then return Vector3.new(0, 0, -1) end
 	if k == "X" then return c.p.X end
 	if k == "Y" then return c.p.Y end
 	if k == "Z" then return c.p.Z end
-	if k == "Inverse" then return function(self) return CFrame.new(-self.p.X, -self.p.Y, -self.p.Z) end end
-	if k == "Lerp" then return function(a, b, t) return CFrame.new(a.p + (b.p - a.p) * t) end end
+	if k == "LookVector" then return Vector3.new(-c.m[3], -c.m[6], -c.m[9]) end
+	if k == "RightVector" then return Vector3.new(c.m[1], c.m[4], c.m[7]) end
+	if k == "UpVector" then return Vector3.new(c.m[2], c.m[5], c.m[8]) end
+	if k == "Rotation" then return newCF(Vector3.new(0, 0, 0), c.m) end
+	if k == "Inverse" then return function(self) local it = mt(self.m); return newCF(-mvec(it, self.p), it) end end
+	if k == "Lerp" then return function(a, b, t) return newCF(a.p + (b.p - a.p) * t, a.m) end end
+	if k == "PointToObjectSpace" then return function(self, v) return mvec(mt(self.m), v - self.p) end end
+	if k == "PointToWorldSpace" then return function(self, v) return self.p + mvec(self.m, v) end end
+	if k == "VectorToWorldSpace" then return function(self, v) return mvec(self.m, v) end end
+	if k == "GetComponents" then return function(self) local m = self.m; return self.p.X, self.p.Y, self.p.Z, m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9] end end
 	return nil
 end
 CF.__mul = function(a, b)
-	if getmetatable(b) == V3 then return a.p + b end
-	return CFrame.new(a.p + b.p)
+	if getmetatable(b) == V3 then return a.p + mvec(a.m, b) end
+	return newCF(a.p + mvec(a.m, b.p), mmul(a.m, b.m))
 end
-CF.__add = function(a, b) return CFrame.new(a.p + b) end
+CF.__add = function(a, b) return newCF(a.p + b, a.m) end
 CF.__sub = function(a, b)
-	if getmetatable(b) == V3 then return CFrame.new(a.p - b) end
-	return CFrame.new(a.p - b.p)
+	if getmetatable(b) == V3 then return newCF(a.p - b, a.m) end
+	return newCF(a.p - b.p, a.m)
 end
-CF.__eq = function(a, b) return a.p == b.p end
+CF.__eq = function(a, b) if not (a.p == b.p) then return false end for i = 1, 9 do if math.abs(a.m[i] - b.m[i]) > 1e-9 then return false end end return true end
+local function rx(a) local c, s = math.cos(a), math.sin(a); return mat(1, 0, 0, 0, c, -s, 0, s, c) end
+local function ry(a) local c, s = math.cos(a), math.sin(a); return mat(c, 0, s, 0, 1, 0, -s, 0, c) end
+local function rz(a) local c, s = math.cos(a), math.sin(a); return mat(c, -s, 0, s, c, 0, 0, 0, 1) end
 CFrame = {
-	new = function(x, y, z)
-		if type(x) == "table" then return setmetatable({ p = x }, CF) end
-		return setmetatable({ p = Vector3.new(x or 0, y or 0, z or 0) }, CF)
+	new = function(x, y, z, ...)
+		local extra = { ... }
+		if type(x) == "table" then
+			if y then return CFrame.lookAt(x, y) end
+			return newCF(x)
+		end
+		if #extra == 9 then return newCF(Vector3.new(x, y, z), mat(table.unpack(extra))) end
+		return newCF(Vector3.new(x or 0, y or 0, z or 0))
 	end,
-	Angles = function() return setmetatable({ p = Vector3.new() }, CF) end,
-	lookAt = function(p) return setmetatable({ p = p }, CF) end,
+	Angles = function(a, b, c) return newCF(Vector3.new(0, 0, 0), mmul(mmul(rx(a or 0), ry(b or 0)), rz(c or 0))) end,
+	lookAt = function(at, target, up)
+		up = up or Vector3.new(0, 1, 0)
+		local look = (target - at).Unit
+		local right = Vector3.new(look.Y * up.Z - look.Z * up.Y, look.Z * up.X - look.X * up.Z, look.X * up.Y - look.Y * up.X)
+		if right.Magnitude < 1e-6 then right = Vector3.new(1, 0, 0) end
+		right = right.Unit
+		local u = Vector3.new(right.Y * look.Z - right.Z * look.Y, right.Z * look.X - right.X * look.Z, right.X * look.Y - right.Y * look.X)
+		return newCF(at, mat(right.X, u.X, -look.X, right.Y, u.Y, -look.Y, right.Z, u.Z, -look.Z))
+	end,
+	fromAxisAngle = function(axis, a)
+		local u = axis.Unit
+		local c, s, t = math.cos(a), math.sin(a), 1 - math.cos(a)
+		return newCF(Vector3.new(0, 0, 0), mat(t * u.X * u.X + c, t * u.X * u.Y - s * u.Z, t * u.X * u.Z + s * u.Y,
+			t * u.X * u.Y + s * u.Z, t * u.Y * u.Y + c, t * u.Y * u.Z - s * u.X,
+			t * u.X * u.Z - s * u.Y, t * u.Y * u.Z + s * u.X, t * u.Z * u.Z + c))
+	end,
 }
+CFrame.fromEulerAnglesXYZ = CFrame.Angles
+CFrame.identity = newCF(Vector3.new(0, 0, 0))
+V3.__index = function(v, k)
+	if k == "Magnitude" then return math.sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z) end
+	if k == "Unit" then local m = math.sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z); if m == 0 then return v end; return Vector3.new(v.X / m, v.Y / m, v.Z / m) end
+	if k == "Lerp" then return function(a, b, t) return a + (b - a) * t end end
+	if k == "Dot" then return function(a, b) return a.X * b.X + a.Y * b.Y + a.Z * b.Z end end
+	if k == "Cross" then return function(a, b) return Vector3.new(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X) end end
+	return nil
+end
+Vector3.one = Vector3.new(1, 1, 1)
+Vector3.yAxis = Vector3.new(0, 1, 0)
+Vector3.xAxis = Vector3.new(1, 0, 0)
+Vector3.zAxis = Vector3.new(0, 0, 1)
 
 -- Opacos --------------------------------------------------------------------
 local C3 = {}
@@ -74,6 +136,7 @@ Color3 = {
 local function opaque(name) return { new = function(...) return { __type = name, ... } end } end
 UDim2 = opaque("UDim2"); UDim = opaque("UDim"); Vector2 = opaque("Vector2"); TweenInfo = opaque("TweenInfo")
 NumberSequence = opaque("NumberSequence"); ColorSequence = opaque("ColorSequence")
+NumberRange = opaque("NumberRange"); NumberSequenceKeypoint = opaque("NumberSequenceKeypoint"); ColorSequenceKeypoint = opaque("ColorSequenceKeypoint")
 Enum = setmetatable({}, { __index = function(_, a) return setmetatable({}, { __index = function(_, b) return a .. "." .. b end }) end })
 
 Random = { new = function(seed)
@@ -174,7 +237,11 @@ Inst.__newindex = function(o, k, v)
 		if v then table.insert(v.__children, o) end
 		return
 	end
-	if k == "Position" then o.__props.CFrame = CFrame.new(v); return end
+	if k == "Position" then
+		local old = o.__props.CFrame
+		o.__props.CFrame = old and (old - old.Position + v) or CFrame.new(v)
+		return
+	end
 	if k == "Shape" and type(v) ~= "string" then error("bad Shape") end
 	o.__props[k] = v
 end
@@ -190,6 +257,10 @@ function methods.WaitForChild(o, name)
 	local c = o:FindFirstChild(name)
 	if not c then error("WaitForChild infinito: " .. tostring(name) .. " en " .. tostring(o.__props.Name)) end
 	return c
+end
+function methods.FindFirstChildWhichIsA(o, cls)
+	for _, c in ipairs(o.__children) do if c:IsA(cls) then return c end end
+	return nil
 end
 function methods.FindFirstChildOfClass(o, cls)
 	for _, c in ipairs(o.__children) do if c.__props.ClassName == cls then return c end end
@@ -252,6 +323,16 @@ game.__props.JobId = ""
 methods.GetService = function(o, name) return service(name) end
 workspace = service("Workspace")
 workspace.__props.Gravity = 196.2
+TERRAIN_OPS = {}
+TERRAIN_COLORS = {}
+local terrain = newInstance("Terrain")
+terrain.__props.Name = "Terrain"
+terrain.Parent = workspace
+terrain.__props.FillBlock = function(_, cf, size, mat) table.insert(TERRAIN_OPS, { op = "block", cf = cf, size = size, mat = mat }) end
+terrain.__props.FillBall = function(_, c, r, mat) table.insert(TERRAIN_OPS, { op = "ball", c = c, r = r, mat = mat }) end
+terrain.__props.FillCylinder = function(_, cf, h, r, mat) table.insert(TERRAIN_OPS, { op = "cyl", cf = cf, h = h, r = r, mat = mat }) end
+terrain.__props.FillWedge = function(_, cf, size, mat) table.insert(TERRAIN_OPS, { op = "block", cf = cf, size = size, mat = mat }) end
+terrain.__props.SetMaterialColor = function(_, mat, c) TERRAIN_COLORS[mat] = c end
 workspace.__props.CurrentCamera = newInstance("Camera")
 workspace.CurrentCamera.__props.ViewportSize = { X = 1280, Y = 720 }
 

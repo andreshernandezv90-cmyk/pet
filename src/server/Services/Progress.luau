@@ -43,7 +43,7 @@ local function destCFrame(player, profile, dest)
 	if dest == "home" then
 		return S.Plots.SpawnCFrame(player)
 	elseif dest == "forest" then
-		return CFrame.new(0, 4, 228)
+		return S.World.Spawns.forest or CFrame.new(0, 4, 262)
 	elseif dest == "mines" then
 		return S.World.Spawns.mines
 	elseif dest == "realm" then

@@ -6,6 +6,8 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Items = require(Shared.Items)
 local Progression = require(Shared.Progression)
 
+local Props = require(script.Parent.Props)
+
 local Helpers = {}
 local World -- registro del mundo (World/init), asignado en Helpers.Init
 local nodeCounter = 0
@@ -97,31 +99,15 @@ Helpers.AddPrompt = addPrompt
 
 -- Portal: disco de neon + plataforma con ProximityPrompt
 local function portal(parent, pos, facingYaw, text, color, dest)
-	local m = Instance.new("Model")
-	m.Name = "Portal_" .. dest
-	m.Parent = parent
 	local cf = CFrame.new(pos) * CFrame.Angles(0, facingYaw or 0, 0)
-	part({ Name = "Base", Size = Vector3.new(14, 1, 6), CFrame = cf * CFrame.new(0, 0.5, 0),
-		Color = Color3.fromRGB(70, 70, 90), Material = Enum.Material.Slate }, m)
-	for _, sx in ipairs({ -1, 1 }) do
-		part({ Name = "Pillar", Size = Vector3.new(1.6, 14, 1.6), CFrame = cf * CFrame.new(sx * 6.5, 7, 0),
-			Color = Color3.fromRGB(90, 90, 120), Material = Enum.Material.Marble }, m)
-	end
-	part({ Name = "Top", Size = Vector3.new(15, 1.6, 2), CFrame = cf * CFrame.new(0, 14.5, 0),
-		Color = Color3.fromRGB(90, 90, 120), Material = Enum.Material.Marble }, m)
-	local disc = part({ Name = "Gate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 12, 11),
-		CFrame = cf * CFrame.new(0, 7.5, 0) * CFrame.Angles(0, math.rad(90), 0),
-		Color = color, Material = Enum.Material.Neon, Transparency = 0.35, CanCollide = false }, m)
-	local light = Instance.new("PointLight")
-	light.Color = color
-	light.Range = 18
-	light.Brightness = 2
-	light.Parent = disc
-	billboard(disc, text, color, 300, 9, 150)
-	local pp = addPrompt(disc, "Viajar", text, 0, 12)
+	local seed = math.floor(pos.X * 7 + pos.Z * 13) % 100000
+	local m, gate = Props.Portal(parent, cf, color, Random.new(seed))
+	m.Name = "Portal_" .. dest
+	billboard(gate, text, color, 300, 9.5, 150)
+	local pp = addPrompt(gate, "Viajar", text, 0, 12)
 	pp:SetAttribute("Dest", dest)
 	table.insert(World.Portals, { prompt = pp, dest = dest })
-	return m
+	return m, gate
 end
 Helpers.Portal = portal
 
@@ -135,14 +121,18 @@ local function makeNode(parent, nodeType, pos, area, rng)
 	m.Name = def.name
 	local main
 	if nodeType == "tree" then
-		local h = rng:NextNumber(9, 13)
-		main = part({ Name = "Node", Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, 2.2, 2.2),
-			CFrame = CFrame.new(pos + Vector3.new(0, h / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = Color3.fromRGB(105, 75, 50), Material = Enum.Material.Wood }, m)
-		part({ Name = "Leaves", Shape = Enum.PartType.Ball, Size = Vector3.new(9, 8, 9), Position = pos + Vector3.new(0, h + 2, 0),
-			Color = def.color, Material = Enum.Material.Grass, CanCollide = false }, m)
-		part({ Name = "Leaves", Shape = Enum.PartType.Ball, Size = Vector3.new(6, 6, 6), Position = pos + Vector3.new(2.5, h + 4, 1),
-			Color = def.color:Lerp(Color3.new(1, 1, 1), 0.1), Material = Enum.Material.Grass, CanCollide = false }, m)
+		-- arboles talables con silueta natural (roble, abeto o abedul)
+		local kind = rng:NextNumber()
+		local sc = rng:NextNumber(0.85, 1.15)
+		local _, trunk
+		if kind < 0.55 then
+			_, trunk = Props.Oak(m, pos, rng, sc)
+		elseif kind < 0.85 then
+			_, trunk = Props.Fir(m, pos, rng, sc)
+		else
+			_, trunk = Props.Birch(m, pos, rng, sc, Props.Palettes.magic)
+		end
+		main = trunk
 	elseif nodeType == "lunar" or nodeType == "zuarita" or nodeType == "estelar" then
 		main = part({ Name = "Node", Size = Vector3.new(3, 4, 3), CFrame = CFrame.new(pos + Vector3.new(0, 1.6, 0)) * CFrame.Angles(0, 0.5, 0),
 			Color = Color3.fromRGB(60, 60, 70), Material = Enum.Material.Slate }, m)

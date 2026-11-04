@@ -3,7 +3,7 @@
 | Fase | Contenido | Estado |
 |---|---|---|
 | A | Arquitectura del nuevo mundo: `WorldConfig` por región, requisitos configurables, requisitos derivados de materiales en recetas, migración de perfil v2, división de `World` en módulos, GDD 1.1 en `docs/`. | ✅ Hecha |
-| B | Santuario y parcelas: terreno con desniveles, bosque por parcela, casa rústica deteriorada, caminos de tierra, espacios de extractores, portal frente a la casa. | Pendiente |
+| B | Santuario y parcelas: terreno con desniveles, bosque por parcela, casa rústica deteriorada, caminos de tierra, espacios de extractores, portal frente a la casa. | ✅ Hecha (el portal lleva temporalmente al Reino actual hasta la Fase C) |
 | C | Mundo PET continuo (cinco regiones), campamento de bienvenida, barreras translúcidas por jugador, faros de viaje rápido, retiro del mundo de minas separado y de los portales por zona. Parkours como actividades opcionales. | Pendiente |
 | D | Cinco Minas de Zuar con cuevas reales y nodos minerales privados por jugador según `WorldConfig.Regions[i].mine.chances`. | Pendiente |
 | E | Apariciones de PETs en puntos naturales válidos por región; NPC guía y NPC comerciante (MarketplaceService, confirmación en servidor). | Pendiente |

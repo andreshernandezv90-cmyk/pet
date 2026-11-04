@@ -34,7 +34,7 @@ end
 
 function World.AreaAt(pos)
 	local x, z = pos.X, pos.Z
-	if math.abs(x) <= 420 and math.abs(z) <= 420 then
+	if math.abs(x) <= 460 and math.abs(z) <= 460 then
 		return "home"
 	end
 	if math.abs(x - World.MINES.X) <= 270 and math.abs(z - World.MINES.Z) <= 270 then

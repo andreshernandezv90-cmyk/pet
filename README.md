@@ -50,7 +50,7 @@ El zip incluye `PortalPets.rbxlx`, generado con `python3 tools/build_rbxlx.py` s
 |---|---|---|
 | Security → **Enable Studio Access to API Services** | Activado | Guardar el progreso con DataStore. Si está apagado, el juego funciona igual en **modo prueba** (sin guardar) y lo avisa en pantalla. |
 | Places → **Max Players** | 8 | Hay 8 parcelas en el Hogar. |
-| Workspace → **StreamingEnabled** | Opcional | El juego funciona con o sin streaming. Desactivarlo hace los viajes más suaves en pruebas. |
+| Workspace → **StreamingEnabled** | Activado (recomendado en celular) | El santuario tiene unas 7.000 partes estáticas más unas 450 por parcela ocupada; con streaming el celular solo carga lo cercano. El juego funciona con o sin streaming. |
 
 Para guardar datos, el lugar debe estar **publicado** (File → Publish to Roblox).
 
@@ -103,8 +103,17 @@ src/shared/   → ReplicatedStorage.Shared
 src/server/   → ServerScriptService.Server
   init.server.luau          Arranque y entrada de jugadores
   Services/
-    World/                  Construcción del mundo en módulos: init (registro y áreas), Helpers,
-                            Home (santuario), Mines (Minas de Zuar), Realm (zonas, parkour y Arena)
+    World/                  Construcción del mundo en módulos:
+      init.luau             Registro del mundo y detección de áreas
+      Terrain.luau          Terreno de Roblox: suelo, colinas, caminos de tierra, estanques
+      Props.luau            Biblioteca visual: robles, abetos, abedules, arbustos, flores, hongos,
+                            rocas, faroles, cercas, cajas, barriles, letreros, luciérnagas, portal mágico
+      House.luau            Casa rústica por niveles (deteriorada → dimensional)
+      StationArt.luau       Aspecto de cada estación (forja, caldero, reactor, torres de extracción, huerto)
+      PlotLayout.luau       Distribución de la parcela y reservas (nada tapa estaciones ni caminos)
+      Lighting.luau         Atmósfera, cielo, bloom y rayos de sol
+      Home.luau             Santuario: plaza con fuente, 8 parcelas-bosque con su portal, bosque exterior
+      Mines.luau, Realm.luau  Minas y Reino actuales (se rediseñan en las fases C y D)
     DataService.luau        DataStore: bloqueo de sesión, reintentos, autosave, BindToClose
     Net.luau                Remotos, límite de frecuencia y sincronización de estado
     Plots.luau              Parcelas: la casa cambia con el nivel, estaciones, trabajadores visibles
@@ -169,6 +178,20 @@ Mientras valgan `0`, en Studio se otorgan gratis para probar. En un servidor pub
 6. Jugar en Studio con **Test → Clients and Servers** (2 a 8 jugadores): cada jugador tiene su parcela y sus PETs salvajes, y la incursión es compartida.
 7. Completar todos los caminos esenciales sin Robux.
 
+### Vistas previas sin abrir Studio
+
+`tools/preview/` exporta la escena que construye el servidor y la dibuja de forma aproximada. Sirve para revisar la composición y las proporciones; no reemplaza a Studio. Requiere Python 3, numpy y Pillow.
+
+```bash
+lua5.4 tools/preview/export.lua scene.json 1 1
+```
+
+```bash
+python3 tools/preview/render.py scene.json vista.png --plot 1 --view spawn
+```
+
+Vistas disponibles: `spawn`, `house`, `house2`, `front`, `aerial`, `plaza`, `overview`. En `docs/previews/` hay ejemplos.
+
 ### Pruebas automáticas fuera de Roblox
 
 `tools/sim/` contiene un simulador mínimo de la API de Roblox para ejecutar el juego real con Lua 5.4. Ejecuta las pruebas desde la raíz del proyecto:
@@ -185,11 +208,16 @@ lua5.4 tools/sim/smoke.lua
 lua5.4 tools/sim/raid.lua
 ```
 
+```bash
+lua5.4 tools/sim/sanctuary.lua
+```
+
 Qué cubre cada prueba:
 
 - `shared.lua`: reglas del GDD (63 variantes, 6750 esencias, pilas de 50, mochila, recetas y topes).
 - `smoke.lua`: arranque del servidor, entrada de un jugador, captura, todas las recetas, estaciones, offline, huerto, alquimia, equipo, Reactor con nonce, niveles 0→5, fusiones con VIP, tienda, guardado con bloqueo y los 10 paneles de la interfaz.
 - `raid.lua`: bucles reales (áreas, caídas, zonas bloqueadas) y una incursión completa con recompensa.
+- `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables y portal en las 8 parcelas, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, viaje por el portal de la casa y presupuesto de partes.
 
 ## 8. Pendiente para fases posteriores (según el GDD)
 
