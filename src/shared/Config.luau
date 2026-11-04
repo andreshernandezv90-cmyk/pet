@@ -9,7 +9,7 @@ Config.Version = "1.0.0"
 
 -- Persistencia ---------------------------------------------------------------
 Config.DataStoreName = "PortalPets_Perfiles_v1"
-Config.SchemaVersion = 1
+Config.SchemaVersion = 2 -- v2: Mundo PET continuo (faros, zonas visitadas, NPCs)
 Config.AutosaveInterval = 60 -- segundos
 Config.SessionLockStale = 180 -- un bloqueo sin renovar por mas de esto se considera abandonado
 Config.LoadRetries = 5

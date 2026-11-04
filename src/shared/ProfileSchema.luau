@@ -2,6 +2,7 @@
 -- (GDD 17, "Modelo conceptual minimo de datos")
 
 local Config = require(script.Parent.Config)
+local PetCatalog = require(script.Parent.PetCatalog)
 
 local ProfileSchema = {}
 
@@ -52,6 +53,13 @@ function ProfileSchema.Default()
 		receiptOrder = {},
 
 		raidsJoined = 0,
+
+		-- v2: Mundo PET continuo
+		world = {
+			beacons = {}, -- ["z1"] = true: faro de viaje rapido activado
+			visited = {}, -- ["z1"] = true: zona visitada al menos una vez
+			npc = {}, -- ["guide"] = true: dialogos vistos
+		},
 	}
 end
 
@@ -80,12 +88,29 @@ function ProfileSchema.Migrate(profile)
 		return ProfileSchema.Default()
 	end
 	local v = tonumber(profile.schemaVersion) or 0
-	-- Ejemplo de migracion futura:
-	-- if v < 2 then ... profile.schemaVersion = 2 end
 	if v < 1 then
 		profile.schemaVersion = 1
 	end
+	-- Rellena campos nuevos sin tocar los existentes
 	reconcile(profile, ProfileSchema.Default())
+	if v < 2 then
+		-- v1 -> v2: solo AGREGA datos. Las zonas que el jugador ya visito
+		-- (parkour completado o especies de esa zona capturadas) quedan con
+		-- su faro activo para no hacerle repetir el camino.
+		local unlocked = tonumber(profile.zones.unlocked) or 1
+		for _, sp in ipairs(PetCatalog.Species) do
+			if (profile.captured[sp.id] or 0) > 0 and sp.zone <= unlocked then
+				profile.world.visited["z" .. sp.zone] = true
+				profile.world.beacons["z" .. sp.zone] = true
+			end
+		end
+		for k = 1, 5 do
+			if profile.zones.parkour["z" .. k] and k <= unlocked then
+				profile.world.visited["z" .. k] = true
+				profile.world.beacons["z" .. k] = true
+			end
+		end
+	end
 	profile.schemaVersion = Config.SchemaVersion
 	return profile
 end

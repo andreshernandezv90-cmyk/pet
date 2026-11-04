@@ -4,6 +4,7 @@
 
 local Items = require(script.Parent.Items)
 local PetCatalog = require(script.Parent.PetCatalog)
+local WorldConfig = require(script.Parent.WorldConfig)
 
 local Recipes = {}
 
@@ -205,8 +206,110 @@ Recipes.Categories = {
 	{ id = "deco", name = "Decoraciones" },
 }
 
+-- Requisitos derivados de los materiales: ninguna receta debe pedir algo que
+-- el jugador todavia no pueda recolectar. Devuelve una lista de requisitos
+-- { kind, value, text, why } sin evaluar.
+function Recipes.MaterialRequirements(cost)
+	local reqs = {}
+	local seen = {}
+	local function add(kind, value, text, why)
+		local key = kind .. ":" .. tostring(value)
+		if not seen[key] then
+			seen[key] = true
+			table.insert(reqs, { kind = kind, value = value, text = text, why = why })
+		end
+	end
+	local ids = {}
+	for id in pairs(cost) do
+		table.insert(ids, id)
+	end
+	table.sort(ids)
+	for _, id in ipairs(ids) do
+		local resName = Items.Resources[id] and Items.Resources[id].name or id
+		local node = WorldConfig.MineralNode[id]
+		if node then
+			local zone = WorldConfig.FirstMineZone(id) or 1
+			local pick = Items.Nodes[node].pick
+			if zone > 1 then
+				add("zone", zone, "Desbloquear la Zona " .. zone, "para encontrar " .. resName)
+			end
+			if pick > 1 then
+				add("pick", pick, Items.Picks[pick].name, "para minar " .. resName)
+			end
+		else
+			local src = WorldConfig.ResourceSources[id]
+			if src then
+				if (src.zone or 1) > 1 then
+					add("zone", src.zone, "Desbloquear la Zona " .. src.zone, "para conseguir " .. resName)
+				end
+				if src.building then
+					add("building", src.building, "Huerto construido", "para cultivar " .. resName)
+				end
+				if src.station then
+					add("station", src.station, PetCatalog.Stations[src.station].name .. " construido", "para producir " .. resName)
+				end
+				if src.species then
+					add("species", src.species, "Tener un " .. PetCatalog.Get(src.species).name, "para producir " .. resName)
+				end
+			end
+		end
+	end
+	return reqs
+end
+
+local function evalMaterialReq(profile, r)
+	if r.kind == "zone" then
+		return (profile.zones.unlocked or 1) >= r.value
+	elseif r.kind == "pick" then
+		return profile.tools.pick >= r.value
+	elseif r.kind == "building" then
+		return (profile.buildings[r.value] or 0) >= 1
+	elseif r.kind == "station" then
+		return profile.stations[r.value] ~= nil and profile.stations[r.value].level >= 1
+	elseif r.kind == "species" then
+		return (profile.captured[r.value] or 0) > 0
+	end
+	return true
+end
+
+-- Lista completa de requisitos de un paso: { text, ok, why? }
+function Recipes.Requirements(profile, lineId, level)
+	local line = Recipes.Lines[lineId]
+	local def = line and line.levels[level]
+	local out = {}
+	if not def then
+		return out
+	end
+	local base = line.baseLevel or 1
+	if level - 1 >= base and level - 1 >= 1 then
+		local prevName = line.names[level - 1] or (line.name .. " " .. (level - 1))
+		table.insert(out, { text = "Tener " .. prevName, ok = line.get(profile) >= level - 1 })
+	end
+	local zoneShown = 0
+	if def.zone and def.zone > 1 then
+		zoneShown = def.zone
+		table.insert(out, { text = "Desbloquear la Zona " .. def.zone, ok = (profile.zones.unlocked or 1) >= def.zone })
+	end
+	if def.req then
+		local ok, why = def.req(profile)
+		table.insert(out, { text = why or "Requisito especial", ok = ok })
+	end
+	for _, r in ipairs(Recipes.MaterialRequirements(def.cost)) do
+		local redundant = (r.kind == "zone" and r.value <= zoneShown)
+			or (r.kind == "pick" and lineId == "pick" and r.value <= level - 1)
+		if not redundant then
+			if r.kind == "zone" then
+				zoneShown = math.max(zoneShown, r.value)
+			end
+			table.insert(out, { text = r.text, ok = evalMaterialReq(profile, r), why = r.why })
+		end
+	end
+	return out
+end
+
 -- Siguiente paso de una linea para un perfil.
--- Devuelve: { line, level, name, cost, desc, locked, reason } o nil si esta al maximo.
+-- Devuelve: { line, level, name, cost, desc, locked, reason, requirements } o
+-- { maxed = true } si esta al maximo.
 function Recipes.Next(profile, lineId)
 	local line = Recipes.Lines[lineId]
 	if not line then
@@ -218,14 +321,13 @@ function Recipes.Next(profile, lineId)
 	end
 	local lv = cur + 1
 	local def = line.levels[lv]
+	local reqs = Recipes.Requirements(profile, lineId, lv)
 	local locked, reason = false, nil
-	if def.zone and (profile.zones.unlocked or 1) < def.zone then
-		locked, reason = true, "Requiere desbloquear la zona " .. def.zone
-	end
-	if not locked and def.req then
-		local ok, why = def.req(profile)
-		if not ok then
-			locked, reason = true, why
+	for _, r in ipairs(reqs) do
+		if not r.ok then
+			locked = true
+			reason = "Requiere: " .. r.text .. (r.why and (" (" .. r.why .. ")") or "")
+			break
 		end
 	end
 	return {
@@ -236,6 +338,7 @@ function Recipes.Next(profile, lineId)
 		desc = line.desc and line.desc(lv) or "",
 		locked = locked,
 		reason = reason,
+		requirements = reqs,
 	}
 end
 

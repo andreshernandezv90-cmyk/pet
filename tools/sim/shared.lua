@@ -81,8 +81,10 @@ check(not Recipes.Next(p,"pick").locked and Recipes.Next(p,"pick").level==2, "si
 -- objetivos y desbloqueos
 print("   objetivo:", Prog.Objective(p))
 p.tools.pick=2; p.buildings.sanctuary=2
-check(Prog.CanUnlock(p,2), "zona 2: pico de piedra + santuario 2")
-p.stations.stone.level=1; p.tools.pick=3
+check(not Prog.CanUnlock(p,2), "zona 2 tambien pide extractor de piedra")
+p.stations.stone.level=1
+check(Prog.CanUnlock(p,2), "zona 2: pico de piedra + santuario 2 + extractor de piedra")
+p.tools.pick=3
 check(Prog.CanUnlock(p,3), "zona 3: pico cobre + extractor")
 check(not Prog.CanUnlock(p,5), "zona 5 requiere mision")
 -- stats y captura
@@ -101,4 +103,127 @@ p.buildings.forge=2
 local un2 = Store.Resolve(p,{key="lumi:mythic"}); un2.lv=5; un2.st="equipped"; table.insert(p.team,un2.id)
 local a2 = Stats.Aggregate(p,1000)
 check(a2.stats.mineSpeed<=2.0+1e-9, "tope de velocidad de mineria respetado ("..a2.stats.mineSpeed..")")
+
+-- Configuracion de regiones (WorldConfig)
+local WC = require(Shared.WorldConfig)
+check(#WC.Regions == 5, "5 regiones configuradas")
+for _, r in ipairs(WC.Regions) do
+	check((r.mine.chances.piedra or 0) == 1, "mina de la zona " .. r.id .. " siempre tiene piedra")
+	for _, sp in ipairs(PC.SpeciesInZone(r.id)) do assert(sp.zone == r.id) end
+end
+check(WC.Regions[5].mine.chances.zuarita == 0.25 and WC.Regions[1].mine.chances.cobre == 0.15, "tabla de minerales del diseño")
+
+-- Migracion v1 -> v2 (segura e idempotente)
+local v1 = Schema.Default()
+v1.schemaVersion = 1
+v1.world = nil
+v1.zones.unlocked = 3
+v1.zones.parkour = { z1 = true }
+v1.captured = { lumi = 4, rocon = 1 }
+v1.stacks.storage["lumi:rare"] = 7
+v1.essence.lumi = 99
+local m = Schema.Migrate(v1)
+check(m.schemaVersion == 2 and m.world.beacons.z1 and m.world.beacons.z2 and not m.world.beacons.z3, "v1->v2: faros de zonas ya visitadas")
+check(m.stacks.storage["lumi:rare"] == 7 and m.essence.lumi == 99 and m.zones.unlocked == 3, "v1->v2 conserva PETs, esencias y zonas")
+local copy = Schema.DeepCopy(m)
+m.schemaVersion = 1
+Schema.Migrate(m)
+local same = true
+for k in pairs(copy.world.beacons) do if not m.world.beacons[k] then same = false end end
+for k in pairs(m.world.beacons) do if not copy.world.beacons[k] then same = false end end
+check(same and m.stacks.storage["lumi:rare"] == 7, "migracion idempotente")
+
+-- Progresion completa sin dependencias circulares:
+-- se simula un jugador que solo fabrica lo que sus materiales permiten obtener.
+local function obtainable(pp, res)
+	local node = WC.MineralNode[res]
+	if node then
+		for _, r in ipairs(WC.Regions) do
+			if r.id <= pp.zones.unlocked and (r.mine.chances[res] or 0) > 0 and pp.tools.pick >= Items.Nodes[node].pick then
+				return true
+			end
+		end
+		return false
+	end
+	local src = WC.ResourceSources[res]
+	if not src then return false end
+	if (src.zone or 1) > pp.zones.unlocked then return false end
+	if src.building and (pp.buildings[src.building] or 0) < 1 then return false end
+	if src.station and pp.stations[src.station].level < 1 then return false end
+	if src.species and (pp.captured[src.species] or 0) <= 0 then return false end
+	return true
+end
+local function apply(pp, line, lv)
+	local id = line.id
+	if id == "pick" then pp.tools.pick = lv
+	elseif id == "vacuum" then pp.tools.vacuum = lv
+	elseif id == "sanctuary" then pp.buildings.sanctuary = lv
+	elseif id == "forge" then pp.buildings.forge = lv
+	elseif id == "petstorage" then pp.buildings.petStorage = lv
+	elseif id == "garden" then pp.buildings.garden = lv; pp.stations.garden.level = lv
+	elseif id == "alchemy" then pp.buildings.alchemy = lv
+	elseif id == "bait" then pp.buildings.bait = lv
+	elseif id == "fusionlab" then pp.buildings.fusionLab = lv
+	elseif line.station then pp.stations[line.station].level = lv
+	elseif line.deco then pp.decorations[line.deco] = true end
+end
+local sim = Schema.Default()
+local violations = {}
+local order = {}
+for _ = 1, 200 do
+	local changed = false
+	for _, sp in ipairs(PC.Species) do
+		if sp.zone <= sim.zones.unlocked then sim.captured[sp.id] = 1 end
+	end
+	while sim.zones.unlocked < 5 and Prog.CanUnlock(sim, sim.zones.unlocked + 1) do
+		sim.zones.unlocked = sim.zones.unlocked + 1
+		table.insert(order, "Zona " .. sim.zones.unlocked)
+		changed = true
+	end
+	for _, id in ipairs(Recipes.LineOrder) do
+		local n = Recipes.Next(sim, id)
+		if n and not n.maxed and not n.locked then
+			local ok = true
+			for res in pairs(n.cost) do
+				if not obtainable(sim, res) then
+					ok = false
+					violations[id .. " nv" .. n.level .. " (" .. res .. ")"] = true
+				end
+			end
+			if ok then
+				apply(sim, n.line, n.level)
+				table.insert(order, n.name)
+				changed = true
+			end
+		end
+	end
+	if not changed then break end
+end
+local vlist = {}
+for k in pairs(violations) do table.insert(vlist, k) end
+table.sort(vlist)
+if #vlist > 0 then print("   recetas disponibles con materiales aun no recolectables: " .. table.concat(vlist, ", ")) end
+check(#vlist == 0, "ninguna receta disponible pide materiales que aun no se pueden recolectar")
+check(sim.zones.unlocked == 5, "la progresion llega a la Zona 5")
+local unfinished = {}
+for _, id in ipairs(Recipes.LineOrder) do
+	if not Recipes.Next(sim, id).maxed then table.insert(unfinished, id) end
+end
+check(#unfinished == 0, "todas las mejoras son alcanzables (" .. table.concat(unfinished, ",") .. ")")
+local zonesOrder = {}
+for i, o in ipairs(order) do if o:match("^Zona") then table.insert(zonesOrder, o .. " (paso " .. i .. ")") end end
+print("   orden: " .. table.concat(zonesOrder, ", "))
+
+-- Taller: requisitos explicitos
+local fresh = Schema.Default()
+local vac3 = Recipes.Requirements(fresh, "vacuum", 3)
+local texts = {}
+for _, r in ipairs(vac3) do table.insert(texts, r.text .. (r.ok and " ✓" or " ✗")) end
+print("   succionador 3 requiere: " .. table.concat(texts, " · "))
+check(Recipes.Next(fresh, "vacuum").locked == false, "succionador 2 disponible desde el inicio (petalos de la zona 1)")
+local hasZone2 = false
+for _, r in ipairs(vac3) do if r.text == "Desbloquear la Zona 2" then hasZone2 = true end end
+check(hasZone2, "succionador 3 explica que necesita la Zona 2")
+local pk = Recipes.Next(fresh, "pick")
+check(pk.locked == false and #pk.requirements == 1 and pk.requirements[1].ok, "pico de piedra: solo requiere tener el pico de madera")
 print("ALL SHARED TESTS PASSED")

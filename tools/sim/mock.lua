@@ -309,6 +309,13 @@ end
 local function folderFrom(dir, name)
 	local f = newInstance("Folder")
 	f.__props.Name = name
+	local fh = io.open(dir .. "/init.luau", "r")
+	if fh then
+		fh:close()
+		-- carpeta con init.luau = ModuleScript con hijos (regla de Rojo)
+		f.__props.ClassName = "ModuleScript"
+		f.__path = dir .. "/init.luau"
+	end
 	local p = io.popen('ls "' .. dir .. '"')
 	for entry in p:lines() do
 		local full = dir .. "/" .. entry

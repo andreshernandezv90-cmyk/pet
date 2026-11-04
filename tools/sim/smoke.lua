@@ -220,6 +220,24 @@ check(DATABASE["u_101"] and DATABASE["u_101"].data == profile, "perfil guardado 
 Players.PlayerRemoving:Fire(LOCAL_PLAYER)
 check(DATABASE["u_101"].lock == nil, "bloqueo liberado al salir")
 
+-- Segundo jugador con un perfil v1 guardado (migracion al entrar)
+local Schema = require(RS.Shared.ProfileSchema)
+local old = Schema.Default()
+old.schemaVersion = 1
+old.world = nil
+old.zones.unlocked = 2
+old.captured = { lumi = 3 }
+old.stacks.storage["lumi:epic"] = 2
+old.essence.lumi = 42
+DATABASE["u_202"] = { data = old }
+local P2 = MAKE_PLAYER(202, "Veterano")
+Players.PlayerAdded:Fire(P2)
+RUN_DELAYS()
+local p2 = S.DataService.Get(P2)
+check(p2 and p2.schemaVersion == 2 and p2.world.beacons.z1, "perfil v1 migrado a v2 al entrar")
+check(p2.stacks.storage["lumi:epic"] == 2 and p2.essence.lumi == 42 and p2.zones.unlocked == 2, "migracion sin perdida de datos")
+check(P2:GetAttribute("Plot") == 1, "la parcela liberada al salir se reutiliza")
+
 renderAll("final")
 check(#warned == 0, "sin advertencias")
 print("ALL SMOKE TESTS PASSED")

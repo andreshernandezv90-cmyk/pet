@@ -1,7 +1,7 @@
 # Portal Pets: Rescate Dimensional
 
 Juego de aventura, colección y automatización de criaturas para **Roblox**, construido en **Luau** y sincronizado con **Rojo**.
-Implementa el *Documento Maestro de Diseño 1.0* (GDD): tres mundos, quince especies, captura por jugador, minería,
+Implementa el *Documento Maestro de Diseño* (GDD, ahora versión **1.1** en [`docs/GDD.md`](docs/GDD.md); hoja de ruta del rediseño en [`docs/ROADMAP.md`](docs/ROADMAP.md)): tres mundos, quince especies, captura por jugador, minería,
 crafting, extractores, huerto, cebos, alquimia, Reactor de Esencias, niveles 0–5, pilas de 50, fusiones, incursiones
 cooperativas, persistencia segura y tienda ética.
 
@@ -94,7 +94,8 @@ src/shared/   → ReplicatedStorage.Shared
   PetCatalog.luau           15 especies, rarezas, habilidades, trabajos, costos de nivel
   Items.luau                Recursos, picos, succionadores, nodos, cultivos, cebos, pociones
   Recipes.luau              Fabricación y construcciones (herramientas, santuario, extractores…)
-  Progression.luau          Zonas, requisitos, capacidades, objetivos del HUD, colección
+  WorldConfig.luau          Configuración por región: requisitos, especies, minas y probabilidades
+  Progression.luau          Evaluador de requisitos, capacidades, objetivos del HUD, colección
   Stats.luau                Bonos de compañero/apoyo/fusión/pociones con topes; parámetros de captura
   PetStore.luau             Lógica pura de inventario: pilas de 50, individuos, tanque, almacén, mochila
   ProfileSchema.luau        Perfil persistente, valores por defecto y migraciones
@@ -102,7 +103,8 @@ src/shared/   → ReplicatedStorage.Shared
 src/server/   → ServerScriptService.Server
   init.server.luau          Arranque y entrada de jugadores
   Services/
-    World.luau              Construye el Hogar, las Minas, el Reino (5 zonas con parkour) y la Arena
+    World/                  Construcción del mundo en módulos: init (registro y áreas), Helpers,
+                            Home (santuario), Mines (Minas de Zuar), Realm (zonas, parkour y Arena)
     DataService.luau        DataStore: bloqueo de sesión, reintentos, autosave, BindToClose
     Net.luau                Remotos, límite de frecuencia y sincronización de estado
     Plots.luau              Parcelas: la casa cambia con el nivel, estaciones, trabajadores visibles
@@ -133,7 +135,7 @@ src/client/   → StarterPlayerScripts.Client
 | GDD | Implementación |
 |---|---|
 | 02 Tres mundos | Hogar (0,0,0), Minas de Zuar (2000,0,0), Reino de los PETs (-2000,0,0). Portales y mapa. |
-| 03 Desbloqueo de zonas | `Progression.Requirements`: Z2 pico de piedra + santuario 2; Z3 pico de cobre + extractor; Z4 pico de hierro + huerto 2 + succionador mejorado; Z5 equipo avanzado + santuario 4 + misión de las 10 especies. |
+| 03 Desbloqueo de zonas | `WorldConfig.Regions[i].requirements` (configurable): Z2 pico de piedra + santuario 2 + extractor de piedra; Z3 pico de cobre + extractor; Z4 pico de hierro + huerto 2 + succionador mejorado; Z5 equipo avanzado + santuario 4 + misión de las 10 especies. |
 | 04 Quince especies | `PetCatalog.Species`: zonas 1+2+3+4+5. Lumi, Nox y Eclipsar tienen mítico: 63 variantes. |
 | 05 Roles | Cada PET individual está en un solo estado: libre, equipado, trabajando o fusionado. Equipo 1/2/3 (herrería 2, santuario 3); el apoyo aplica 50%. |
 | 06 Captura | Encuentros privados por jugador (7–12, renovación 60 s). La rareza y el éxito se calculan por separado. Fortuna ×2 solo afecta la aparición. |
