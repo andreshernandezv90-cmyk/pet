@@ -75,9 +75,9 @@ function Map.render(root, UI)
 	K.title("Otros lugares", 16, { Parent = other })
 	K.row({
 		K.button("⛏️ Minas de Zuar (temporal)", Color3.fromRGB(200, 120, 60), function() go("mines", UI) end, { Size = UDim2.new(0, 250, 0, 38) }),
-		K.button("⚔️ Arena de Incursiones", Color3.fromRGB(220, 70, 110), function() go("arena", UI) end, { Size = UDim2.new(0, 230, 0, 38) }),
+		K.button("⚔️ Ir a la incursion activa", Color3.fromRGB(220, 70, 110), function() go("arena", UI) end, { Size = UDim2.new(0, 240, 0, 38) }),
 	}, 8).Parent = other
-	K.text("Las minas separadas se mantienen hasta la Fase D, cuando cada zona tendra su propia Mina de Zuar. La arena abre durante las incursiones.",
+	K.text("Las minas separadas se mantienen hasta la Fase D, cuando cada zona tendra su propia Mina de Zuar. Cada zona tiene su arena; durante una incursion este boton te lleva a la arena de esa zona si ya la desbloqueaste.",
 		13, K.C.muted, { Parent = other })
 end
 

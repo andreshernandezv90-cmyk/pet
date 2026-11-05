@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Plano esquematico (vista cenital) de la propuesta del Mundo PET.
+"""Plano esquematico (vista cenital) del Mundo PET compacto (Fase C.1).
 
 Uso: python3 tools/preview/layout_map.py docs/previews/mundo-pet-layout.png
-Las medidas estan en studs y coinciden con docs/MUNDO_PET_LAYOUT.md.
+Las medidas estan en studs y replican PetWorld.luau (largos, camino, arenas,
+claros y retos); ver docs/MUNDO_PET_LAYOUT.md.
 """
 import math
 import random
@@ -11,18 +12,25 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 
 # Medidas (studs). X: oeste -> este. Z: norte (+) / sur (-).
-CAMP = 220
+CAMP = 140
 ZONES = [  # nombre, largo, radio de mina, color de la region, especies (color de puntos)
-    ("Zona 1 · Bosque de Lumi", 420, 45, (120, 200, 105), [(255, 240, 150)]),
-    ("Zona 2 · Valle de los Engranajes", 430, 55, (185, 175, 110), [(140, 125, 110), (255, 220, 60)]),
-    ("Zona 3 · Cavernas Olvidadas", 450, 65, (95, 120, 120), [(150, 105, 75), (70, 50, 120), (60, 210, 200)]),
-    ("Zona 4 · Jardines Elementales", 470, 75, (110, 190, 155),
+    ("Zona 1 · Bosque de Lumi", 250, 45, (120, 200, 105), [(255, 240, 150)]),
+    ("Zona 2 · Valle de los Engranajes", 260, 55, (185, 175, 110), [(140, 125, 110), (255, 220, 60)]),
+    ("Zona 3 · Cavernas Olvidadas", 270, 65, (95, 120, 120), [(150, 105, 75), (70, 50, 120), (60, 210, 200)]),
+    ("Zona 4 · Jardines Elementales", 280, 75, (110, 190, 155),
      [(100, 180, 80), (255, 120, 50), (255, 150, 200), (190, 220, 255)]),
-    ("Zona 5 · Templo del Eclipse", 560, 110, (120, 100, 170),
+    ("Zona 5 · Templo del Eclipse", 330, 110, (120, 100, 170),
      [(200, 255, 230), (240, 200, 255), (90, 70, 160), (40, 60, 140), (25, 20, 35)]),
 ]
-HALF_W = 160  # mitad del ancho transitable (norte-sur)
-SCALE = 0.62  # px por stud
+HALF_W = 160
+ARENAS = [("Arena del Sakura", 30), ("Coliseo Mecanico", 30), ("Circulo de las Esporas", 31),
+          ("Arena del Cristal", 32), ("Altar del Eclipse", 36)]
+RETOS = ["troncos y ramas", "engranajes", "hongos rebote", "cristal y hielo", "caminos temporales"]
+
+
+def path_z(x):
+    return math.sin(x / 105) * 30  # mitad del ancho transitable (norte-sur)
+SCALE = 0.9  # px por stud
 MARGIN = 60
 
 
@@ -67,12 +75,12 @@ def main(out):
     # Camino principal serpenteante
     pts = []
     for i in range(0, total + 1, 20):
-        pts.append(px(i, math.sin(i / 160) * 38))
+        pts.append(px(i, path_z(i)))
     d.line(pts, fill=(214, 178, 125), width=int(16 * SCALE) + 4)
     # senderos secundarios hacia el bosque sur (retos y regalos)
     for name, xs, length, mine_r, col, pets in regions[1:]:
         cx = xs + length * 0.6
-        d.line([px(cx, math.sin(cx / 160) * 38), px(cx + 30, -70), px(cx - 10, -115)], fill=(200, 165, 115), width=6)
+        d.line([px(cx, path_z(cx)), px(cx + 10, -70), px(cx + 4, -110)], fill=(200, 165, 115), width=6)
 
     # Minas (norte) con tunel de entrada
     for name, xs, length, mine_r, col, pets in regions[1:]:
@@ -91,25 +99,47 @@ def main(out):
 
     # PETs salvajes (praderas centrales) y regalos (bosques)
     for name, xs, length, mine_r, col, pets in regions[1:]:
-        for i in range(14):
-            c = pets[i % len(pets)]
-            tx = xs + rng.uniform(30, length - 30)
-            tz = rng.uniform(-70, 85)
-            cx, cy = px(tx, tz)
-            d.ellipse([cx - 5, cy - 4, cx + 5, cy + 4], fill=c, outline=(0, 0, 0))
+        n = max(4, length // 50)
+        cr = 24 if mine_r >= 100 else 22
+        k = regions.index((name, xs, length, mine_r, col, pets))
+        aname, ar = ARENAS[k - 1]
+        ax = xs + length * 0.3
+        az = path_z(ax) - (ar + 15)
+        for i in range(1, n + 1):
+            x = xs + 22 + (length - 44) * (i - 0.5) / n
+            for side in ((1, -1) if i % 2 == 0 else (-1, 1)):
+                cz = max(-52, min(52, path_z(x) + side * 30))
+                if (x - ax) ** 2 + (cz - az) ** 2 > (ar + cr + 6) ** 2:
+                    cx, cy = px(x, cz)
+                    rr = cr * SCALE
+                    d.ellipse([cx - rr, cy - rr, cx + rr, cy + rr], fill=(170, 220, 130, 120), outline=(230, 255, 200))
+                    for j in range(3):
+                        c = pets[(i + j) % len(pets)]
+                        a = rng.uniform(0, 6.28)
+                        q = rng.uniform(0, cr * 0.8)
+                        qx, qy = px(x + math.cos(a) * q, cz + math.sin(a) * q)
+                        d.ellipse([qx - 5, qy - 4, qx + 5, qy + 4], fill=c, outline=(0, 0, 0))
+                    break
+        # arena de incursion tematica de la zona
+        cx, cy = px(ax, az)
+        rr = ar * SCALE
+        d.ellipse([cx - rr, cy - rr, cx + rr, cy + rr], fill=(90, 60, 80, 200), outline=(255, 120, 160), width=3)
+        d.text((cx - len(aname) * 3.3, cy - 6), aname, font=small, fill=(255, 200, 220))
         for i in range(3):
             tx = xs + rng.uniform(40, length - 40)
             tz = rng.choice([rng.uniform(-150, -100), rng.uniform(100, 140)])
             cx, cy = px(tx, tz)
             d.rectangle([cx - 5, cy - 5, cx + 5, cy + 5], fill=(255, 205, 60), outline=(120, 60, 0))
         # faro de viaje rapido
-        bx, by = px(xs + 25, 60)
+        bx, by = px(xs + 22, path_z(xs + 22) + 20)
         d.polygon([(bx, by - 11), (bx - 7, by + 6), (bx + 7, by + 6)], fill=(110, 200, 255), outline=(20, 40, 80))
         # reto opcional (parkour) en el bosque sur
-        rx0, ry0 = px(xs + length * 0.62, -95)
-        rx1, ry1 = px(xs + length * 0.92, -140)
+        rx0, ry0 = px(xs + length * 0.56, -100)
+        rx1, ry1 = px(xs + length * 0.98, -156)
         d.rectangle([rx0, ry0, rx1, ry1], outline=(255, 255, 255), width=2)
-        d.text((rx0 + 3, ry0 + 2), "reto + cofre", font=small, fill=(255, 255, 255))
+        d.text((rx0 + 3, ry0 + 2), "reto opcional:", font=small, fill=(255, 255, 255))
+        d.text((rx0 + 3, ry0 + 16), RETOS[k - 1], font=small, fill=(255, 255, 255))
+        d.text((rx0 + 3, ry0 + 30), "+ cofre", font=small, fill=(255, 255, 255))
 
     # Barreras translucidas entre zonas
     x0 = CAMP
@@ -118,7 +148,7 @@ def main(out):
             bx0, by0 = px(x0 - 4, HALF_W + north_extra)
             bx1, by1 = px(x0 + 4, -HALF_W - 30)
             d.rectangle([bx0, by0, bx1, by1], fill=(120, 220, 255, 140), outline=(200, 240, 255))
-            gx, gy = px(x0, math.sin(x0 / 160) * 38)
+            gx, gy = px(x0, path_z(x0))
             d.rectangle([gx - 9, gy - 14, gx + 9, gy + 14], fill=(170, 120, 255), outline=(255, 255, 255))
         x0 += length
 
@@ -127,22 +157,21 @@ def main(out):
         a, b = px(x - w / 2, z + h / 2), px(x + w / 2, z - h / 2)
         d.rectangle([a, b], fill=fill, outline=(0, 0, 0), width=2)
         d.text((a[0] + 3, a[1] + 3), text, font=small, fill=(0, 0, 0))
-    cx, cy = px(40, 0)
-    d.ellipse([cx - 14, cy - 20, cx + 14, cy + 20], fill=(160, 110, 255), outline=(255, 255, 255), width=2)
-    d.text((cx - 30, cy + 24), "Portal al", font=small, fill=(255, 255, 255))
-    d.text((cx - 30, cy + 37), "santuario", font=small, fill=(255, 255, 255))
-    box(130, 100, 120, 40, "Comerciante", (250, 220, 150))
-    box(125, 25, 70, 36, "Guia", (180, 230, 255))
-    box(140, -70, 150, 36, "Tienda premium", (255, 200, 230))
-    ax, ay = px(60, -122)
-    r = 32 * SCALE
-    d.ellipse([ax - r, ay - r, ax + r, ay + r], outline=(255, 120, 160), width=3)
-    d.text((ax - 40, ay + r + 2), "Arena incursiones", font=small, fill=(255, 190, 210))
+    cx, cy = px(12, 0)
+    d.ellipse([cx - 12, cy - 18, cx + 12, cy + 18], fill=(160, 110, 255), outline=(255, 255, 255), width=2)
+    d.text((cx - 4, cy - 36), "Portal", font=small, fill=(255, 255, 255))
+    box(86, 66, 44, 22, "Comerciante", (250, 220, 150))
+    box(60, -34, 30, 20, "Guia", (180, 230, 255))
+    box(108, -58, 48, 22, "Premium", (255, 200, 230))
+    fx, fy = px(30, -44)
+    d.ellipse([fx - 5, fy - 5, fx + 5, fy + 5], fill=(255, 150, 40))
+    bx, by = px(52, 32)
+    d.polygon([(bx, by - 11), (bx - 7, by + 6), (bx + 7, by + 6)], fill=(110, 200, 255), outline=(20, 40, 80))
 
     # Etiquetas de zona
     for name, xs, length, mine_r, col, pets in regions:
         parts = name.split(" · ")
-        tx, ty = px(xs + 12, -HALF_W + 42)
+        tx, ty = px(xs + 6, HALF_W - 6)
         d.text((tx, ty), parts[0], font=font, fill=(255, 255, 255), stroke_width=2, stroke_fill=(0, 0, 0))
         if len(parts) > 1:
             d.text((tx, ty + 17), parts[1], font=small, fill=(255, 255, 255), stroke_width=2, stroke_fill=(0, 0, 0))
@@ -151,13 +180,13 @@ def main(out):
     ly = H - 34
     items = [((255, 240, 150), "PETs salvajes (privados)"), ((255, 205, 60), "Regalos (privados, raros)"),
              ((110, 200, 255), "Faro de viaje rapido"), ((120, 220, 255), "Barrera translucida + puerta"),
-             ((255, 140, 40), "Mina de Zuar"), ((214, 178, 125), "Camino principal")]
-    lx = MARGIN
-    for c, t in items:
-        d.rectangle([lx, ly, lx + 14, ly + 14], fill=c)
-        d.text((lx + 20, ly), t, font=small, fill=(230, 230, 230))
-        lx += 250
-    d.text((MARGIN, 18), "Mundo PET — propuesta de layout (vista cenital, oeste → este). Escala: ancho transitable ≈ 320 studs, largo ≈ "
+             ((255, 140, 40), "Mina de Zuar (sellada hasta Fase D)"), ((255, 120, 160), "Arena de incursion")]
+    for i, (c, t) in enumerate(items):
+        lx = MARGIN + (i % 3) * 330
+        y = ly - 22 + (i // 3) * 22
+        d.rectangle([lx, y, lx + 14, y + 14], fill=c)
+        d.text((lx + 20, y), t, font=small, fill=(230, 230, 230))
+    d.text((MARGIN, 18), "Mundo PET compacto (Fase C.1) — vista cenital, oeste → este. Ancho ≈ 320 studs, largo = "
            + str(total) + " studs", font=font, fill=(255, 255, 255))
     img.save(out)
 

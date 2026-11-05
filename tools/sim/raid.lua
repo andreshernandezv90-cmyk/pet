@@ -38,12 +38,15 @@ check(P:GetAttribute("Area") ~= "z5" and S.World.ZoneAtX(hrp.Position.X) <= 1, "
 -- incursion completa
 check(S.Raid.ForceSoon(), "forzar incursion")
 for i = 1, 3 do STEP(1) end
-local A = S.World.ARENA
-check(act("raidGo").ok == false or true, "ir a la arena (anuncio)")
-hrp.__props.CFrame = CFrame.new(A.X, 3, A.Z + 20)
+local arena, rz = S.Raid.CurrentArena()
+check(arena ~= nil and rz == 1 and arena == S.World.Arenas[1], "la incursion usa la arena de su zona: " .. arena.name)
+local A = arena.center
+check(act("raidGo").ok, "ir a la arena de la incursion")
+check((hrp.Position - arena.spawn.Position).Magnitude < 1, "llegada al punto de la arena")
+hrp.__props.CFrame = CFrame.new(A.X, 3, A.Z + 12)
 for i = 1, 70 do STEP(1) end
 check(workspace:FindFirstChild("Incursion") ~= nil, "jefe aparecio tras el anuncio")
-check(P:GetAttribute("Area") == "arena", "jugador en la arena")
+check(P:GetAttribute("Area") == "z1", "la arena esta dentro de la zona 1 (sin area aparte)")
 local before = 0
 for k, v in pairs(profile.essence) do before = before + v end
 local OFF = 0

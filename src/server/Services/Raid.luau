@@ -1,4 +1,6 @@
 -- Raid (RaidService): Incursiones Dimensionales cooperativas, aprox. una por hora.
+-- Un solo sistema parametrizado por arena: cada zona del Mundo PET tiene su arena
+-- tematica (World.Arenas[zona]) y la incursion ocurre en la arena de la zona del jefe.
 -- Fases: anuncio -> barrera (disparo de resonancia) -> pilares + ondas ->
 -- resonancia final (estabilizar en el circulo) -> recompensa privada.
 -- La contribucion mezcla disparos, objetivos y apoyo, no solo daño bruto.
@@ -58,8 +60,35 @@ local function interval()
 	return RunService:IsStudio() and Config.RaidIntervalStudio or Config.RaidInterval
 end
 
+-- Arena activa (la de la zona del jefe)
+local function arena()
+	local arenas = S.World.Arenas
+	local a = arenas and state.zone and arenas[state.zone]
+	if a then
+		return a
+	end
+	return { center = S.World.ARENA, radius = 50, pillars = S.World.ArenaPillars, spawn = S.World.Spawns.arena, name = "Arena" }
+end
+
+function Raid.CurrentArena()
+	if state.phase == "idle" then
+		return nil
+	end
+	return arena(), state.zone
+end
+
+-- Dentro de la arena = cerca de su centro (validado en el servidor por posicion)
 local function inArena(player)
-	return player:GetAttribute("Area") == "arena"
+	if state.phase == "idle" then
+		return false
+	end
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		return false
+	end
+	local a = arena()
+	local d = Vector3.new(hrp.Position.X - a.center.X, 0, hrp.Position.Z - a.center.Z).Magnitude
+	return d <= a.radius + 14
 end
 
 local function arenaPlayers()
@@ -94,6 +123,13 @@ local function broadcast()
 		participants = #arenaPlayers(),
 		scores = state.scores,
 	}
+	if state.phase ~= "idle" then
+		local a = arena()
+		payload.arenaName = a.name
+		payload.arenaX = a.center.X
+		payload.arenaZ = a.center.Z
+		payload.arenaR = a.radius + 14
+	end
 	for _, p in ipairs(state.pillars) do
 		if p.active then
 			payload.pillars = payload.pillars + 1
@@ -134,7 +170,7 @@ local function spawnBoss()
 	f.Name = "Incursion"
 	f.Parent = workspace
 	state.folder = f
-	local A = S.World.ARENA
+	local A = arena().center
 	local boss = PetModels.Build(state.species, "legendary", { scale = 6, label = "JEFE · " .. PetCatalog.Get(state.species).name })
 	boss:PivotTo(CFrame.new(A + Vector3.new(0, 22, 0)) * CFrame.Angles(0, math.rad(180), 0))
 	boss.Parent = f
@@ -157,7 +193,7 @@ end
 
 local function spawnPillars()
 	state.pillars = {}
-	for i, pos in ipairs(S.World.ArenaPillars) do
+	for i, pos in ipairs(arena().pillars) do
 		local p = Instance.new("Part")
 		p.Name = "Pilar" .. i
 		p.Anchored = true
@@ -192,7 +228,9 @@ local function shockwave()
 	if not state.folder then
 		return
 	end
-	local A = S.World.ARENA
+	local a = arena()
+	local A = a.center
+	local maxR = a.radius + 10
 	local ring = Instance.new("Part")
 	ring.Name = "Onda"
 	ring.Anchored = true
@@ -205,10 +243,10 @@ local function shockwave()
 	ring.Transparency = 0.55
 	ring:SetAttribute("Start", workspace:GetServerTimeNow())
 	ring:SetAttribute("Duration", 3)
-	ring:SetAttribute("MaxRadius", 90)
+	ring:SetAttribute("MaxRadius", maxR)
 	ring.Parent = state.folder
 	CollectionService:AddTag(ring, "RaidWave")
-	TweenService:Create(ring, TweenInfo.new(3, Enum.EasingStyle.Linear), { Size = Vector3.new(1.5, 180, 180) }):Play()
+	TweenService:Create(ring, TweenInfo.new(3, Enum.EasingStyle.Linear), { Size = Vector3.new(1.5, maxR * 2, maxR * 2) }):Play()
 	task.delay(3.1, function()
 		ring:Destroy()
 	end)
@@ -274,7 +312,7 @@ function Raid.Begin(zone)
 	state.lastShot = {}
 	for _, p in ipairs(Players:GetPlayers()) do
 		S.Net.Notify(p, "⚠️ ¡Incursion Dimensional en 60 s! Un " .. PetCatalog.Get(state.species).name ..
-			" gigante aparecera en la Arena. Abre el Mapa o el aviso para ir.", "raid")
+			" gigante aparecera en la " .. arena().name .. " (Zona " .. state.zone .. "). Abre el Mapa o el aviso para ir.", "raid")
 	end
 	setPhase("announce", Config.RaidAnnounce)
 	return true
@@ -331,7 +369,8 @@ local function runPhases()
 		end
 		if allDone then
 			setPhase("final", deadline - os.time())
-			local A = S.World.ARENA
+			local A = arena().center
+			local circle = arena().radius * 0.75
 			while state.stability < 100 and os.time() < deadline do
 				task.wait(1)
 				local count = 0
@@ -339,7 +378,7 @@ local function runPhases()
 					local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
 					if hrp then
 						local d = Vector3.new(hrp.Position.X - A.X, 0, hrp.Position.Z - A.Z).Magnitude
-						if d <= 28 then
+						if d <= circle then
 							count = count + 1
 							addScore(p, 2)
 						end
@@ -384,7 +423,7 @@ function Raid.Init(services)
 		end
 		state.lastShot[k] = now
 		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		if not hrp or (hrp.Position - (S.World.ARENA + Vector3.new(0, 22, 0))).Magnitude > 120 then
+		if not hrp or (hrp.Position - (arena().center + Vector3.new(0, 22, 0))).Magnitude > 120 then
 			return { ok = false, msg = "Acercate al jefe." }
 		end
 		-- disparo de resonancia: el daño crece poco con el equipo para no excluir a nuevos

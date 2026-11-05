@@ -22,7 +22,7 @@ local function count(inst)
 end
 
 -- 1. Estructura del mundo ------------------------------------------------------------------
-check(math.abs(PW.TotalLength - 2550) < 1, "largo total ~2550 studs (" .. PW.TotalLength .. ")")
+check(PW.TotalLength >= 1400 and PW.TotalLength <= 1600, "mundo compacto: " .. PW.TotalLength .. " studs (objetivo 1400-1600)")
 local barriers = CS:GetTagged("ZoneBarrier")
 check(#barriers == 4, "4 barreras translucidas")
 for _, b in ipairs(barriers) do
@@ -45,10 +45,100 @@ local npcs = 0
 for _, p in ipairs(CS:GetTagged("NpcPrompt")) do npcs = npcs + 1 end
 check(npcs == 3 and World.Npcs.merchant and World.Npcs.guide and World.Npcs.premium, "3 NPCs en el campamento")
 
+-- 1b. Parkours: cinco mecanicas distintas, con checkpoints y saltos alcanzables
+local mechanics = {}
+local G = 196.2
+for k = 1, 5 do
+	local ch = World.Challenges[k]
+	check(ch and #ch.steps >= 5, "parkour zona " .. k .. " (" .. tostring(ch and ch.mechanic) .. "): " .. #ch.steps .. " pasos")
+	mechanics[ch.mechanic] = true
+	local mids, final = 0, false
+	for _, cp in ipairs(World.Checkpoints) do
+		if cp.zone == k and cp.index > 0 and cp.index < 99 then mids = mids + 1 end
+		if cp.zone == k and cp.meadow then final = true end
+	end
+	check(mids >= 1 and final, "parkour zona " .. k .. ": checkpoint intermedio y final")
+	local worst = ""
+	for i = 2, #ch.steps do
+		local a, b = ch.steps[i - 1], ch.steps[i]
+		local gap = Vector3.new(b.pos.X - a.pos.X, 0, b.pos.Z - a.pos.Z).Magnitude - a.half - b.half
+		local rise = b.pos.Y - a.pos.Y
+		local maxRise = 4.5
+		local maxGap = 9
+		if a.bounce then
+			local pad = 80
+			maxRise = pad * pad / (2 * G) - 1
+			maxGap = 11
+		elseif a.pos.Y < 1.5 then
+			maxGap = 1e9 -- se camina por el suelo del bosque
+		end
+		if gap > maxGap or rise > maxRise then
+			worst = worst .. string.format(" [%d->%d gap %.1f rise %.1f]", i - 1, i, gap, rise)
+		end
+		-- dentro de su zona y en el bosque sur
+		assert(World.AreaAt(b.pos) == "z" .. k, "paso fuera de su zona")
+	end
+	check(worst == "", "parkour zona " .. k .. ": todos los saltos son alcanzables" .. worst)
+	local a = World.Arenas[k]
+	for _, st in ipairs(ch.steps) do
+		assert((Vector3.new(st.pos.X, 0, st.pos.Z) - Vector3.new(a.center.X, 0, a.center.Z)).Magnitude > a.radius + 6, "parkour encima de la arena")
+	end
+end
+local nm = 0
+for _ in pairs(mechanics) do nm = nm + 1 end
+check(nm == 5, "cinco mecanicas de parkour distintas")
+-- detalles de cada mecanica
+local function countIn(folderName, pred)
+	local n = 0
+	for _, d in ipairs(workspace.World.MundoPET:FindFirstChild(folderName, true):GetDescendants()) do
+		if pred(d) then n = n + 1 end
+	end
+	return n
+end
+check(countIn("Reto1", function(d) return d:IsA("BasePart") and tostring(d.Shape):find("Cylinder") and d.CanCollide end) >= 12,
+	"zona 1: tocones y troncos transitables")
+check(countIn("Reto2", function(d) return d.Name == "Engranaje" and d:GetAttribute("Gira") end) >= 3, "zona 2: engranajes giratorios")
+check(countIn("Reto3", function(d) return d.Name == "HongoSaltarin" and d:GetAttribute("Power") end) == 3, "zona 3: hongos con rebote")
+check(countIn("Reto4", function(d) return d.Name == "LosaHelada" and d.CustomPhysicalProperties ~= nil end) >= 3, "zona 4: losas heladas resbaladizas")
+local phases = CS:GetTagged("PhasePlatform")
+check(#phases >= 3, "zona 5: caminos temporales")
+local before = {}
+for i, p in ipairs(phases) do before[i] = p.CanCollide end
+STEP(3)
+local flipped = 0
+for i, p in ipairs(phases) do if p.CanCollide ~= before[i] then flipped = flipped + 1 end end
+check(flipped == #phases, "los caminos temporales se alternan")
+
+-- 1c. Puntos de teletransporte en lugares validos
+check(World.AreaAt(World.Spawns.world.Position) == "camp", "llegada del portal central en el campamento")
+for k = 1, 5 do
+	check(World.AreaAt(World.Spawns["beacon_z" .. k].Position) == "z" .. k, "faro de la zona " .. k .. ": llegada dentro de su zona")
+end
+for k = 2, 5 do
+	check(World.ZoneAtX(World.Gates[k].Position.X) == k - 1, "puerta de la zona " .. k .. ": devuelve al lado ya desbloqueado")
+end
+
 -- 2. Areas a lo largo del mundo -------------------------------------------------------------
 local O = PW.Origin
 check(World.AreaAt(O + Vector3.new(40, 0, 0)) == "camp", "area: campamento")
-check(World.AreaAt(World.ARENA) == "arena", "area: arena dentro del campamento")
+-- arenas tematicas: una por zona, dentro de su zona y junto al camino principal
+local arenaNames = { "Arena del Sakura", "Coliseo Mecanico", "Circulo de las Esporas", "Arena del Cristal", "Altar del Eclipse" }
+for k = 1, 5 do
+	local a = World.Arenas[k]
+	check(a and a.name == arenaNames[k], "zona " .. k .. ": " .. tostring(a and a.name))
+	check(World.AreaAt(a.center) == "z" .. k and World.AreaAt(a.spawn.Position) == "z" .. k, a.name .. " y su llegada estan dentro de la zona " .. k)
+	check(#a.pillars == 4, a.name .. ": 4 pilares de resonancia")
+	local lx = a.center.X - O.X
+	local edge = math.abs((a.center.Z - O.Z) - PW.PathZ(lx)) - a.radius
+	check(edge > 6 and edge < 25, a.name .. ": a " .. math.floor(edge) .. " studs del camino principal (accesible sin taparlo)")
+	for _, c in ipairs(World.SpawnRegions[k].clearings) do
+		assert((Vector3.new(c.center.X, 0, c.center.Z) - Vector3.new(a.center.X, 0, a.center.Z)).Magnitude > a.radius + c.r, "claro dentro de la arena")
+	end
+	for _, g in ipairs(World.GiftSpots[k]) do
+		assert((Vector3.new(g.X, 0, g.Z) - Vector3.new(a.center.X, 0, a.center.Z)).Magnitude > a.radius, "regalo dentro de la arena")
+	end
+end
+check(true, "arenas sin claros de PETs ni regalos encima")
 for k = 1, 5 do
 	check(World.AreaAt(World.ZoneCenter(k)) == "z" .. k, "area: zona " .. k)
 	local r = World.SpawnRegions[k]

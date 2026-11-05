@@ -86,7 +86,21 @@ local function newEncounter(player, data, profile)
 	local pos
 	if region.clearings and #region.clearings > 0 then
 		-- claros del bosque: puntos libres de arboles, rocas y obstaculos
+		-- 60%: uno de los dos claros mas cercanos al jugador (se encuentran PETs al
+		-- explorar sin aumentar la cantidad de entidades activas)
 		local c = region.clearings[rng:NextInteger(1, #region.clearings)]
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp and #region.clearings > 2 and rng:NextNumber() < 0.6 then
+			local sorted = {}
+			for _, cl in ipairs(region.clearings) do
+				table.insert(sorted, cl)
+			end
+			local p = hrp.Position
+			table.sort(sorted, function(a, b)
+				return (a.center - p).Magnitude < (b.center - p).Magnitude
+			end)
+			c = sorted[rng:NextInteger(1, 2)]
+		end
 		local a = rng:NextNumber(0, math.pi * 2)
 		local r = math.sqrt(rng:NextNumber()) * c.r * 0.85
 		pos = c.center + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)

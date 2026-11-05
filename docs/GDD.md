@@ -54,6 +54,16 @@ Nota de control: números de producción, probabilidades, tiempos y precios son 
 | Arena de incursiones | Lugar aparte. | En un claro del campamento del Mundo PET, como punto de reunión (preparada para arenas especiales futuras). |
 | Regalos | — | Tope de 1 regalo activo y 4 por hora por jugador, configurables. |
 
+## Ajustes 1.1c (Fase C.1 — Mundo PET compacto)
+
+| Tema | Antes (1.1b) | Vigente (1.1c) |
+|---|---|---|
+| Largo del Mundo PET | ≈ 2.550 studs. | **1.530 studs**: campamento de 140 y zonas de 250, 260, 270, 280 y 330 studs. |
+| Arena de incursiones | Una en el campamento. | **Una por zona**, temática: Arena del Sakura, Coliseo Mecánico, Círculo de las Esporas, Arena del Cristal y Altar del Eclipse. La incursión ocurre en la arena de la zona del jefe con el mismo sistema, las mismas recompensas y el mismo equilibrio. Solo pueden viajar a ella quienes tengan esa zona desbloqueada. |
+| Parkours | Retos opcionales genéricos. | **Cinco mecánicas distintas**: troncos y ramas, engranajes y plataformas giratorias, hongos con rebote, cristales y plataformas heladas, y plataformas flotantes con caminos temporales. Todos tienen checkpoints y conservan sus recompensas. |
+| PETs salvajes | Claros en la pradera central. | Claros más pequeños junto al camino. El 60% de las apariciones usa uno de los dos claros más cercanos al jugador; el número de PETs activos (7–12) no cambia. |
+| Iluminación | Bloom y reflejos marcados. | Más suave: bloom, reflejos del agua y partículas reducidos, sobre todo en el santuario. |
+
 ## Minerales por región (probabilidad por ciclo de generación, configurable)
 
 Los porcentajes indican la probabilidad de que un recurso aparezca en un ciclo de generación de nodos de esa mina. No son excluyentes ni deben sumar 100%.

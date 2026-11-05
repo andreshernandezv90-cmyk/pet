@@ -72,8 +72,8 @@ local function buildPlaza(f, C, rng)
 		if i % 2 == 0 then
 			local l = Instance.new("PointLight")
 			l.Color = CENTRAL_COLOR
-			l.Range = 16
-			l.Brightness = 1.2
+			l.Range = 12
+			l.Brightness = 0.8
 			l.Parent = cr
 		end
 	end
@@ -99,7 +99,7 @@ local function buildPlaza(f, C, rng)
 	e.LightEmission = 1
 	e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 0) })
 	e.Lifetime = NumberRange.new(2.5, 4)
-	e.Rate = 10
+	e.Rate = 6
 	e.Speed = NumberRange.new(2, 4)
 	e.SpreadAngle = Vector2.new(10, 10)
 	e.EmissionDirection = Enum.NormalId.Top
@@ -383,7 +383,7 @@ local function buildPlot(f, i, cf, rng)
 	local cfp = PlotLayout.Campfire
 	Props.Campfire(pf, W(cfp.x, cfp.z), rng)
 	-- Luciernagas sobre la parcela
-	Props.Fireflies(pf, W(0, 0) + Vector3.new(0, 7, 0), Vector3.new(90, 10, 90), 4)
+	Props.Fireflies(pf, W(0, 0) + Vector3.new(0, 7, 0), Vector3.new(90, 10, 90), 2)
 end
 
 -- Bosque exterior --------------------------------------------------------------------------

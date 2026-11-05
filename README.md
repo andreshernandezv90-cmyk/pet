@@ -114,8 +114,9 @@ src/server/   → ServerScriptService.Server
       Lighting.luau         Atmósfera, cielo, bloom y rayos de sol
       Home.luau             Santuario: plaza con el gran portal central, 8 parcelas-bosque con áreas
                             de trabajo señalizadas, bosque exterior
-      PetWorld.luau         Mundo PET continuo: campamento (NPCs, arena), 5 zonas con identidad
-                            propia, barreras, faros, entradas de mina, retos opcionales
+      PetWorld.luau         Mundo PET compacto (1.530 studs): campamento (NPCs), 5 zonas con identidad
+                            propia, arena de incursion tematica por zona, barreras, faros, entradas de mina,
+                            retos de parkour con mecanica propia
       Mines.luau            Minas de Zuar separadas (temporales hasta la Fase D)
     DataService.luau        DataStore: bloqueo de sesión, reintentos, autosave, BindToClose
     Net.luau                Remotos, límite de frecuencia y sincronización de estado
@@ -228,8 +229,8 @@ Qué cubre cada prueba:
 
 - `shared.lua`: reglas del GDD (63 variantes, 6750 esencias, pilas de 50, mochila, recetas y topes).
 - `smoke.lua`: arranque del servidor, entrada de un jugador, captura, todas las recetas, estaciones, offline, huerto, alquimia, equipo, Reactor con nonce, niveles 0→5, fusiones con VIP, tienda, guardado con bloqueo y los 10 paneles de la interfaz.
-- `raid.lua`: bucles reales (áreas, caídas, zonas bloqueadas) y una incursión completa con recompensa.
-- `petworld.lua`: estructura del Mundo PET (barreras, faros, minas selladas, retos, NPCs), áreas, barreras validadas en el servidor, viajes por faro, PETs en su pradera, Comerciante (cobro exacto, nonce, zona, cantidades), cupo de regalos, perfil antiguo intacto y presupuesto de partes.
+- `raid.lua`: bucles reales (áreas, caídas, zonas bloqueadas) y una incursión completa con recompensa en la arena de su zona (viaje validado).
+- `petworld.lua`: largo compacto (1.400–1.600 studs), una arena temática por zona (dentro de la zona, junto al camino y sin pisar claros ni regalos), cinco retos con mecánica propia (pasos alcanzables, checkpoints, caminos temporales que alternan), puntos de llegada y teletransportes válidos, estructura del Mundo PET (barreras, faros, minas selladas, retos, NPCs), áreas, barreras validadas en el servidor, viajes por faro, PETs en su pradera, Comerciante (cobro exacto, nonce, zona, cantidades), cupo de regalos, perfil antiguo intacto y presupuesto de partes.
 - `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables, áreas señalizadas y fogata en las 8 parcelas, portal central único, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, hacha por niveles, regalos (privados, validados y únicos) y presupuesto de partes.
 
 ## 8. Pendiente para fases posteriores (según el GDD)

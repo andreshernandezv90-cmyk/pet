@@ -336,8 +336,8 @@ function Props.Lantern(parent, pos, rng, height)
 		{ CastShadow = false })
 	local l = Instance.new("PointLight")
 	l.Color = Color3.fromRGB(255, 190, 110)
-	l.Range = 16
-	l.Brightness = 1.3
+	l.Range = 12
+	l.Brightness = 0.9
 	l.Shadows = false
 	l.Parent = glass
 	return m

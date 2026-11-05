@@ -20,7 +20,7 @@ local checkpoints = {} -- [player] = CFrame
 
 local DEST_NAMES = {
 	home = "tu santuario", forest = "el Bosque", mines = "las Minas de Zuar", world = "el campamento del Mundo PET",
-	camp = "el campamento del Mundo PET", realm = "el campamento del Mundo PET", arena = "la Arena de Incursiones",
+	camp = "el campamento del Mundo PET", realm = "el campamento del Mundo PET", arena = "la arena de la incursion",
 }
 local CollectionService = game:GetService("CollectionService")
 
@@ -66,9 +66,16 @@ local function destCFrame(player, profile, dest)
 		return S.World.Spawns.world
 	elseif dest == "arena" then
 		if not (S.Raid and S.Raid.IsOpen()) then
-			return nil, "La arena solo abre durante una Incursion Dimensional."
+			return nil, "Las arenas abren durante una Incursion Dimensional."
 		end
-		return S.World.Spawns.arena
+		local a, zone = S.Raid.CurrentArena()
+		if not a then
+			return nil, "No hay incursion activa."
+		end
+		if zone and profile.zones.unlocked < zone then
+			return nil, "La incursion es en la Zona " .. zone .. ", que aun no desbloqueas."
+		end
+		return a.spawn
 	end
 	local k = tonumber(string.match(dest, "^z(%d)m?$"))
 	if k and k >= 1 and k <= 5 then
@@ -235,7 +242,7 @@ function Progress.Start()
 						S.Net.Fire(player, "Fx", "respawn")
 					else
 						-- Barreras del Mundo PET: el servidor es la autoridad
-						local inWorld = area == "camp" or area == "arena" or string.match(area, "^z%d$") ~= nil
+						local inWorld = area == "camp" or string.match(area, "^z%d$") ~= nil
 						local zoneX = inWorld and S.World.ZoneAtX(pos.X) or 0
 						if inWorld and zoneX > profile.zones.unlocked then
 							local gate = S.World.Gates[profile.zones.unlocked + 1] or S.World.Spawns.world

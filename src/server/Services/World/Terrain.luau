@@ -44,7 +44,7 @@ function Terrain.Init()
 		T.WaterTransparency = 0.55
 		T.WaterWaveSize = 0.08
 		T.WaterWaveSpeed = 6
-		T.WaterReflectance = 0.6
+		T.WaterReflectance = 0.3
 	end)
 end
 

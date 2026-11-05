@@ -26,8 +26,9 @@ local PetWorld = {}
 local World
 
 PetWorld.Origin = Vector3.new(3000, 0, 1500)
-PetWorld.CampLength = 220
-PetWorld.Lengths = { 420, 430, 450, 470, 560 }
+-- Fase C.1: mundo compacto (~1530 studs). Ajustable aqui: todo se recalcula.
+PetWorld.CampLength = 140
+PetWorld.Lengths = { 250, 260, 270, 280, 330 }
 PetWorld.HalfWidth = 160
 local O = PetWorld.Origin
 
@@ -43,10 +44,17 @@ do
 	end
 	PetWorld.TotalLength = x
 end
-PetWorld.ArenaLocal = { x = 95, z = -128, r = 50 }
+-- Arenas de incursion: una por zona, junto al camino principal
+PetWorld.ArenaSpecs = {
+	{ name = "Arena del Sakura", r = 30, at = 0.3 },
+	{ name = "Coliseo Mecanico", r = 30, at = 0.3 },
+	{ name = "Circulo de las Esporas", r = 31, at = 0.3 },
+	{ name = "Arena del Cristal", r = 32, at = 0.3 },
+	{ name = "Altar del Eclipse", r = 36, at = 0.3 },
+}
 
 function PetWorld.PathZ(x)
-	return math.sin(x / 160) * 38
+	return math.sin(x / 105) * 30
 end
 local PathZ = PetWorld.PathZ
 
@@ -59,10 +67,6 @@ PetWorld.W = W
 function PetWorld.LocalArea(lx, lz)
 	if lx < -70 or lx > PetWorld.TotalLength + 70 or lz < -260 or lz > 520 then
 		return nil
-	end
-	local a = PetWorld.ArenaLocal
-	if (lx - a.x) ^ 2 + (lz - a.z) ^ 2 <= (a.r + 12) ^ 2 then
-		return "arena"
 	end
 	if lx < PetWorld.CampLength then
 		return "camp"
@@ -394,10 +398,13 @@ local function buildMineEntrance(f, k, rng)
 	Terrain.Path({ W(mx, PathZ(mx)), W(mx + 6, 120), W(mx, 158) }, 7, Mat.Ground)
 end
 
--- Retos opcionales (antiguos parkours) en el bosque sur ---------------------------------------
+-- Retos opcionales de parkour en el bosque sur -------------------------------------------
+-- Cinco recorridos con mecanicas distintas. Cada paso se registra en
+-- World.Challenges[k].steps (centro superior, media anchura, rebote) para poder
+-- comprobar en las pruebas que todos los saltos son alcanzables.
 
 local function checkpoint(parent, pos, zone, index, final)
-	local cp = Part(parent, CFrame.new(pos + Vector3.new(0, 0.25, 0)), Vector3.new(6, 0.4, 6), Color3.fromRGB(90, 255, 140), Mat.Neon,
+	local cp = Part(parent, CFrame.new(pos + Vector3.new(0, 0.25, 0)), Vector3.new(5, 0.4, 5), Color3.fromRGB(90, 255, 140), Mat.Neon,
 		{ Transparency = 0.3, CanCollide = false, CanTouch = true, Name = "Checkpoint" })
 	cp:SetAttribute("Zone", zone)
 	cp:SetAttribute("Index", index)
@@ -405,92 +412,21 @@ local function checkpoint(parent, pos, zone, index, final)
 	return cp
 end
 
-local CHALLENGE = {
-	[1] = { n = 10, size = 9, rise = 1.1, plat = Color3.fromRGB(250, 230, 150), title = "Reto del Bosque (tutorial)" },
-	[2] = { n = 11, size = 8, rise = 1.0, plat = Color3.fromRGB(180, 150, 110), title = "Reto de los Engranajes" },
-	[3] = { n = 10, size = 8, rise = 1.0, plat = Color3.fromRGB(110, 120, 140), title = "Reto del Tunel Oscuro" },
-	[4] = { n = 10, size = 8, rise = 1.2, plat = Color3.fromRGB(150, 220, 240), title = "Reto Elemental" },
-	[5] = { n = 12, size = 8, rise = 1.3, plat = Color3.fromRGB(200, 190, 255), title = "Reto del Eclipse" },
+local TITLES = {
+	"Reto de los Troncos",
+	"Reto de los Engranajes",
+	"Reto de los Hongos Saltarines",
+	"Reto del Cristal Helado",
+	"Reto de las Plataformas Flotantes",
 }
+local MECHANIC = { "troncos", "engranajes", "rebote", "hielo", "temporales" }
 
-local function buildChallenge(f, k, rng)
-	local st = CHALLENGE[k]
-	local L = PetWorld.Lengths[k]
-	local x0 = PetWorld.ZoneStart[k] + L * 0.6
-	local x1 = PetWorld.ZoneStart[k] + L * 0.9
-	local zc = -128
-	exclude(x0 - 14, -170, x1 + 14, -98)
-	local cf = folder("Reto" .. k, f)
-	Terrain.Path({ W(x0 - 10, PathZ(x0 - 10)), W(x0 - 14, -80), W(x0 - 8, zc + 4) }, 6, Mat.Ground)
-	Props.Sign(cf, CFrame.lookAt(W(x0 - 18, -92), W(x0 - 18, -60)), st.title .. "\n(opcional · cofre al final)", 9)
-	checkpoint(cf, W(x0 - 8, zc), k, 0, false)
-	local spacing = (x1 - x0) / (st.n - 1)
-	local lastTop
-	for i = 1, st.n do
-		local x = x0 + (i - 1) * spacing
-		local y = 1.5 + i * st.rise * 1.6
-		local z = zc + math.sin(i * 1.1) * 7
-		local center = W(x, z, y)
-		local p = Part(cf, CFrame.new(center - Vector3.new(0, 1, 0)), Vector3.new(st.size, 2, st.size + 2), st.plat, Mat.SmoothPlastic,
-			{ CanCollide = true, Name = "Plataforma" })
-		-- pilar de apoyo hasta el suelo
-		Column(cf, W(x, z), math.max(0.5, y - 2), 1.6, Color3.fromRGB(110, 90, 70), Mat.Wood, { CanCollide = true })
-		if k == 2 and i > 1 and i < st.n then
-			local TweenService = game:GetService("TweenService")
-			if i % 3 == 0 then
-				p.Color = Color3.fromRGB(220, 160, 60)
-				TweenService:Create(p, TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-					{ CFrame = p.CFrame + Vector3.new(0, 4, 0) }):Play()
-			elseif i % 4 == 0 then
-				p.Color = Color3.fromRGB(200, 120, 60)
-				TweenService:Create(p, TweenInfo.new(3.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-					{ CFrame = p.CFrame + Vector3.new(0, 0, 6) }):Play()
-			end
-		elseif k == 3 then
-			Part(cf, CFrame.new(center + Vector3.new(0, 7, 0)), Vector3.new(spacing + 1, 1, st.size + 8), Color3.fromRGB(40, 36, 50), Mat.Rock)
-			for _, s in ipairs({ -1, 1 }) do
-				Part(cf, CFrame.new(center + Vector3.new(0, 3, s * (st.size / 2 + 4))), Vector3.new(spacing + 1, 8, 1), Color3.fromRGB(45, 40, 55),
-					Mat.Rock)
-			end
-			local glow = Blob(cf, CFrame.new(center + Vector3.new(0, 0.5, st.size / 2 - 1)), Vector3.new(1.4, 0.9, 1.4),
-				Color3.fromRGB(150, 90, 255), Mat.Neon, { CastShadow = false })
-			local l = Instance.new("PointLight")
-			l.Color = glow.Color
-			l.Range = 12
-			l.Parent = glow
-		elseif k == 4 then
-			if i == 3 or i == 7 then
-				local pad = Part(cf, CFrame.new(center + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Vector3.new(0.4, 5, 5),
-					Color3.fromRGB(255, 120, 60), Mat.Neon, { Shape = Enum.PartType.Cylinder, CanCollide = true, CanTouch = true })
-				CollectionService:AddTag(pad, "JumpPad")
-			end
-			if i == 5 then
-				local ice = Part(cf, CFrame.new(center + Vector3.new(0, 6, 0)), Vector3.new(1.6, 12, st.size + 2), Color3.fromRGB(170, 230, 255),
-					Mat.Ice, { Transparency = 0.2, CanCollide = true })
-				CollectionService:AddTag(ice, "IceWall")
-				for j = 1, 2 do
-					Part(cf, CFrame.new(center + Vector3.new((j - 1.5) * 8, -1, st.size / 2 + 5)), Vector3.new(6, 2, 6), st.plat, Mat.SmoothPlastic,
-						{ CanCollide = true })
-				end
-			end
-		elseif k == 5 and i == 4 then
-			-- ruta secreta: plataformas ocultas hacia un mirador (Prisma las revela)
-			for j = 1, 4 do
-				local hp = Part(cf, CFrame.new(center + Vector3.new(j * 3, j * 2, -j * 9)), Vector3.new(6, 1.5, 6), Color3.fromRGB(150, 255, 255),
-					Mat.Glass, { Transparency = 0.92, CanCollide = false })
-				CollectionService:AddTag(hp, "HiddenPlatform")
-			end
-		end
-		if i == 4 or i == 8 then
-			checkpoint(cf, center, k, i, false)
-		end
-		lastTop = center
+local function courseFinish(cf, k, endPos, supported, ch)
+	Part(cf, CFrame.new(endPos - Vector3.new(0, 1, 0)), Vector3.new(11, 2, 11), Color3.fromRGB(200, 190, 160), Mat.Cobblestone,
+		{ CanCollide = true, Name = "Meta" })
+	if supported then
+		Column(cf, endPos - Vector3.new(0, endPos.Y, 0), math.max(0.5, endPos.Y - 2), 2.2, Color3.fromRGB(110, 90, 70), Mat.Wood, { CanCollide = true })
 	end
-	-- Plataforma final con cofre
-	local endPos = lastTop + Vector3.new(spacing * 0.9, 0.5, 0)
-	Part(cf, CFrame.new(endPos - Vector3.new(0, 1, 0)), Vector3.new(12, 2, 12), Color3.fromRGB(200, 190, 160), Mat.Cobblestone,
-		{ CanCollide = true })
-	Column(cf, endPos - Vector3.new(0, endPos.Y, 0), math.max(0.5, endPos.Y - 2), 2.2, Color3.fromRGB(110, 90, 70), Mat.Wood, { CanCollide = true })
 	checkpoint(cf, endPos, k, 99, true)
 	local chest = Part(cf, CFrame.new(endPos + Vector3.new(3, 1.5, 0)), Vector3.new(4, 3, 3), Color3.fromRGB(200, 150, 60), Mat.Wood,
 		{ CanCollide = true, Name = "CofreSecreto" })
@@ -498,26 +434,315 @@ local function buildChallenge(f, k, rng)
 	CollectionService:AddTag(chest, "SecretChest")
 	local pp = H.AddPrompt(chest, "Abrir", "Cofre del reto", 1, 10)
 	World.Chests[k] = { part = chest, prompt = pp }
+	table.insert(ch.steps, { pos = endPos, half = 5.5 })
+	ch.finish = endPos
+end
+
+local function buildChallenge(f, k, rng)
+	local L = PetWorld.Lengths[k]
+	local x0 = PetWorld.ZoneStart[k] + L * 0.58
+	local x1 = PetWorld.ZoneStart[k] + L * 0.92
+	local zc = -128
+	exclude(x0 - 14, -170, x1 + 16, -96)
+	local cf = folder("Reto" .. k, f)
+	cf:SetAttribute("Mechanic", MECHANIC[k])
+	Terrain.Path({ W(x0 - 10, PathZ(x0 - 10)), W(x0 - 12, -80), W(x0 - 6, zc + 4) }, 6, Mat.Ground)
+	Props.Sign(cf, CFrame.lookAt(W(x0 - 16, -92), W(x0 - 16, -60)), TITLES[k] .. "\n(opcional · cofre al final)", 9)
+	checkpoint(cf, W(x0 - 6, zc), k, 0, false)
+	local ch = { mechanic = MECHANIC[k], steps = { { pos = W(x0 - 6, zc), half = 3 } } }
+	World.Challenges[k] = ch
+	local function step(pos, half, bounce)
+		table.insert(ch.steps, { pos = pos, half = half, bounce = bounce })
+	end
+	local span = x1 - x0
+	local TweenService = game:GetService("TweenService")
+
+	if k == 1 then
+		-- Troncos y ramas: tocones cada vez mas altos unidos por troncos caidos
+		local n = 7
+		local sp = span / n
+		local prev
+		local bark = Color3.fromRGB(116, 82, 56)
+		for i = 1, n do
+			local x = x0 + (i - 1) * sp
+			local z = zc + ((i % 2 == 0) and 5 or -5)
+			local h = 1.5 + i * 1.5
+			local top = W(x, z, h)
+			Column(cf, W(x, z), h, 5.2, Props.Vary(bark, rng, 0.08), Mat.Wood, { CanCollide = true })
+			Disc(cf, top + Vector3.new(0, 0.02, 0), 4.6, 0.1, Color3.fromRGB(214, 180, 130), Mat.Wood)
+			if prev then
+				-- tronco caido que une los tocones: se camina encima
+				Props.Beam(cf, prev + Vector3.new(0, 0.5, 0), top + Vector3.new(0, 0.5, 0), 2.2, Props.Vary(bark, rng, 0.1), Mat.Wood, { CanCollide = true })
+				step((prev + top) / 2 + Vector3.new(0, 0.6, 0), (top - prev).Magnitude / 2 - 0.5)
+			end
+			step(top, 2.6)
+			if i % 3 == 0 then
+				local tip = top + Vector3.new(rng:NextNumber(-2, 2), 4, i % 2 == 0 and 6 or -6)
+				Props.Beam(cf, top + Vector3.new(0, 1, 0), tip, 0.9, bark, Mat.Wood)
+				Blob(cf, CFrame.new(tip + Vector3.new(0, 1, 0)), Vector3.new(5, 3.5, 5), Color3.fromRGB(120, 190, 90), Mat.SmoothPlastic)
+			end
+			if i == 4 then
+				checkpoint(cf, top, k, i, false)
+			end
+			prev = top
+		end
+		-- gran rama final con copa
+		local endPos = prev + Vector3.new(sp, 1.5, 0)
+		Props.Beam(cf, prev + Vector3.new(0, 0.5, 0), endPos + Vector3.new(-4, -0.5, 0), 2.4, bark, Mat.Wood, { CanCollide = true })
+		courseFinish(cf, k, endPos, true, ch)
+		Blob(cf, CFrame.new(endPos + Vector3.new(0, 12, 0)), Vector3.new(18, 9, 18), Color3.fromRGB(110, 180, 90), Mat.SmoothPlastic)
+		Blob(cf, CFrame.new(endPos + Vector3.new(4, 15, 3)), Vector3.new(10, 7, 10), Color3.fromRGB(250, 175, 205), Mat.SmoothPlastic)
+	elseif k == 2 then
+		-- Engranajes: discos dentados que giran y suben
+		local n = 8
+		local sp = span / n
+		local prev
+		for i = 1, n do
+			local x = x0 + (i - 1) * sp
+			local z = zc + math.sin(i * 1.3) * 5
+			local h = 2 + i * 1.4
+			local disc = Part(cf, CFrame.new(W(x, z, h - 0.4)) * CFrame.Angles(0, 0, math.rad(90)), Vector3.new(0.8, 8, 8),
+				Props.Vary(Color3.fromRGB(196, 160, 90), rng, 0.06), Mat.Metal, { Shape = Enum.PartType.Cylinder, CanCollide = true, Name = "Engranaje" })
+			for t = 0, 9 do
+				local a = t / 10 * math.pi * 2
+				local tooth = Part(cf, CFrame.new(W(x + math.cos(a) * 4.3, z + math.sin(a) * 4.3, h - 0.4)) * CFrame.Angles(0, -a, 0),
+					Vector3.new(1.2, 0.7, 1), Color3.fromRGB(176, 140, 76), Mat.Metal, { Anchored = false, Massless = true })
+				local w = Instance.new("WeldConstraint")
+				w.Part0 = disc
+				w.Part1 = tooth
+				w.Parent = tooth
+			end
+			Column(cf, W(x, z), math.max(0.5, h - 1.4), 1.2, Color3.fromRGB(90, 86, 96), Mat.Metal, { CanCollide = true })
+			if i % 2 == 0 then
+				disc:SetAttribute("Gira", true)
+				TweenService:Create(disc, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+					{ CFrame = disc.CFrame * CFrame.Angles(math.rad(120), 0, 0) }):Play()
+			elseif i % 3 == 0 then
+				TweenService:Create(disc, TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+					{ CFrame = disc.CFrame + Vector3.new(0, 2.5, 0) }):Play()
+			end
+			step(W(x, z, h), 4)
+			if i == 4 then
+				checkpoint(cf, W(x, z, h), k, i, false)
+			end
+			prev = W(x, z, h)
+		end
+		Props.Gear(cf, W(x1 + 10, zc - 14), rng, 1.4)
+		courseFinish(cf, k, prev + Vector3.new(sp, 1, 0), true, ch)
+	elseif k == 3 then
+		-- Hongos con rebote: cada sombrero luminoso impulsa a la siguiente cornisa
+		local ledges = { { f = 0.25, h = 10 }, { f = 0.5, h = 19 }, { f = 0.75, h = 28 } }
+		local base = W(x0, zc, 0)
+		local prevTop = base
+		for i, l in ipairs(ledges) do
+			local lx = x0 + span * l.f
+			-- el primer hongo esta en el suelo; los siguientes, sobre la cornisa anterior
+			local padX = i == 1 and (lx - 9) or (x0 + span * ledges[i - 1].f + 4.5)
+			local padTop = prevTop.Y + 2.5
+			-- hongo saltarin
+			local padPos = W(padX, zc, padTop)
+			Column(cf, W(padX, zc, prevTop.Y), 2.5, 1.6, Color3.fromRGB(240, 230, 210), Mat.SmoothPlastic, { CanCollide = true })
+			local pad = Part(cf, CFrame.new(padPos) * CFrame.Angles(0, 0, math.rad(90)), Vector3.new(0.5, 6, 6), Color3.fromRGB(110, 240, 210),
+				Mat.Neon, { Shape = Enum.PartType.Cylinder, CanCollide = true, CanTouch = true, Name = "HongoSaltarin" })
+			pad:SetAttribute("Power", 80)
+			CollectionService:AddTag(pad, "JumpPad")
+			Blob(cf, CFrame.new(padPos - Vector3.new(0, 0.6, 0)), Vector3.new(7, 2.4, 7), Color3.fromRGB(80, 200, 180), Mat.SmoothPlastic,
+				{ CastShadow = false })
+			step(padPos, 3, true)
+			-- cornisa: sombrero gigante plano
+			local top = W(lx, zc, l.h)
+			Column(cf, W(lx, zc), l.h - 0.5, 3, Color3.fromRGB(235, 225, 205), Mat.SmoothPlastic, { CanCollide = true })
+			Disc(cf, top - Vector3.new(0, 0.3, 0), 12, 0.6, Color3.fromRGB(150, 110, 230), Mat.SmoothPlastic, { CanCollide = true })
+			Blob(cf, CFrame.new(top - Vector3.new(0, 1.6, 0)), Vector3.new(13, 3.4, 13), Color3.fromRGB(130, 90, 210), Mat.SmoothPlastic,
+				{ CastShadow = false })
+			local glow = Instance.new("PointLight")
+			glow.Color = Color3.fromRGB(160, 120, 255)
+			glow.Range = 12
+			glow.Parent = pad
+			if i < #ledges then
+				step(top, 6)
+				if i == 1 then
+					checkpoint(cf, top, k, 1, false)
+				end
+			else
+				courseFinish(cf, k, top + Vector3.new(0, 0.6, 0), false, ch)
+			end
+			prevTop = top
+		end
+	elseif k == 4 then
+		-- Cristales y plataformas heladas (resbaladizas) con un muro de hielo opcional
+		local n = 8
+		local sp = span / n
+		local prev
+		local icy = PhysicalProperties.new(0.9, 0.04, 0.1, 100, 1)
+		for i = 1, n do
+			local x = x0 + (i - 1) * sp
+			local z = zc + ((i % 2 == 0) and 4 or -4)
+			local h = 2 + i * 1.3
+			if i % 2 == 1 then
+				-- pilar de cristal
+				Part(cf, CFrame.new(W(x, z, h / 2)) * CFrame.Angles(0, math.rad(45), 0), Vector3.new(4.4, h, 4.4), Color3.fromRGB(170, 225, 255),
+					Mat.Glass, { Transparency = 0.25, CanCollide = true, Name = "PilarCristal" })
+				Part(cf, CFrame.new(W(x, z, h + 0.15)) * CFrame.Angles(0, math.rad(45), 0), Vector3.new(4.6, 0.3, 4.6), Color3.fromRGB(200, 245, 255),
+					Mat.Neon, { CastShadow = false })
+				step(W(x, z, h + 0.3), 2.3)
+			else
+				-- losa de hielo resbaladiza
+				Part(cf, CFrame.new(W(x, z, h - 0.4)), Vector3.new(6.5, 0.8, 6), Color3.fromRGB(190, 235, 255), Mat.Ice,
+					{ CanCollide = true, CustomPhysicalProperties = icy, Name = "LosaHelada" })
+				Column(cf, W(x, z), math.max(0.5, h - 0.8), 0.8, Color3.fromRGB(150, 200, 230), Mat.Glass, { Transparency = 0.3 })
+				step(W(x, z, h), 3.2)
+			end
+			if i == 5 then
+				-- muro de hielo con desvio (Flamin lo derrite)
+				local ice = Part(cf, CFrame.new(W(x + sp / 2, z, h + 5)), Vector3.new(1.4, 10, 7), Color3.fromRGB(170, 230, 255), Mat.Ice,
+					{ Transparency = 0.2, CanCollide = true })
+				CollectionService:AddTag(ice, "IceWall")
+				Part(cf, CFrame.new(W(x + sp / 2, z + 7, h)), Vector3.new(sp + 3, 0.8, 4), Color3.fromRGB(190, 235, 255), Mat.Ice,
+					{ CanCollide = true, CustomPhysicalProperties = icy })
+				checkpoint(cf, W(x, z, h), k, i, false)
+			end
+			prev = W(x, z, h)
+		end
+		courseFinish(cf, k, prev + Vector3.new(sp, 1, 0), true, ch)
+		Props.Crystal(cf, W(x1 + 12, zc + 8), rng, Color3.fromRGB(170, 230, 255), 1.6)
+	else
+		-- Plataformas flotantes (se mecen) y caminos temporales (aparecen y desaparecen)
+		local n = 9
+		local sp = span / n
+		local prev
+		for i = 1, n do
+			local x = x0 + (i - 1) * sp
+			local z = zc + math.sin(i * 0.9) * 6
+			local h = 3 + i * 1.2
+			local pos = W(x, z, h)
+			if i % 2 == 1 then
+				local p = Part(cf, CFrame.new(pos - Vector3.new(0, 0.6, 0)), Vector3.new(6, 1.2, 6), Color3.fromRGB(200, 186, 236), Mat.Marble,
+					{ CanCollide = true, Name = "Flotante" })
+				local under = Props.Crystal(cf, pos - Vector3.new(0, 3.2, 0), rng, Color3.fromRGB(200, 160, 255), 0.5)
+				under.Name = "CristalBase"
+				if i % 4 == 1 then
+					TweenService:Create(p, TweenInfo.new(2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+						{ CFrame = p.CFrame + Vector3.new(0, 1.5, 0) }):Play()
+				end
+				step(pos, 3)
+			else
+				-- camino temporal: dos grupos que se alternan cada 2.5 s
+				local ph = Part(cf, CFrame.new(pos - Vector3.new(0, 0.5, 0)), Vector3.new(6, 1, 6), Color3.fromRGB(190, 140, 255), Mat.Glass,
+					{ CanCollide = true, Transparency = 0.15, Name = "CaminoTemporal" })
+				ph:SetAttribute("Phase", (i / 2) % 2)
+				CollectionService:AddTag(ph, "PhasePlatform")
+				step(pos, 3)
+			end
+			if i == 5 then
+				checkpoint(cf, pos, k, i, false)
+			end
+			prev = pos
+		end
+		-- atajo secreto (Prisma lo revela)
+		for j = 1, 3 do
+			local hp = Part(cf, CFrame.new(W(x0 + span * 0.3 + j * 7, zc + 14, 6 + j * 2)), Vector3.new(5, 1.2, 5), Color3.fromRGB(150, 255, 255),
+				Mat.Glass, { Transparency = 0.92, CanCollide = false })
+			CollectionService:AddTag(hp, "HiddenPlatform")
+		end
+		courseFinish(cf, k, prev + Vector3.new(sp, 1, 0), false, ch)
+	end
+end
+
+-- Arenas de incursion tematicas (una por zona) ---------------------------------------------
+
+function PetWorld.ArenaCenter(k)
+	local spec = PetWorld.ArenaSpecs[k]
+	local x = PetWorld.ZoneStart[k] + PetWorld.Lengths[k] * spec.at
+	return x, PathZ(x) - (spec.r + 15), spec.r
+end
+
+local function buildArena(f, k, rng)
+	local spec = PetWorld.ArenaSpecs[k]
+	local ax, az, r = PetWorld.ArenaCenter(k)
+	local af = folder("Arena" .. k, f)
+	af:SetAttribute("ArenaName", spec.name)
+	local floor = ({ Mat.Pavement, Mat.Cobblestone, Mat.Slate, Mat.Glacier, Mat.Salt })[k]
+	Terrain.Disc(W(ax, az), r, floor)
+	Terrain.Disc(W(ax, az), r * 0.35, ({ Mat.LeafyGrass, Mat.Pavement, Mat.Mud, Mat.Snow, Mat.Basalt })[k])
+	Terrain.Path({ W(ax, PathZ(ax)), W(ax, az + r - 2) }, 8, Mat.Ground)
+	-- arco de entrada con el nombre
+	Props.ArchSign(af, CFrame.lookAt(W(ax, az + r + 3), W(ax, az + r + 30)), spec.name, 9, Progression.Zones[k].color)
+	local function ring(count, dist, fn)
+		for i = 0, count - 1 do
+			local a = (i + 0.5) / count * math.pi * 2
+			-- deja libre la entrada (lado norte, hacia el camino)
+			if math.sin(a) < 0.82 then
+				fn(W(ax + math.cos(a) * dist, az + math.sin(a) * dist), a)
+			end
+		end
+	end
+	local particleColor
+	if k == 1 then
+		ring(9, r + 6, function(p) Props.Birch(af, p, rng, 1.05, Props.Palettes.blossom) end)
+		ring(12, r + 1, function(p, a)
+			Part(af, CFrame.new(p + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, -a, 0), Vector3.new(3, 1.2, 2), Color3.fromRGB(176, 166, 156), Mat.Slate,
+				{ CanCollide = true })
+		end)
+		particleColor = Color3.fromRGB(255, 180, 210)
+	elseif k == 2 then
+		ring(12, r + 3, function(p)
+			Column(af, p, rng:NextNumber(6, 11), 2.2, Color3.fromRGB(214, 184, 110), Mat.Marble, { CanCollide = true })
+		end)
+		ring(4, r + 10, function(p) Props.Gear(af, p, rng, 1.2) end)
+		particleColor = Color3.fromRGB(255, 220, 140)
+	elseif k == 3 then
+		ring(10, r + 5, function(p) Props.Mushroom(af, p, rng, rng:NextNumber(3, 4.5), true, Color3.fromRGB(110, 230, 210)) end)
+		particleColor = Color3.fromRGB(140, 255, 230)
+	elseif k == 4 then
+		ring(10, r + 4, function(p) Props.Crystal(af, p, rng, Color3.fromRGB(170, 230, 255), 1.3) end)
+		particleColor = Color3.fromRGB(210, 245, 255)
+	else
+		ring(8, r + 4, function(p) Props.RuneStone(af, p, rng, Color3.fromRGB(200, 160, 255)) end)
+		Part(af, CFrame.new(W(ax, az, 0.12)) * CFrame.Angles(0, 0, math.rad(90)), Vector3.new(0.12, r * 1.2, r * 1.2), Color3.fromRGB(190, 140, 255),
+			Mat.Neon, { Shape = Enum.PartType.Cylinder, Transparency = 0.6, CastShadow = false })
+		particleColor = Color3.fromRGB(210, 170, 255)
+	end
+	-- particulas ambientales suaves (petalos, chispas, esporas, escarcha, runas)
+	local e = Props.Fireflies(af, W(ax, az, 9), Vector3.new(r * 2, 12, r * 2), 4, particleColor)
+	e.Name = "AmbienteArena"
+	exclude(ax - r - 9, az - r - 9, ax + r + 9, az + r + 9)
+	local pillars = {}
+	for i = 1, 4 do
+		local a = (i - 1) / 4 * math.pi * 2 + math.pi / 4
+		table.insert(pillars, W(ax + math.cos(a) * r * 0.72, az + math.sin(a) * r * 0.72))
+	end
+	World.Arenas[k] = {
+		zone = k,
+		name = spec.name,
+		center = W(ax, az),
+		radius = r,
+		pillars = pillars,
+		spawn = CFrame.lookAt(W(ax, az + r - 6, 4), W(ax, az, 4)),
+	}
 end
 
 -- Claros (donde aparecen los PETs) y arboledas dentro de la pradera -------------------------
 
 local function clearingsFor(k)
+	-- mas claros, mas pequeños y pegados al camino: se encuentran PETs al explorar
 	local x0, x1 = PetWorld.ZoneStart[k], PetWorld.ZoneEnd[k]
-	local n = math.max(3, math.floor((x1 - x0) / 95))
+	local n = math.max(4, math.floor((x1 - x0) / 50))
+	local r = k == 5 and 24 or 22
+	local ax, az, ar = PetWorld.ArenaCenter(k)
 	local list = {}
 	for i = 1, n do
-		local x = x0 + 45 + (x1 - x0 - 90) * (i - 0.5) / n
+		local x = x0 + 22 + (x1 - x0 - 44) * (i - 0.5) / n
 		local pz = PathZ(x)
-		local side = pz > 0 and -1 or 1
-		if i % 2 == 0 then
-			side = -side
+		local placed = false
+		for _, side in ipairs({ (i % 2 == 0) and 1 or -1, (i % 2 == 0) and -1 or 1 }) do
+			local cz = math.clamp(pz + side * 30, -52, 52)
+			local clearArena = (x - ax) ^ 2 + (cz - az) ^ 2 > (ar + r + 6) ^ 2
+			if not placed and clearArena then
+				table.insert(list, { x = x, z = cz, r = r })
+				placed = true
+			end
 		end
-		local cz = pz + side * 40
-		if math.abs(cz) > 45 then
-			cz = pz - side * 40
-		end
-		table.insert(list, { x = x, z = cz, r = k == 5 and 33 or 30 })
 	end
 	return list
 end
@@ -714,26 +939,26 @@ end
 local function buildCamp(f, rng)
 	local camp = folder("Campamento", f)
 	-- plaza de llegada y portal de regreso al santuario
-	Terrain.Disc(W(40, 0), 30, Mat.Pavement)
-	local pcf = CFrame.new(W(14, 0)) * CFrame.Angles(0, -math.pi / 2, 0)
+	Terrain.Disc(W(36, 0), 26, Mat.Pavement)
+	local pcf = CFrame.new(W(12, 0)) * CFrame.Angles(0, -math.pi / 2, 0)
 	local pm, gate = Props.Portal(camp, pcf, Color3.fromRGB(120, 200, 255), rng, 1.3)
 	pm.Name = "PortalSantuario"
 	billboard(gate, "Volver al santuario", Color3.fromRGB(200, 235, 255), 300, 11, 140)
 	local pp = H.AddPrompt(gate, "Volver", "Santuario", 0, 14)
 	pp:SetAttribute("Dest", "home")
 	table.insert(World.Portals, { prompt = pp, dest = "home" })
-	World.Spawns.world = CFrame.lookAt(W(34, 0, 4), W(80, PathZ(80), 4))
-	exclude(-10, -30, 70, 30)
+	World.Spawns.world = CFrame.lookAt(W(30, 0, 4), W(70, PathZ(70), 4))
+	exclude(-10, -26, 58, 26)
 
 	-- Puestos de NPC (como en el esquema: norte, centro y sur)
 	local stalls = {
-		{ id = "merchant", x = 112, z = 80, face = -1, color = Color3.fromRGB(230, 150, 60), name = "Comerciante",
+		{ id = "merchant", x = 86, z = 66, face = -1, color = Color3.fromRGB(230, 150, 60), name = "Comerciante",
 			npc = { body = Color3.fromRGB(150, 90, 60), hat = Color3.fromRGB(200, 80, 60) }, hat = "cap", panel = "merchant",
 			action = "Intercambiar" },
-		{ id = "guide", x = 74, z = -30, face = 1, color = Color3.fromRGB(90, 170, 230), name = "Guia del bosque",
+		{ id = "guide", x = 60, z = -34, face = 1, color = Color3.fromRGB(90, 170, 230), name = "Guia del bosque",
 			npc = { body = Color3.fromRGB(70, 130, 90), hat = Color3.fromRGB(80, 60, 160) }, hat = "wizard", panel = "guide",
 			action = "Hablar" },
-		{ id = "premium", x = 138, z = -60, face = 1, color = Color3.fromRGB(230, 110, 190), name = "Tienda premium",
+		{ id = "premium", x = 108, z = -58, face = 1, color = Color3.fromRGB(230, 110, 190), name = "Tienda premium",
 			npc = { body = Color3.fromRGB(120, 70, 170), hat = Color3.fromRGB(255, 210, 80) }, hat = "crown", panel = "shop",
 			action = "Ver tienda" },
 	}
@@ -754,9 +979,9 @@ local function buildCamp(f, rng)
 	end
 
 	-- Fogata, tiendas de campaña, faroles y tablon
-	Props.Campfire(camp, W(40, -46), rng)
-	exclude(30, -56, 50, -36)
-	for _, t in ipairs({ { 170, 112, 0.4 }, { 190, -118, -0.3 }, { 20, 84, 0.9 } }) do
+	Props.Campfire(camp, W(30, -44), rng)
+	exclude(20, -54, 40, -34)
+	for _, t in ipairs({ { 110, 104, 0.4 }, { 126, -104, -0.3 }, { 20, 84, 0.9 } }) do
 		local tcf = CFrame.new(W(t[1], t[2])) * CFrame.Angles(0, t[3], 0)
 		for _, s in ipairs({ -1, 1 }) do
 			Part(camp, tcf * CFrame.new(s * 2.4, 2.4, 0) * CFrame.Angles(0, 0, s * -0.9), Vector3.new(0.3, 6.4, 8), Color3.fromRGB(220, 200, 160),
@@ -764,49 +989,21 @@ local function buildCamp(f, rng)
 		end
 		exclude(t[1] - 7, t[2] - 7, t[1] + 7, t[2] + 7)
 	end
-	for _, l in ipairs({ { 60, 18 }, { 100, 46 }, { 150, 46 }, { 100, -6 }, { 150, 10 }, { 70, -80 }, { 120, -80 } }) do
+	for _, l in ipairs({ { 48, 16 }, { 78, 40 }, { 116, 42 }, { 80, -8 }, { 118, 4 }, { 50, -70 }, { 96, -82 } }) do
 		Props.Lantern(camp, W(l[1], l[2]), rng, 6.5)
 	end
-	Props.Sign(camp, CFrame.lookAt(W(54, -20), W(54, 10)), "Mundo PET\nSigue el camino hacia el este →\nZona 1 · Bosque de Lumi", 9)
+	Props.Sign(camp, CFrame.lookAt(W(46, -18), W(46, 10)), "Mundo PET\nSigue el camino hacia el este →\nCada zona tiene su arena de incursion", 9)
 	-- arco de salida hacia la Zona 1, cercas y jardineras
-	local ax = PetWorld.CampLength - 8
+	local ax = PetWorld.CampLength - 6
 	Props.ArchSign(camp, CFrame.lookAt(W(ax, PathZ(ax)), W(ax - 20, PathZ(ax))), "Zona 1 · Bosque de Lumi →", 15, Color3.fromRGB(230, 255, 150))
 	exclude(ax - 6, PathZ(ax) - 10, ax + 6, PathZ(ax) + 10)
 	Props.Fence(camp, W(0, 98), W(PetWorld.CampLength - 20, 98), rng, false)
-	Props.Fence(camp, W(0, -96), W(40, -96), rng, false)
-	Props.Fence(camp, W(160, -96), W(PetWorld.CampLength - 20, -96), rng, false)
-	for _, fb in ipairs({ { 30, 30 }, { 52, -30 }, { 88, 72 }, { 140, 62 }, { 120, -40 }, { 180, 30 }, { 184, -30 } }) do
+	Props.Fence(camp, W(0, -96), W(PetWorld.CampLength - 20, -96), rng, false)
+	for _, fb in ipairs({ { 26, 28 }, { 44, -28 }, { 70, 72 }, { 118, 62 }, { 96, -34 }, { 104, 82 }, { 126, -30 } }) do
 		Props.Flowers(camp, W(fb[1], fb[2]), rng, 7, 2.5)
 		Props.Bush(camp, W(fb[1] + 3, fb[2] + 2), rng, 0.9)
 	end
-	buildBeacon(camp, "camp", nil, 64, 34, rng)
-
-	-- Arena de incursiones en un claro al sur del campamento
-	local a = PetWorld.ArenaLocal
-	Terrain.Disc(W(a.x, a.z), a.r, Mat.Pavement)
-	Terrain.Path({ W(60, PathZ(60)), W(80, -60), W(a.x, a.z + a.r - 4) }, 8, Mat.Ground)
-	for i = 0, 15 do
-		local ang = i / 16 * math.pi * 2
-		local p = W(a.x + math.cos(ang) * (a.r + 2), a.z + math.sin(ang) * (a.r + 2))
-		if math.sin(ang) < 0.7 then
-			Part(camp, CFrame.new(p + Vector3.new(0, 1.5, 0)) * CFrame.Angles(0, -ang, 0), Vector3.new(3, 3, 2), Props.Vary(Color3.fromRGB(140, 130, 150),
-				rng, 0.08), Mat.Slate, { CanCollide = true })
-		end
-	end
-	for _, side in ipairs({ -1, 1 }) do
-		local p = W(a.x + side * 14, a.z + a.r - 2)
-		Column(camp, p, 9, 0.6, Color3.fromRGB(100, 72, 50), Mat.Wood)
-		Part(camp, CFrame.new(p + Vector3.new(0, 6.5, 0.4)), Vector3.new(3, 5, 0.15), Color3.fromRGB(200, 70, 110), Mat.Fabric)
-	end
-	Props.Sign(camp, CFrame.lookAt(W(a.x - 20, a.z + a.r + 6), W(a.x - 20, a.z + a.r + 30)), "Arena de Incursiones\nPunto de reunion", 8)
-	exclude(a.x - a.r - 6, a.z - a.r - 6, a.x + a.r + 6, a.z + a.r + 6)
-	World.ARENA = W(a.x, a.z)
-	World.ArenaPillars = {}
-	for i = 1, 4 do
-		local ang = (i - 1) / 4 * math.pi * 2 + math.pi / 4
-		table.insert(World.ArenaPillars, W(a.x + math.cos(ang) * 36, a.z + math.sin(ang) * 36))
-	end
-	World.Spawns.arena = CFrame.lookAt(W(a.x, a.z + a.r - 8, 4), W(a.x, a.z, 4))
+	buildBeacon(camp, "camp", nil, 52, 32, rng)
 	return camp
 end
 
@@ -821,6 +1018,8 @@ function PetWorld.Build(world, rootFolder)
 	World.MineEntrances = {}
 	World.GiftSpots = {}
 	World.Npcs = {}
+	World.Arenas = {}
+	World.Challenges = {}
 	local rng = Random.new(1105)
 	local f = folder("MundoPET", rootFolder)
 	buildTerrain(rng)
@@ -835,15 +1034,16 @@ function PetWorld.Build(world, rootFolder)
 		local zf = folder("Zona" .. k, f)
 		local x0, x1 = PetWorld.ZoneStart[k], PetWorld.ZoneEnd[k]
 		local Z = Progression.Zones[k]
-		buildBeacon(zf, "z" .. k, k, x0 + 30, PathZ(x0 + 30) + 22, rng)
+		buildBeacon(zf, "z" .. k, k, x0 + 22, PathZ(x0 + 22) + 20, rng)
 		buildMineEntrance(zf, k, rng)
 		buildChallenge(zf, k, rng)
+		buildArena(zf, k, rng)
 		-- letrero de bienvenida con PETs y minerales de la zona
 		local names = {}
 		for _, sp in ipairs(PetCatalog.SpeciesInZone(k)) do
 			table.insert(names, sp.name)
 		end
-		local sx = x0 + 24
+		local sx = x0 + 14
 		Props.Sign(zf, CFrame.lookAt(W(sx, PathZ(sx) - 16), W(sx - 30, PathZ(sx) - 16)),
 			"Zona " .. k .. " · " .. Z.name .. "\nPETs: " .. table.concat(names, ", "), 11)
 		exclude(sx - 7, PathZ(sx) - 22, sx + 7, PathZ(sx) - 10)
@@ -886,8 +1086,28 @@ function PetWorld.Build(world, rootFolder)
 	-- bosque del campamento
 	forestBand(camp, 1, -30, PetWorld.CampLength, 104, 168, rng, 22)
 	forestBand(camp, 1, -30, PetWorld.CampLength, -170, -102, rng, 14)
-	-- legado: destinos antiguos del Reino apuntan al campamento
+	-- legado: destinos antiguos del Reino apuntan al campamento; la arena "por defecto" es la de la zona 1
 	World.Spawns.realm = World.Spawns.world
+	World.ARENA = World.Arenas[1].center
+	World.ArenaPillars = World.Arenas[1].pillars
+	World.Spawns.arena = World.Arenas[1].spawn
+	-- Caminos temporales de la zona 5: dos grupos que se alternan cada 2.5 s
+	local phase = 0
+	local function applyPhase()
+		for _, p in ipairs(CollectionService:GetTagged("PhasePlatform")) do
+			local active = p:GetAttribute("Phase") == phase
+			p.CanCollide = active
+			p.Transparency = active and 0.15 or 0.85
+		end
+	end
+	applyPhase()
+	task.spawn(function()
+		while true do
+			task.wait(2.5)
+			phase = 1 - phase
+			applyPhase()
+		end
+	end)
 	for k = 1, 5 do
 		World.Spawns["z" .. k] = World.Spawns["beacon_z" .. k]
 		World.Spawns["z" .. k .. "m"] = World.Spawns["beacon_z" .. k]

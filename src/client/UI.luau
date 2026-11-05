@@ -327,7 +327,13 @@ local function updateRaidBanner()
 		return
 	end
 	raidBanner.Visible = true
-	local inArena = player:GetAttribute("Area") == "arena"
+	local inArena = false
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if hrp and r.arenaX then
+		local d = Vector3.new(hrp.Position.X - r.arenaX, 0, hrp.Position.Z - r.arenaZ).Magnitude
+		inArena = d <= (r.arenaR or 44)
+	end
 	local name = r.species and PetCatalog.Get(r.species) and PetCatalog.Get(r.species).name or "?"
 	local title = raidBanner:FindFirstChild("Title")
 	local info = raidBanner:FindFirstChild("Info")
@@ -335,7 +341,7 @@ local function updateRaidBanner()
 	local go = raidBanner:FindFirstChild("Go")
 	local myScore = r.scores and r.scores[tostring(player.UserId)] or 0
 	local phaseText = {
-		announce = "⚠️ Incursion en " .. K.fmtTime(r.timeLeft) .. " · " .. name .. " gigante (" .. (r.zoneName or "") .. ")",
+		announce = "⚠️ Incursion en " .. K.fmtTime(r.timeLeft) .. " · " .. name .. " gigante · " .. (r.arenaName or "Arena") .. " (Zona " .. tostring(r.zone or "?") .. ")",
 		barrier = "🛡️ Fase 1: rompe la barrera con disparos de resonancia",
 		pillars = string.format("🗿 Fase 2: activa los pilares (%d/%d) y esquiva las ondas", r.pillars or 0, r.pillarsTotal or 4),
 		final = "💫 Fase 3: entra al circulo rosa para estabilizar al PET",

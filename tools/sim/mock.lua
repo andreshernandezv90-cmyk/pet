@@ -136,7 +136,7 @@ Color3 = {
 local function opaque(name) return { new = function(...) return { __type = name, ... } end } end
 UDim2 = opaque("UDim2"); UDim = opaque("UDim"); Vector2 = opaque("Vector2"); TweenInfo = opaque("TweenInfo")
 NumberSequence = opaque("NumberSequence"); ColorSequence = opaque("ColorSequence")
-NumberRange = opaque("NumberRange"); NumberSequenceKeypoint = opaque("NumberSequenceKeypoint"); ColorSequenceKeypoint = opaque("ColorSequenceKeypoint")
+NumberRange = opaque("NumberRange"); PhysicalProperties = opaque("PhysicalProperties"); NumberSequenceKeypoint = opaque("NumberSequenceKeypoint"); ColorSequenceKeypoint = opaque("ColorSequenceKeypoint")
 Enum = setmetatable({}, { __index = function(_, a) return setmetatable({}, { __index = function(_, b) return a .. "." .. b end }) end })
 
 Random = { new = function(seed)

@@ -21,8 +21,8 @@ local cc -- ColorCorrection
 local atmosphere
 
 local LOOKS = {
-	home = { clock = 15.6, ambient = Color3.fromRGB(112, 106, 122), outdoor = Color3.fromRGB(142, 136, 150), bright = 2.4,
-		tint = Color3.fromRGB(255, 250, 240), fog = 1400, fogColor = Color3.fromRGB(205, 220, 240) },
+	home = { clock = 14.8, ambient = Color3.fromRGB(116, 112, 124), outdoor = Color3.fromRGB(138, 134, 146), bright = 2.1,
+		tint = Color3.fromRGB(252, 250, 246), fog = 1400, fogColor = Color3.fromRGB(205, 220, 240) },
 	mines = { clock = 17.5, ambient = Color3.fromRGB(90, 80, 75), outdoor = Color3.fromRGB(110, 95, 85), bright = 1.4,
 		tint = Color3.fromRGB(255, 235, 215), fog = 500, fogColor = Color3.fromRGB(110, 90, 80) },
 	realm = { clock = 16, ambient = Color3.fromRGB(120, 100, 150), outdoor = Color3.fromRGB(150, 120, 190), bright = 2,
@@ -293,7 +293,7 @@ function WorldFx.Init()
 			local hrp = char:FindFirstChild("HumanoidRootPart")
 			if hrp then
 				local v = hrp.AssemblyLinearVelocity
-				hrp.AssemblyLinearVelocity = Vector3.new(v.X, 95, v.Z)
+				hrp.AssemblyLinearVelocity = Vector3.new(v.X, pad:GetAttribute("Power") or 95, v.Z)
 			end
 		end)
 	end
@@ -324,7 +324,7 @@ function WorldFx.Init()
 				hrp.AssemblyLinearVelocity = Vector3.new(v.X, -12, v.Z)
 			end
 		end
-		if player:GetAttribute("Area") == "arena" then
+		do
 			local now = workspace:GetServerTimeNow()
 			for _, ring in ipairs(CollectionService:GetTagged("RaidWave")) do
 				local start = ring:GetAttribute("Start") or now
@@ -334,7 +334,7 @@ function WorldFx.Init()
 				local c = ring.Position
 				local d = Vector3.new(hrp.Position.X - c.X, 0, hrp.Position.Z - c.Z)
 				local grounded = hum.FloorMaterial ~= Enum.Material.Air
-				if grounded and math.abs(d.Magnitude - r) < 3 and not lastWave[ring] then
+				if grounded and d.Magnitude <= maxR + 4 and math.abs(d.Magnitude - r) < 3 and not lastWave[ring] then
 					lastWave[ring] = true
 					local dir = d.Magnitude > 0.1 and d.Unit or Vector3.new(1, 0, 0)
 					hrp.AssemblyLinearVelocity = dir * 70 + Vector3.new(0, 45, 0)
