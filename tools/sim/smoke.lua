@@ -18,7 +18,7 @@ local S = {}
 for _, m in ipairs(SERVER_SCRIPT.Services:GetChildren()) do S[m.Name] = require(m) end
 local nodes = 0 for _ in pairs(S.World.Nodes) do nodes = nodes + 1 end
 check(nodes > 100, "nodos de recursos: " .. nodes)
-check(#S.World.Checkpoints >= 15 and #S.World.Portals >= 10, "checkpoints y portales")
+check(#S.World.Checkpoints >= 15 and #S.World.Portals >= 3, "checkpoints de retos y portales (central, regreso, minas)")
 
 local encounters = {}
 remotes.Encounters.OnClientEvent:Connect(function(zone, list) encounters = list or {} end)

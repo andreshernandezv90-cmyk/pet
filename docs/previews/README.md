@@ -10,3 +10,5 @@ Sirven para revisar la composición y las proporciones entre fases. Studio se ve
 | `faseB2-parcela.png` | Parcela de nivel 4 desde arriba: patio de extractores, huerto con valla, laboratorios, terrazas del taller y del almacén. |
 | `faseB2-plaza-portal-central.png` | Plaza central con el gran portal dimensional, obeliscos y cristales en órbita. |
 | `mundo-pet-layout.png` | Plano de la propuesta del Mundo PET (ver `docs/MUNDO_PET_LAYOUT.md`). |
+| `faseC-campamento.png` | Campamento del Mundo PET: portal de regreso, puestos del Comerciante, Guía y Tienda premium, fogata, arena y arco hacia la Zona 1. |
+| `faseC-zona1.png` | Zona 1 · Bosque de Lumi: arboledas con claros para los PETs, montaña con la entrada de la Mina de Zuar y la barrera de la Zona 2 al fondo. |

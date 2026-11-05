@@ -108,6 +108,12 @@ Props.Palettes = {
 		bark = Color3.fromRGB(120, 86, 76) },
 	autumn = { leaf = Color3.fromRGB(240, 160, 60), leaf2 = Color3.fromRGB(250, 200, 90), dark = Color3.fromRGB(200, 100, 50),
 		bark = Color3.fromRGB(104, 76, 56) },
+	shadow = { leaf = Color3.fromRGB(58, 112, 110), leaf2 = Color3.fromRGB(80, 140, 128), dark = Color3.fromRGB(38, 76, 80),
+		bark = Color3.fromRGB(70, 58, 62) },
+	eclipse = { leaf = Color3.fromRGB(122, 96, 182), leaf2 = Color3.fromRGB(170, 140, 230), dark = Color3.fromRGB(80, 60, 130),
+		bark = Color3.fromRGB(70, 56, 78) },
+	garden = { leaf = Color3.fromRGB(96, 196, 150), leaf2 = Color3.fromRGB(150, 230, 180), dark = Color3.fromRGB(60, 140, 110),
+		bark = Color3.fromRGB(110, 84, 64) },
 }
 Props.FlowerColors = {
 	Color3.fromRGB(255, 120, 160), Color3.fromRGB(255, 220, 90), Color3.fromRGB(170, 130, 255), Color3.fromRGB(255, 255, 255),
@@ -625,6 +631,171 @@ function Props.Curb(parent, a, b, rng)
 			Vector3.new(1.2, 0.8, d.Magnitude / n - 0.15), vary(Color3.fromRGB(170, 164, 154), rng, 0.08), M.Slate, { CanCollide = true })
 	end
 	return m
+end
+
+-- Puesto de mercado con toldo a rayas (para NPCs)
+function Props.Stall(parent, cf, color, rng)
+	local m = model(parent, "Puesto")
+	local wood = Color3.fromRGB(130, 92, 60)
+	Part(m, cf * CFrame.new(0, 0.2, 0), Vector3.new(11, 0.4, 8), Color3.fromRGB(160, 118, 78), M.WoodPlanks, { CanCollide = true })
+	local counter = Part(m, cf * CFrame.new(0, 1.6, -2.2), Vector3.new(9, 2.8, 1.6), Color3.fromRGB(176, 130, 84), M.WoodPlanks, { CanCollide = true })
+	Part(m, cf * CFrame.new(0, 3.1, -2.4), Vector3.new(9.6, 0.3, 2.2), wood, M.Wood)
+	for _, c in ipairs({ { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } }) do
+		Part(m, cf * CFrame.new(c[1] * 5, 3.6, c[2] * 3.4), Vector3.new(0.5, 7.2, 0.5), wood, M.Wood, { CanCollide = true })
+	end
+	for i = 0, 7 do
+		local stripe = i % 2 == 0 and color or Color3.fromRGB(250, 246, 236)
+		Part(m, cf * CFrame.new(-5 + 0.62 + i * 1.25, 7.6 - 0.2, 0) * CFrame.Angles(0.22, 0, 0), Vector3.new(1.26, 0.25, 9), stripe, M.Fabric)
+	end
+	-- mercancia sobre el mostrador
+	for k = 0, 3 do
+		local c = ({ Color3.fromRGB(230, 90, 90), Color3.fromRGB(250, 200, 80), Color3.fromRGB(110, 180, 240), Color3.fromRGB(120, 200, 110) })[k + 1]
+		Part(m, cf * CFrame.new(-3 + k * 2, 3.55, -2.4), Vector3.new(0.8, 0.8, 0.8), c, M.Glass, { Shape = Enum.PartType.Ball, CastShadow = false })
+	end
+	Props.Crate(m, cf * CFrame.new(4.6, 0.4, 2.4) * CFrame.Angles(0, 0.3, 0), 0.9)
+	Props.Barrel(m, (cf * CFrame.new(-4.4, 0.4, 2.6)).Position, 0.85)
+	return m, counter
+end
+
+-- Personaje NPC estilizado (sin Humanoid ni assets). cf: pies, mirando a -Z.
+function Props.NPC(parent, cf, colors, hat)
+	local m = model(parent, "NPC")
+	local skin = colors.skin or Color3.fromRGB(240, 200, 160)
+	local body = Blob(m, cf * CFrame.new(0, 2.6, 0), Vector3.new(2.6, 3.4, 2), colors.body or Color3.fromRGB(90, 120, 200), M.SmoothPlastic,
+		{ CanCollide = true, CanQuery = true })
+	Blob(m, cf * CFrame.new(0, 1.1, 0), Vector3.new(2.4, 1.6, 1.9), colors.legs or Color3.fromRGB(70, 60, 60), M.SmoothPlastic)
+	local head = Part(m, cf * CFrame.new(0, 5.1, 0), Vector3.new(2.1, 2.1, 2.1), skin, M.SmoothPlastic, { Shape = Enum.PartType.Ball })
+	for _, sx in ipairs({ -1, 1 }) do
+		Part(m, cf * CFrame.new(sx * 0.42, 5.25, -0.95), Vector3.new(0.3, 0.38, 0.2), Color3.fromRGB(30, 30, 40), M.SmoothPlastic, { CastShadow = false })
+		Beam(m, (cf * CFrame.new(sx * 1.25, 3.7, 0)).Position, (cf * CFrame.new(sx * 1.6, 2.2, -0.5)).Position, 0.6, colors.body or
+			Color3.fromRGB(90, 120, 200), M.SmoothPlastic)
+		Part(m, cf * CFrame.new(sx * 1.65, 2, -0.6), Vector3.new(0.55, 0.55, 0.55), skin, M.SmoothPlastic, { Shape = Enum.PartType.Ball })
+	end
+	Blob(m, cf * CFrame.new(0, 4.75, -1.02), Vector3.new(0.9, 0.35, 0.15), Color3.fromRGB(200, 110, 110), M.SmoothPlastic, { CastShadow = false })
+	if hat == "wizard" then
+		Part(m, cf * CFrame.new(0, 6.05, 0) * CFrame.Angles(0, 0, RAD90), Vector3.new(0.25, 3.2, 3.2), colors.hat or Color3.fromRGB(80, 60, 160),
+			M.Fabric, { Shape = Enum.PartType.Cylinder })
+		Blob(m, cf * CFrame.new(0, 7.1, 0) * CFrame.Angles(0, 0, 0.15), Vector3.new(1.4, 2.6, 1.4), colors.hat or Color3.fromRGB(80, 60, 160), M.Fabric)
+	elseif hat == "cap" then
+		Blob(m, cf * CFrame.new(0, 5.8, 0), Vector3.new(2.3, 1.1, 2.3), colors.hat or Color3.fromRGB(200, 80, 60), M.Fabric)
+		Part(m, cf * CFrame.new(0, 5.6, -1.2), Vector3.new(1.6, 0.15, 0.9), colors.hat or Color3.fromRGB(200, 80, 60), M.Fabric)
+	elseif hat == "crown" then
+		for i = 0, 4 do
+			local a = i / 5 * math.pi * 2
+			Part(m, cf * CFrame.new(math.cos(a) * 0.75, 6.35, math.sin(a) * 0.75), Vector3.new(0.35, 0.8, 0.35), Color3.fromRGB(255, 210, 80), M.Neon,
+				{ CastShadow = false })
+		end
+	end
+	return m, body, head
+end
+
+-- Engranaje gigante semienterrado (Zona 2)
+function Props.Gear(parent, pos, rng, s)
+	s = s or 1
+	local m = model(parent, "Engranaje")
+	local c = vary(Color3.fromRGB(176, 140, 84), rng, 0.08)
+	local cf = CFrame.new(pos + Vector3.new(0, 3.5 * s, 0)) * CFrame.Angles(0, rng:NextNumber(0, 6), rng:NextNumber(-0.35, 0.35))
+	Part(m, cf * CFrame.Angles(0, RAD90, 0), Vector3.new(1.4 * s, 10 * s, 10 * s), c, M.Metal, { Shape = Enum.PartType.Cylinder, CanCollide = true })
+	Part(m, cf * CFrame.Angles(0, RAD90, 0), Vector3.new(1.8 * s, 3 * s, 3 * s), c:Lerp(Color3.new(0, 0, 0), 0.3), M.Metal,
+		{ Shape = Enum.PartType.Cylinder })
+	for i = 0, 7 do
+		local a = i / 8 * math.pi * 2
+		Part(m, cf * CFrame.new(math.cos(a) * 5.4 * s, math.sin(a) * 5.4 * s, 0) * CFrame.Angles(0, 0, a), Vector3.new(1.6, 1.2, 1.3) * s, c, M.Metal)
+	end
+	return m
+end
+
+-- Ruina: columnas rotas y un muro bajo
+function Props.Ruin(parent, cf, rng, color)
+	local m = model(parent, "Ruina")
+	color = color or Color3.fromRGB(190, 180, 160)
+	for i = 0, 2 do
+		local h = rng:NextNumber(3, 9)
+		Props.Column(m, (cf * CFrame.new(i * 5 - 5, 0, rng:NextNumber(-1, 1))).Position, h, 2, vary(color, rng, 0.06), M.Marble, { CanCollide = true })
+		Part(m, cf * CFrame.new(i * 5 - 5, h + 0.3, 0) * CFrame.Angles(rng:NextNumber(-0.2, 0.2), 0, rng:NextNumber(-0.2, 0.2)),
+			Vector3.new(2.6, 0.6, 2.6), vary(color, rng, 0.06), M.Marble)
+	end
+	Part(m, cf * CFrame.new(1, 1, 3) * CFrame.Angles(0, 0.1, 0), Vector3.new(9, 2, 1.4), vary(color, rng, 0.08), M.Cobblestone, { CanCollide = true })
+	Part(m, cf * CFrame.new(7, 0.5, 2) * CFrame.Angles(0.3, 0.8, 1.2), Vector3.new(3.4, 1.6, 1.6), vary(color, rng, 0.08), M.Marble)
+	return m
+end
+
+-- Flor gigante (Zona 4)
+function Props.GiantFlower(parent, pos, rng, color)
+	local m = model(parent, "FlorGigante")
+	local h = rng:NextNumber(6, 10)
+	local top = pos + Vector3.new(rng:NextNumber(-1, 1), h, rng:NextNumber(-1, 1))
+	Beam(m, pos, top, 0.7, Color3.fromRGB(90, 170, 90), M.SmoothPlastic, { CanCollide = true })
+	Blob(m, CFrame.new(pos + (top - pos) * 0.4) * CFrame.Angles(0.5, rng:NextNumber(0, 6), 0), Vector3.new(3.4, 0.4, 1.6),
+		Color3.fromRGB(100, 190, 100), M.SmoothPlastic)
+	color = color or Color3.fromRGB(255, 140, 190)
+	for i = 0, 5 do
+		local a = i / 6 * math.pi * 2
+		Blob(m, CFrame.new(top + Vector3.new(math.cos(a) * 1.7, 0, math.sin(a) * 1.7)) * CFrame.Angles(0, -a, 0.35), Vector3.new(3, 0.5, 1.8),
+			vary(color, rng, 0.06), M.SmoothPlastic, { CastShadow = false })
+	end
+	Blob(m, CFrame.new(top + Vector3.new(0, 0.3, 0)), Vector3.new(1.6, 1, 1.6), Color3.fromRGB(255, 220, 90), M.Neon, { CastShadow = false })
+	return m
+end
+
+-- Cristal de hielo / energia (Zona 4 y 5)
+function Props.Crystal(parent, pos, rng, color, s)
+	s = s or 1
+	local m = model(parent, "Cristal")
+	for i = 1, 3 do
+		local h = rng:NextNumber(3, 7) * s
+		Part(m, CFrame.new(pos + Vector3.new((i - 2) * 1.2 * s, h / 2 - 0.4, rng:NextNumber(-0.6, 0.6) * s))
+			* CFrame.Angles(rng:NextNumber(-0.3, 0.3), rng:NextNumber(0, 6), rng:NextNumber(-0.3, 0.3)), Vector3.new(1.3 * s, h, 1.3 * s), color,
+			M.Neon, { Transparency = 0.15, CastShadow = false, CanCollide = i == 2 })
+	end
+	return m
+end
+
+-- Brasero con fuego
+function Props.Brazier(parent, pos, rng)
+	local m = model(parent, "Brasero")
+	Props.Column(m, pos, 3, 1, Color3.fromRGB(70, 66, 76), M.Metal, { CanCollide = true })
+	local bowl = Blob(m, CFrame.new(pos + Vector3.new(0, 3.4, 0)), Vector3.new(2.6, 1.2, 2.6), Color3.fromRGB(60, 56, 66), M.Metal)
+	local flame = Blob(m, CFrame.new(pos + Vector3.new(0, 4.3, 0)), Vector3.new(1.4, 1.8, 1.4), Color3.fromRGB(255, 140, 50), M.Neon,
+		{ CastShadow = false, Transparency = 0.15 })
+	local f = Instance.new("Fire")
+	f.Size = 3
+	f.Heat = 5
+	f.Parent = flame
+	local _ = bowl
+	return m
+end
+
+-- Piedra runica (Zona 5)
+function Props.RuneStone(parent, pos, rng, color)
+	local m = model(parent, "PiedraRunica")
+	local cf = CFrame.new(pos) * CFrame.Angles(0, rng:NextNumber(0, 6), rng:NextNumber(-0.1, 0.1))
+	Part(m, cf * CFrame.new(0, 3, 0), Vector3.new(2.6, 6, 1.2), vary(Color3.fromRGB(90, 80, 110), rng, 0.08), M.Slate, { CanCollide = true })
+	for i = 0, 2 do
+		Part(m, cf * CFrame.new(0, 1.6 + i * 1.5, -0.62), Vector3.new(1.2, 0.35, 0.08), color, M.Neon, { CastShadow = false })
+	end
+	return m
+end
+
+-- Faro de viaje rapido. Devuelve el modelo y el cristal (cambia de color en el cliente).
+function Props.Beacon(parent, cf, color, rng)
+	local m = model(parent, "Faro")
+	for k = 0, 2 do
+		Part(m, cf * CFrame.new(0, 0.35 + k * 0.7, 0) * CFrame.Angles(0, k * 0.4, 0), Vector3.new(6 - k * 1.4, 0.7, 6 - k * 1.4),
+			vary(Color3.fromRGB(150, 146, 156), rng, 0.05), M.Slate, { CanCollide = true })
+	end
+	Part(m, cf * CFrame.new(0, 4.6, 0), Vector3.new(1.6, 5.4, 1.6), Color3.fromRGB(170, 164, 176), M.Marble, { CanCollide = true })
+	for _, sx in ipairs({ -1, 1 }) do
+		Part(m, cf * CFrame.new(sx * 1.1, 6.9, 0) * CFrame.Angles(0, 0, sx * -0.5), Vector3.new(0.4, 2.2, 0.4), Color3.fromRGB(200, 180, 120), M.Metal)
+	end
+	local crystal = Part(m, cf * CFrame.new(0, 8.6, 0) * CFrame.Angles(0.5, 0.6, 0.3), Vector3.new(1.6, 2.6, 1.6), color, M.Neon,
+		{ CastShadow = false, Name = "Cristal" })
+	local l = Instance.new("PointLight")
+	l.Color = color
+	l.Range = 18
+	l.Brightness = 1.2
+	l.Parent = crystal
+	return m, crystal
 end
 
 return Props

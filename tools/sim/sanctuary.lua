@@ -156,7 +156,7 @@ for _, p in ipairs(World.Portals) do if p.central then portalPrompt = p.prompt e
 P.Character.HumanoidRootPart.__props.CFrame = World.Spawns.hub
 portalPrompt.Triggered:Fire(P)
 local pos = P.Character:GetPivot().Position
-check(World.AreaAt(pos) == "realm", "el portal central lleva al Mundo PET")
+check(World.AreaAt(pos) == "camp", "el portal central lleva al campamento del Mundo PET")
 -- hacha por niveles: mejora el talado
 local Items = require(RS.Shared.Items)
 check(profile.tools.axe == 1, "hacha inicial: " .. Items.Axes[1].name)

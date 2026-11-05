@@ -1,5 +1,6 @@
 -- Progress (WorldProgression): areas, portales, viajes, desbloqueo de zonas,
--- checkpoints, recuperacion de caidas y cofres secretos. (GDD 03)
+-- barreras del Mundo PET (validadas en el servidor), faros de viaje rapido,
+-- checkpoints de los retos, recuperacion de caidas y cofres. (GDD 03, 1.1b)
 
 local Players = game:GetService("Players")
 
@@ -18,8 +19,10 @@ local lastTeleport = {}
 local checkpoints = {} -- [player] = CFrame
 
 local DEST_NAMES = {
-	home = "tu Hogar", forest = "el Bosque", mines = "las Minas de Zuar", realm = "el Reino de los PETs", arena = "la Arena",
+	home = "tu santuario", forest = "el Bosque", mines = "las Minas de Zuar", world = "el campamento del Mundo PET",
+	camp = "el campamento del Mundo PET", realm = "el campamento del Mundo PET", arena = "la Arena de Incursiones",
 }
+local CollectionService = game:GetService("CollectionService")
 
 local function result(ok, msg)
 	return { ok = ok, msg = msg }
@@ -39,37 +42,53 @@ function Progress.CheckUnlocks(player, profile)
 	return changed
 end
 
+-- ¿Puede viajar al faro de una zona? Nunca permite saltarse una barrera.
+function Progress.CanUseBeacon(profile, k)
+	if profile.zones.unlocked < k then
+		local missing = Progression.Missing(profile, k)
+		return false, "Zona " .. k .. " bloqueada. Falta: " .. table.concat(missing, ", ")
+	end
+	if not profile.world.beacons["z" .. k] then
+		return false, "Primero visita la Zona " .. k .. " para activar su faro."
+	end
+	return true
+end
+
 local function destCFrame(player, profile, dest)
 	if dest == "home" then
 		return S.Plots.SpawnCFrame(player)
 	elseif dest == "forest" then
 		return S.World.Spawns.forest or CFrame.new(0, 4, 262)
 	elseif dest == "mines" then
+		-- temporal: las Minas de Zuar se integran al Mundo PET en la Fase D
 		return S.World.Spawns.mines
-	elseif dest == "realm" then
-		return S.World.Spawns.realm
+	elseif dest == "world" or dest == "camp" or dest == "realm" then
+		return S.World.Spawns.world
 	elseif dest == "arena" then
 		if not (S.Raid and S.Raid.IsOpen()) then
 			return nil, "La arena solo abre durante una Incursion Dimensional."
 		end
 		return S.World.Spawns.arena
 	end
-	local k, meadow = string.match(dest, "^z(%d)(m?)$")
-	k = tonumber(k)
+	local k = tonumber(string.match(dest, "^z(%d)m?$"))
 	if k and k >= 1 and k <= 5 then
-		if profile.zones.unlocked < k then
-			local missing = Progression.Missing(profile, k)
-			return nil, "Zona " .. k .. " bloqueada. Falta: " .. table.concat(missing, ", ")
+		local ok, why = Progress.CanUseBeacon(profile, k)
+		if not ok then
+			return nil, why
 		end
-		if meadow == "m" then
-			if not profile.zones.parkour["z" .. k] then
-				return nil, "Primero completa el parkour de esta zona."
-			end
-			return S.World.Spawns["z" .. k .. "m"]
-		end
-		return S.World.Spawns["z" .. k]
+		return S.World.Spawns["beacon_z" .. k]
 	end
 	return nil, "Destino desconocido."
+end
+
+function Progress.ActivateBeacon(player, profile, k)
+	local key = "z" .. k
+	profile.world.visited[key] = true
+	if not profile.world.beacons[key] then
+		profile.world.beacons[key] = true
+		S.Net.Notify(player, "🗼 ¡Faro de la Zona " .. k .. " activado! Ya puedes viajar aqui desde el Mapa.", "unlock")
+		S.Net.MarkDirty(player)
+	end
 end
 
 function Progress.Teleport(player, dest, force)
@@ -113,7 +132,7 @@ local function onCheckpoint(cp, hit)
 		local profile = S.Data.Get(player)
 		if profile and not profile.zones.parkour["z" .. cp.zone] then
 			profile.zones.parkour["z" .. cp.zone] = true
-			S.Net.Notify(player, "🏁 ¡Parkour completado! Ahora puedes viajar directo a esta pradera desde el Mapa.", "success")
+			S.Net.Notify(player, "🏁 ¡Reto completado! Abre el cofre de la plataforma final.", "success")
 			S.Net.MarkDirty(player)
 		end
 	elseif cp.index > 0 then
@@ -174,6 +193,22 @@ function Progress.Start()
 			end
 		end)
 	end
+	-- Faros: activar al estar en su zona y abrir el mapa de viaje
+	game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt, player)
+		if not CollectionService:HasTag(prompt, "BeaconPrompt") then
+			return
+		end
+		local profile = S.Data.Get(player)
+		if not profile then
+			return
+		end
+		local id = prompt:GetAttribute("Beacon")
+		local k = tonumber(string.match(id or "", "^z(%d)$"))
+		if k and player:GetAttribute("Area") == id and profile.zones.unlocked >= k then
+			Progress.ActivateBeacon(player, profile, k)
+		end
+		S.Net.Fire(player, "OpenPanel", "map")
+	end)
 	for zone, chest in pairs(S.World.Chests) do
 		chest.prompt.Triggered:Connect(function(player)
 			if player:GetAttribute("Area") == "z" .. zone then
@@ -198,16 +233,25 @@ function Progress.Start()
 						hrp.AssemblyLinearVelocity = Vector3.zero
 						char:PivotTo(cf)
 						S.Net.Fire(player, "Fx", "respawn")
-					elseif area ~= "void" and area ~= player:GetAttribute("Area") then
-						local zone = S.World.ZoneOfArea(area)
-						if zone and zone > profile.zones.unlocked then
-							char:PivotTo(S.World.Spawns.realm)
-							S.Net.Notify(player, "Esa zona aun esta bloqueada.", "error")
-						else
+					else
+						-- Barreras del Mundo PET: el servidor es la autoridad
+						local inWorld = area == "camp" or area == "arena" or string.match(area, "^z%d$") ~= nil
+						local zoneX = inWorld and S.World.ZoneAtX(pos.X) or 0
+						if inWorld and zoneX > profile.zones.unlocked then
+							local gate = S.World.Gates[profile.zones.unlocked + 1] or S.World.Spawns.world
+							hrp.AssemblyLinearVelocity = Vector3.zero
+							char:PivotTo(gate)
+							local missing = Progression.Missing(profile, profile.zones.unlocked + 1)
+							S.Net.Notify(player, "🔒 La barrera te detiene. Falta: " .. table.concat(missing, ", "), "error")
+						elseif area ~= "void" and area ~= player:GetAttribute("Area") then
 							player:SetAttribute("Area", area)
 							if area == "mines" and not profile.story.visitedMines then
 								profile.story.visitedMines = true
 								S.Net.MarkDirty(player)
+							end
+							local zone = S.World.ZoneOfArea(area)
+							if zone then
+								Progress.ActivateBeacon(player, profile, zone)
 							end
 							S.Capture.OnAreaChanged(player, area)
 						end

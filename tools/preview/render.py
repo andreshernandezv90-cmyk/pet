@@ -187,7 +187,7 @@ def render(data, out, eye, target, fov=55, w=1280, h=800, bounds=None, step=2.0)
     tris = []
     for p in data["parts"]:
         pos = np.array(p["p"])
-        if np.linalg.norm(pos - eye) > 700:
+        if np.linalg.norm(pos - eye) > 900:
             continue
         v, t = part_mesh(p)
         r = np.array(p["r"]).reshape(3, 3)
@@ -242,6 +242,9 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--plot", type=int, default=1)
     ap.add_argument("--view", default="front")
+    ap.add_argument("--eye", help="camara libre x,y,z (coordenadas del mundo)")
+    ap.add_argument("--target", help="punto al que mira la camara x,y,z")
+    ap.add_argument("--radius", type=float, default=200, help="radio de terreno a dibujar alrededor del objetivo")
     args = ap.parse_args()
     data = json.load(open(args.scene))
     pl = data["plots"][args.plot - 1]
@@ -260,6 +263,14 @@ def main():
         "aerial": (loc(0, 95, -150), loc(0, 0, 10), None, 3.0),
         "plaza": ([0, 34, -110], [0, 10, 10], None, 2.5),
     }
+    if args.eye:
+        eye = [float(v) for v in args.eye.split(",")]
+        target = [float(v) for v in args.target.split(",")]
+        r = args.radius
+        bounds = (target[0] - r, target[0] + r, target[2] - r, target[2] + r)
+        n = render(data, args.out, eye, target, bounds=bounds, step=3.0)
+        print("triangulos dibujados:", n)
+        return
     eye, target, _, step = views[args.view]
     if args.view == "aerial":
         c = P

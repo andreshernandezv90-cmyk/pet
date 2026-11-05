@@ -32,9 +32,9 @@ hrp.__props.CFrame = CFrame.new(0, -100, 0)
 STEP(1)
 check(hrp.Position.Y > 0, "recuperacion de caida")
 -- zona bloqueada
-hrp.__props.CFrame = CFrame.new(-2000 + (5 - 3) * 500, 3, 700)
+hrp.__props.CFrame = CFrame.new(S.World.ZoneCenter(5) + Vector3.new(0, 3, 0))
 STEP(1)
-check(P:GetAttribute("Area") ~= "z5", "zona bloqueada expulsa al jugador")
+check(P:GetAttribute("Area") ~= "z5" and S.World.ZoneAtX(hrp.Position.X) <= 1, "zona bloqueada: el servidor devuelve a la puerta")
 -- incursion completa
 check(S.Raid.ForceSoon(), "forzar incursion")
 for i = 1, 3 do STEP(1) end

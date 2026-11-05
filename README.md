@@ -114,7 +114,9 @@ src/server/   → ServerScriptService.Server
       Lighting.luau         Atmósfera, cielo, bloom y rayos de sol
       Home.luau             Santuario: plaza con el gran portal central, 8 parcelas-bosque con áreas
                             de trabajo señalizadas, bosque exterior
-      Mines.luau, Realm.luau  Minas y Reino actuales (se rediseñan en las fases C y D)
+      PetWorld.luau         Mundo PET continuo: campamento (NPCs, arena), 5 zonas con identidad
+                            propia, barreras, faros, entradas de mina, retos opcionales
+      Mines.luau            Minas de Zuar separadas (temporales hasta la Fase D)
     DataService.luau        DataStore: bloqueo de sesión, reintentos, autosave, BindToClose
     Net.luau                Remotos, límite de frecuencia y sincronización de estado
     Plots.luau              Parcelas: la casa cambia con el nivel, estaciones, trabajadores visibles
@@ -129,7 +131,8 @@ src/server/   → ServerScriptService.Server
     Fusion.luau             Resonancia Dimensional (20 min, recarga 30 min, VIP 2 simultáneas y 24 min)
     Raid.luau               Incursiones: barrera → pilares y ondas → resonancia final → recompensa privada
     Commerce.luau           Recibos idempotentes, VIP y cosméticos
-    Gifts.luau              Regalos aleatorios privados por zona (WorldConfig.Gifts)
+    Gifts.luau              Regalos aleatorios privados por zona (WorldConfig.Gifts), con cupo por hora
+    Merchant.luau           NPCs del campamento e intercambios del Comerciante (WorldConfig.Trades)
     DevTools.luau           Atajos de prueba (solo Studio)
 src/client/   → StarterPlayerScripts.Client
   init.client.luau          Arranque del cliente
@@ -146,7 +149,7 @@ src/client/   → StarterPlayerScripts.Client
 
 | GDD | Implementación |
 |---|---|
-| 02 Tres mundos | Hogar (0,0,0), Minas de Zuar (2000,0,0), Reino de los PETs (-2000,0,0). Portales y mapa. |
+| 02 Mundos (GDD 1.1b) | Santuario (0,0,0) con el portal central; Mundo PET continuo desde (3000,0,1500), ≈ 2.550 studs de oeste a este. Las Minas de Zuar separadas (2000,0,0) siguen hasta la Fase D. |
 | 03 Desbloqueo de zonas | `WorldConfig.Regions[i].requirements` (configurable): Z2 pico de piedra + santuario 2 + extractor de piedra; Z3 pico de cobre + extractor; Z4 pico de hierro + huerto 2 + succionador mejorado; Z5 equipo avanzado + santuario 4 + misión de las 10 especies. |
 | 04 Quince especies | `PetCatalog.Species`: zonas 1+2+3+4+5. Lumi, Nox y Eclipsar tienen mítico: 63 variantes. |
 | 05 Roles | Cada PET individual está en un solo estado: libre, equipado, trabajando o fusionado. Equipo 1/2/3 (herrería 2, santuario 3); el apoyo aplica 50%. |
@@ -217,11 +220,16 @@ lua5.4 tools/sim/raid.lua
 lua5.4 tools/sim/sanctuary.lua
 ```
 
+```bash
+lua5.4 tools/sim/petworld.lua
+```
+
 Qué cubre cada prueba:
 
 - `shared.lua`: reglas del GDD (63 variantes, 6750 esencias, pilas de 50, mochila, recetas y topes).
 - `smoke.lua`: arranque del servidor, entrada de un jugador, captura, todas las recetas, estaciones, offline, huerto, alquimia, equipo, Reactor con nonce, niveles 0→5, fusiones con VIP, tienda, guardado con bloqueo y los 10 paneles de la interfaz.
 - `raid.lua`: bucles reales (áreas, caídas, zonas bloqueadas) y una incursión completa con recompensa.
+- `petworld.lua`: estructura del Mundo PET (barreras, faros, minas selladas, retos, NPCs), áreas, barreras validadas en el servidor, viajes por faro, PETs en su pradera, Comerciante (cobro exacto, nonce, zona, cantidades), cupo de regalos, perfil antiguo intacto y presupuesto de partes.
 - `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables, áreas señalizadas y fogata en las 8 parcelas, portal central único, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, hacha por niveles, regalos (privados, validados y únicos) y presupuesto de partes.
 
 ## 8. Pendiente para fases posteriores (según el GDD)

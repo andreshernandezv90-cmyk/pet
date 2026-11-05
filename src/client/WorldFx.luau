@@ -31,8 +31,10 @@ local LOOKS = {
 		tint = Color3.fromRGB(255, 250, 230), fog = 900, fogColor = Color3.fromRGB(230, 250, 210) },
 	z2 = { clock = 15.5, ambient = Color3.fromRGB(130, 115, 95), outdoor = Color3.fromRGB(150, 130, 105), bright = 2,
 		tint = Color3.fromRGB(255, 240, 210), fog = 700, fogColor = Color3.fromRGB(220, 200, 160) },
-	z3 = { clock = 0.5, ambient = Color3.fromRGB(25, 22, 35), outdoor = Color3.fromRGB(30, 25, 45), bright = 0.4,
-		tint = Color3.fromRGB(200, 190, 255), fog = 160, fogColor = Color3.fromRGB(20, 15, 30) },
+	z3 = { clock = 18.6, ambient = Color3.fromRGB(60, 80, 84), outdoor = Color3.fromRGB(70, 96, 100), bright = 1.1,
+		tint = Color3.fromRGB(200, 235, 235), fog = 380, fogColor = Color3.fromRGB(60, 90, 96) },
+	camp = { clock = 15, ambient = Color3.fromRGB(120, 112, 120), outdoor = Color3.fromRGB(150, 140, 150), bright = 2.3,
+		tint = Color3.fromRGB(255, 248, 235), fog = 1200, fogColor = Color3.fromRGB(210, 220, 235) },
 	z4 = { clock = 11, ambient = Color3.fromRGB(120, 150, 135), outdoor = Color3.fromRGB(140, 170, 150), bright = 2.2,
 		tint = Color3.fromRGB(235, 255, 245), fog = 800, fogColor = Color3.fromRGB(200, 255, 230) },
 	z5 = { clock = 19, ambient = Color3.fromRGB(100, 80, 140), outdoor = Color3.fromRGB(120, 95, 170), bright = 1.5,
@@ -57,10 +59,10 @@ local function applyLook()
 	local tint = look.tint
 	local fog = look.fog
 	if area == "z3" and flags.nightVision then
-		ambient = Color3.fromRGB(110, 140, 120)
-		outdoor = Color3.fromRGB(120, 150, 130)
-		tint = Color3.fromRGB(200, 255, 210)
-		fog = 500
+		ambient = Color3.fromRGB(110, 140, 130)
+		outdoor = Color3.fromRGB(120, 150, 140)
+		tint = Color3.fromRGB(210, 255, 225)
+		fog = 700
 	end
 	local info = TweenInfo.new(1.2)
 	TweenService:Create(Lighting, info, { ClockTime = look.clock, Ambient = ambient, OutdoorAmbient = outdoor, Brightness = bright,
@@ -68,7 +70,7 @@ local function applyLook()
 	TweenService:Create(cc, info, { TintColor = tint }):Play()
 	-- Gravedad (solo afecta la simulacion local del personaje)
 	if area == "z5" then
-		workspace.Gravity = flags.gravity and 80 or 110
+		workspace.Gravity = flags.gravity and 110 or 140
 	else
 		workspace.Gravity = 196.2
 	end
@@ -103,6 +105,55 @@ local function applyPowers()
 		elseif not flags.anomaly and hl then
 			hl:Destroy()
 		end
+	end
+end
+
+-- Barreras del Mundo PET (por jugador) y faros --------------------------------------------
+-- La barrera es solida para todos; solo este cliente la vuelve atravesable si el
+-- jugador ya desbloqueo la zona. El servidor igual devuelve a quien la cruce sin permiso.
+local Progression = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Progression"))
+
+local function applyBarriers()
+	local d = State.data
+	local unlocked = d and d.zones.unlocked or 1
+	for _, sheet in ipairs(CollectionService:GetTagged("ZoneBarrier")) do
+		local k = sheet:GetAttribute("Zone") or 99
+		local open = unlocked >= k
+		sheet.CanCollide = not open
+		sheet.Transparency = open and 0.8 or 0.5
+	end
+	for _, board in ipairs(CollectionService:GetTagged("GateSign")) do
+		local k = board:GetAttribute("Zone") or 1
+		local Z = Progression.Zones[k]
+		local text
+		if unlocked >= k then
+			text = "✨ Zona " .. k .. " · " .. Z.name .. "\n<font color=\"#8CFFA0\">Abierta</font>"
+		elseif d then
+			local lines = {}
+			for _, st in ipairs(Progression.Status(d, k)) do
+				table.insert(lines, (st.ok and "✅ " or "❌ ") .. st.text)
+			end
+			text = "🔒 Zona " .. k .. " · " .. Z.name .. "\n" .. table.concat(lines, "\n")
+		end
+		if text then
+			for _, gui in ipairs(board:GetChildren()) do
+				if gui:IsA("SurfaceGui") then
+					local t = gui:FindFirstChild("Text")
+					if t then
+						t.Text = text
+					end
+				end
+			end
+		end
+	end
+	for _, crystal in ipairs(CollectionService:GetTagged("BeaconCrystal")) do
+		local id = crystal:GetAttribute("Beacon")
+		local active = id == "camp" or (d and d.world and d.world.beacons[id])
+		if crystal:GetAttribute("OrigColor") == nil then
+			crystal:SetAttribute("OrigColor", crystal.Color)
+		end
+		crystal.Color = active and crystal:GetAttribute("OrigColor") or Color3.fromRGB(90, 90, 100)
+		crystal.Material = active and Enum.Material.Neon or Enum.Material.Glass
 	end
 end
 
@@ -373,7 +424,14 @@ function WorldFx.Init()
 
 	State.Changed:Connect(function()
 		applyPowers()
+		applyBarriers()
 	end)
+	for _, tag in ipairs({ "ZoneBarrier", "GateSign", "BeaconCrystal" }) do
+		CollectionService:GetInstanceAddedSignal(tag):Connect(function()
+			task.defer(applyBarriers)
+		end)
+	end
+	applyBarriers()
 end
 
 return WorldFx

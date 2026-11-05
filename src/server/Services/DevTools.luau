@@ -46,6 +46,8 @@ function DevTools.Init(services)
 			profile.zones.unlocked = 5
 			for k = 1, 5 do
 				profile.zones.parkour["z" .. k] = true
+				profile.world.beacons["z" .. k] = true
+				profile.world.visited["z" .. k] = true
 			end
 			S.Plots.Refresh(player)
 			S.Inventory.RefreshPlayer(player)

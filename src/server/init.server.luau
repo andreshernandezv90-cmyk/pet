@@ -23,10 +23,11 @@ local S = {
 	Commerce = require(Services.Commerce),
 	DevTools = require(Services.DevTools),
 	Gifts = require(Services.Gifts),
+	Merchant = require(Services.Merchant),
 }
 
 local ORDER = { "Data", "Net", "Plots", "Inventory", "Mining", "Capture", "Progress", "Crafting", "Production",
-	"Alchemy", "Essence", "Fusion", "Raid", "Commerce", "DevTools", "Gifts" }
+	"Alchemy", "Essence", "Fusion", "Raid", "Commerce", "DevTools", "Gifts", "Merchant" }
 
 S.World.Build()
 

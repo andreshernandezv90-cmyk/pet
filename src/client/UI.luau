@@ -23,13 +23,14 @@ UI.Panels = {}
 UI.current = nil
 
 local gui, hudTop, objectiveLabel, areaLabel, chips, toastHolder, window, windowTitle, content, raidBanner, shotButton
-local progressGrid, progressToggle
+local progressGrid, progressToggle, homeButton
 local progressOpen = true
 local depositButton, popup
 local lastScroll = {}
 
 local AREA_NAMES = {
-	home = "🏠 Hogar Dimensional",
+	home = "🏠 Santuario",
+	camp = "🏕️ Campamento del Mundo PET",
 	mines = "⛏️ Minas de Zuar",
 	realm = "🌀 Reino de los PETs",
 	arena = "⚔️ Arena de Incursiones",
@@ -256,6 +257,7 @@ function UI.RefreshHud()
 		l.Parent = chips
 	end
 	depositButton.Visible = area == "home" and (bp > 0 or tank > 0)
+	homeButton.Visible = area ~= "home"
 end
 
 -- Tarjeta de progreso: herramientas, extractores y materiales basicos de un vistazo
@@ -440,6 +442,11 @@ function UI.Init()
 	for i, b in ipairs(buttons) do
 		addButton(i, b)
 	end
+
+	homeButton = K.button("🏠 Santuario", K.C.blue, function()
+		Net.Send("teleport", { dest = "home" })
+	end, { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 10, 1, -84), Size = UDim2.new(0, 150, 0, 42), Parent = gui })
+	homeButton.Visible = false
 
 	depositButton = K.button("📥 Depositar todo en el santuario", K.C.good, function()
 		Net.Send("depositAll", {}, { silent = false })

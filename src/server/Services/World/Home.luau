@@ -113,9 +113,9 @@ local function buildPlaza(f, C, rng)
 	billboard(gate, "Portal Dimensional\nMundo PET", Color3.fromRGB(230, 210, 255), 380, 18, 260)
 	local pp = H.AddPrompt(trigger, "Viajar al Mundo PET", "Portal Dimensional", 0, 16)
 	pp.Name = "PortalCentralPrompt"
-	-- Fase C: apuntara a la entrada del Mundo PET continuo; por ahora al Reino actual
-	pp:SetAttribute("Dest", "realm")
-	table.insert(World.Portals, { prompt = pp, dest = "realm", central = true })
+	-- Unico acceso al Mundo PET: lleva al campamento de bienvenida
+	pp:SetAttribute("Dest", "world")
+	table.insert(World.Portals, { prompt = pp, dest = "world", central = true })
 	World.CentralPortal = pm
 
 	-- Anillo social: bancos, faroles, maceteros y tablon de avisos

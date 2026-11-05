@@ -5,8 +5,8 @@
 | A | Arquitectura del nuevo mundo: `WorldConfig` por región, requisitos configurables, requisitos derivados de materiales en recetas, migración de perfil v2, división de `World` en módulos, GDD 1.1 en `docs/`. | ✅ Hecha |
 | B | Santuario y parcelas: terreno con desniveles, bosque por parcela, casa rústica deteriorada, caminos de tierra, espacios de extractores. | ✅ Hecha |
 | B2 | Ajuste tras prueba en Studio: pasto corto, césped limpio, caminos claros, áreas de trabajo con identidad, portal central único en la plaza, hacha por niveles, HUD de progreso, sistema de regalos. | ✅ Hecha |
-| C0 | Propuesta concreta del layout del Mundo PET (`docs/MUNDO_PET_LAYOUT.md`). | ⏳ Esperando aprobación |
-| C | Mundo PET continuo (cinco regiones), campamento de bienvenida, barreras translúcidas por jugador, faros de viaje rápido, retiro del mundo de minas separado y de los portales por zona. Parkours como actividades opcionales. | Pendiente |
+| C0 | Propuesta concreta del layout del Mundo PET (`docs/MUNDO_PET_LAYOUT.md`). | ✅ Aprobada |
+| C | Mundo PET continuo (cinco regiones), campamento con Comerciante (intercambios), Guía y Tienda premium, arena en el campamento, barreras translúcidas por jugador validadas en el servidor, cinco faros de viaje rápido, retos opcionales con cofre, regalos con cupo por hora. Se retiran el Reino de islas y los portales por zona. Las Minas de Zuar separadas siguen accesibles desde el Mapa hasta la Fase D. | ✅ Hecha (pendiente de verificación en Studio) |
 | D | Cinco Minas de Zuar con cuevas reales y nodos minerales privados por jugador según `WorldConfig.Regions[i].mine.chances`. | Pendiente |
 | E | Apariciones de PETs en puntos naturales válidos por región; NPC guía y NPC comerciante (MarketplaceService, confirmación en servidor). | Pendiente |
 | F | Nuevo Taller (nombre, icono, descripción, tienes/necesitas, requisitos, estado), HUD de orientación y señalización. | Pendiente |

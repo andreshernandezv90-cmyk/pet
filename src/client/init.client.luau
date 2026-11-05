@@ -25,6 +25,8 @@ UI.Register("reactor", require(Panels.Reactor))
 UI.Register("fusion", require(Panels.Fusion))
 UI.Register("shop", require(Panels.Shop))
 UI.Register("dev", require(Panels.Dev))
+UI.Register("merchant", require(Panels.Merchant))
+UI.Register("guide", require(Panels.Guide))
 
 Net.On("State", function(view)
 	State.Set(view)

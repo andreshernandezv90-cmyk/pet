@@ -54,6 +54,7 @@ function ProfileSchema.Default()
 
 		raidsJoined = 0,
 		giftsOpened = 0,
+		giftLog = { window = 0, count = 0 }, -- regalos aparecidos en la hora actual
 
 		-- v2: Mundo PET continuo
 		world = {

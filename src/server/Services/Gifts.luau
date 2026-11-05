@@ -42,12 +42,30 @@ end
 
 -- Zona donde puede aparecer un regalo. En la Fase C el Mundo PET continuo
 -- publicara World.GiftAreas[zona]; mientras tanto se usan las praderas actuales.
-local function areaFor(zone)
-	local areas = S.World.GiftAreas and S.World.GiftAreas[zone]
-	if areas and #areas > 0 then
-		return areas[rng:NextInteger(1, #areas)]
+local function spotFor(zone, d)
+	local spots = S.World.GiftSpots and S.World.GiftSpots[zone]
+	if spots and #spots > 0 then
+		-- evitar repetir el mismo hueco que otro regalo activo
+		for _ = 1, 6 do
+			local p = spots[rng:NextInteger(1, #spots)]
+			local used = false
+			for _, g in pairs(d.list) do
+				if (g.pos - p).Magnitude < 4 then
+					used = true
+				end
+			end
+			if not used then
+				return p
+			end
+		end
+		return nil
 	end
-	return S.World.SpawnRegions[zone]
+	local area = S.World.SpawnRegions[zone]
+	if not area then
+		return nil
+	end
+	local p = area.center + Vector3.new(rng:NextNumber(-area.sizeX / 2, area.sizeX / 2), 0, rng:NextNumber(-area.sizeZ / 2, area.sizeZ / 2))
+	return Vector3.new(p.X, area.y or 0, p.Z)
 end
 
 local function pickReward(zone)
@@ -67,17 +85,26 @@ local function pickReward(zone)
 end
 
 local function spawnGift(player, d, zone)
-	local area = areaFor(zone)
-	if not area then
-		return
+	local pos = spotFor(zone, d)
+	if not pos then
+		return false
 	end
-	local pos = area.center + Vector3.new(rng:NextNumber(-area.sizeX / 2, area.sizeX / 2), 0, rng:NextNumber(-area.sizeZ / 2, area.sizeZ / 2))
-	pos = Vector3.new(pos.X, area.y or 0, pos.Z)
 	d.counter = d.counter + 1
 	local id = "g" .. d.counter
 	d.list[id] = { id = id, zone = zone, pos = pos, born = os.time() }
 	S.Net.Fire(player, "Gifts", serialize(d))
 	S.Net.Notify(player, "🎁 ¡Algo brilla entre los arboles! Hay un regalo escondido cerca.", "rare")
+	return true
+end
+
+-- Cupo horario por jugador (persistente en el perfil)
+local function hourlyRoom(profile, now)
+	local log = profile.giftLog
+	if now - (log.window or 0) >= 3600 then
+		log.window = now
+		log.count = 0
+	end
+	return (log.count or 0) < WorldConfig.Gifts.maxPerHour
 end
 
 local function grant(player, profile, zone, reward)
@@ -157,8 +184,11 @@ function Gifts.Start()
 							for _ in pairs(d.list) do
 								count = count + 1
 							end
-							if cfg and count < WorldConfig.Gifts.maxActive and rng:NextNumber() < cfg.chance then
-								spawnGift(player, d, zone)
+							local cap = math.min(WorldConfig.Gifts.maxActive, cfg and cfg.maxActive or WorldConfig.Gifts.maxActive)
+							if cfg and count < cap and hourlyRoom(profile, now) and rng:NextNumber() < cfg.chance then
+								if spawnGift(player, d, zone) then
+									profile.giftLog.count = profile.giftLog.count + 1
+								end
 							end
 						end
 					end

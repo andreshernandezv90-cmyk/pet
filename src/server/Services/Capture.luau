@@ -83,7 +83,16 @@ local function newEncounter(player, data, profile)
 	local s = pickSpecies(data.zone, profile)
 	local agg = Stats.Aggregate(profile, os.time())
 	local r = Capture.RollRarity(s, agg.luck)
-	local pos = region.center + Vector3.new(rng:NextNumber(-region.sizeX / 2, region.sizeX / 2), 0, rng:NextNumber(-region.sizeZ / 2, region.sizeZ / 2))
+	local pos
+	if region.clearings and #region.clearings > 0 then
+		-- claros del bosque: puntos libres de arboles, rocas y obstaculos
+		local c = region.clearings[rng:NextInteger(1, #region.clearings)]
+		local a = rng:NextNumber(0, math.pi * 2)
+		local r = math.sqrt(rng:NextNumber()) * c.r * 0.85
+		pos = c.center + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)
+	else
+		pos = region.center + Vector3.new(rng:NextNumber(-region.sizeX / 2, region.sizeX / 2), 0, rng:NextNumber(-region.sizeZ / 2, region.sizeZ / 2))
+	end
 	local e = { id = id, s = s, r = r, pos = Vector3.new(pos.X, 0, pos.Z), born = os.time() }
 	data.list[id] = e
 	return e

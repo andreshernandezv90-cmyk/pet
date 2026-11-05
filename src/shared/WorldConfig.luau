@@ -173,7 +173,8 @@ WorldConfig.Beacons = {
 WorldConfig.Gifts = {
 	enabled = true,
 	checkInterval = 45, -- segundos entre tiradas por jugador
-	maxActive = 1, -- regalos sin abrir a la vez por jugador
+	maxActive = 1, -- regalos sin abrir a la vez por jugador (una zona puede bajarlo con maxActive)
+	maxPerHour = 4, -- tope de regalos que pueden aparecer por jugador en una hora (evita abuso)
 	lifetime = 240, -- segundos antes de desaparecer
 	claimDistance = 14,
 	byZone = {
@@ -212,6 +213,33 @@ WorldConfig.Gifts = {
 		} },
 	},
 }
+
+-- Comerciante del campamento: intercambio de materiales (sin moneda) ----------------------
+-- give: lo que entrega el jugador. get: lo que recibe (kind = resource | bait | potion).
+-- zone: zona minima desbloqueada para que el intercambio este disponible (respeta el
+-- GDD: los cultivos, cebos e ingredientes avanzados llegan con la Zona 3).
+-- Las tasas son deliberadamente menos convenientes que producir uno mismo.
+WorldConfig.Trades = {
+	maxPerTrade = 10, -- multiplicador maximo por operacion
+	merchantRange = 26, -- distancia maxima al comerciante
+	list = {
+		{ id = "semillas", name = "Semillas", zone = 1, give = { madera = 15, piedra = 5 }, get = { kind = "resource", id = "semilla", n = 3 } },
+		{ id = "petalos", name = "Petalos luminosos", zone = 1, give = { piedra = 20 }, get = { kind = "resource", id = "petalo", n = 2 } },
+		{ id = "engranajes", name = "Engranajes antiguos", zone = 2, give = { cobre = 15 }, get = { kind = "resource", id = "engranaje", n = 2 } },
+		{ id = "hongos", name = "Hongos sombrios", zone = 3, give = { hierro = 12 }, get = { kind = "resource", id = "hongo", n = 2 } },
+		{ id = "bayas", name = "Bayas", zone = 3, give = { semilla = 2, madera = 10 }, get = { kind = "resource", id = "baya", n = 2 } },
+		{ id = "raices", name = "Raices", zone = 3, give = { semilla = 2, piedra = 10 }, get = { kind = "resource", id = "raiz", n = 2 } },
+		{ id = "flores", name = "Flores", zone = 3, give = { semilla = 2, petalo = 4 }, get = { kind = "resource", id = "flor", n = 2 } },
+		{ id = "cebo_bayas", name = "Cebo de bayas", zone = 3, give = { baya = 4, petalo = 2 }, get = { kind = "bait", id = "berry", n = 1 } },
+		{ id = "cebo_raices", name = "Cebo de raices", zone = 3, give = { raiz = 4, hongo = 2 }, get = { kind = "bait", id = "root", n = 1 } },
+		{ id = "cebo_floral", name = "Cebo floral", zone = 4, give = { flor = 4, elemental = 2 }, get = { kind = "bait", id = "flower", n = 1 } },
+		{ id = "chispas", name = "Chispas elementales", zone = 4, give = { lunar = 6 }, get = { kind = "resource", id = "elemental", n = 2 } },
+	},
+}
+WorldConfig.TradeById = {}
+for _, t in ipairs(WorldConfig.Trades.list) do
+	WorldConfig.TradeById[t.id] = t
+end
 
 function WorldConfig.Region(id)
 	return WorldConfig.Regions[id]

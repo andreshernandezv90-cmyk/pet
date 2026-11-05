@@ -49,7 +49,10 @@ Nota de control: números de producción, probabilidades, tiempos y precios son 
 | Hacha | — | Nueva herramienta con **5 niveles** (rústica, piedra, cobre, hierro, cristal): más daño al talar y más madera. Sus costos respetan la regla de materiales recolectables. |
 | Regalos | — | **Regalos aleatorios privados** por zona del Mundo PET, poco frecuentes y con recompensas configurables (`WorldConfig.Gifts`). |
 | Legibilidad del santuario | — | Pasto animado corto y solo en bordes boscosos; césped limpio en zonas transitables; caminos claros; áreas de trabajo con suelo, borde y letrero propios. |
-| Layout del Mundo PET | Bosque continuo de 5 regiones. | Concretado en `docs/MUNDO_PET_LAYOUT.md`: campamento con NPCs al oeste, zonas de oeste a este, minas al norte, bosque y retos al sur. |
+| Layout del Mundo PET | Bosque continuo de 5 regiones. | Concretado en `docs/MUNDO_PET_LAYOUT.md` (≈ 2.550 studs): campamento con NPCs al oeste, zonas de oeste a este, minas al norte, bosque y retos al sur. |
+| Comerciante | — | Intercambio de materiales por semillas, cebos e ingredientes, **sin moneda**, con tasas configurables (`WorldConfig.Trades`), disponibles según la zona desbloqueada y validados en el servidor. |
+| Arena de incursiones | Lugar aparte. | En un claro del campamento del Mundo PET, como punto de reunión (preparada para arenas especiales futuras). |
+| Regalos | — | Tope de 1 regalo activo y 4 por hora por jugador, configurables. |
 
 ## Minerales por región (probabilidad por ciclo de generación, configurable)
 
