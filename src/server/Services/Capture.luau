@@ -1,7 +1,9 @@
 -- Capture (CaptureService): apariciones individuales por jugador, intentos de
 -- captura con el Succionador de Resonancia, cebos y validaciones.
--- (GDD 06)
+-- (GDD 06 y 23)
 --  A) Aparicion/rareza: especie y variante (pocion Fortuna modifica la rareza).
+--  A2) Shiny: tirada INDEPENDIENTE de la rareza (Config.Shiny.chance), decidida
+--      aqui en el servidor al generar el encuentro. El cliente no puede pedirla.
 --  B) Exito de captura: succionador, resistencia, cebo y habilidades.
 -- El servidor es dueño de cada encuentro; el cliente solo lo dibuja.
 
@@ -19,6 +21,21 @@ local S
 
 local enc = {} -- [player] = { zone, list = {[id]=e}, nextRefresh, counter, capturing = {id, t0} }
 local rng = Random.new()
+local forceShiny = {} -- [player] = true: solo herramientas de Studio (DevTools)
+
+-- Tirada Shiny independiente de la especie y de la rareza
+function Capture.RollShiny(chance, randomGen)
+	local cfg = Config.Shiny
+	if not cfg or not cfg.enabled then
+		return false
+	end
+	return (randomGen or rng):NextNumber() < (chance or cfg.chance)
+end
+
+-- Solo para pruebas en Studio (DevTools lo protege)
+function Capture.SetForceShiny(player, on)
+	forceShiny[player] = on and true or nil
+end
 
 -- Sorteo de rareza. luck multiplica todas las rarezas superiores a comun.
 function Capture.RollRarity(speciesId, luck, weightsOverride)
@@ -107,7 +124,8 @@ local function newEncounter(player, data, profile)
 	else
 		pos = region.center + Vector3.new(rng:NextNumber(-region.sizeX / 2, region.sizeX / 2), 0, rng:NextNumber(-region.sizeZ / 2, region.sizeZ / 2))
 	end
-	local e = { id = id, s = s, r = r, pos = Vector3.new(pos.X, 0, pos.Z), born = os.time() }
+	local sh = forceShiny[player] == true or Capture.RollShiny()
+	local e = { id = id, s = s, r = r, sh = sh or nil, pos = Vector3.new(pos.X, 0, pos.Z), born = os.time() }
 	data.list[id] = e
 	return e
 end
@@ -115,7 +133,7 @@ end
 local function serialize(data)
 	local out = {}
 	for _, e in pairs(data.list) do
-		table.insert(out, { id = e.id, s = e.s, r = e.r, x = e.pos.X, z = e.pos.Z })
+		table.insert(out, { id = e.id, s = e.s, r = e.r, sh = e.sh, x = e.pos.X, z = e.pos.Z })
 	end
 	return out
 end
@@ -205,7 +223,7 @@ function Capture.Init(services)
 		if player:GetAttribute("Area") ~= "z" .. data.zone then
 			return result(false, "Estas fuera de la zona.")
 		end
-		if not PetStore.CanAdd(profile, "tank", PetCatalog.Key(e.s, e.r), 1) then
+		if not PetStore.CanAdd(profile, "tank", PetCatalog.Key(e.s, e.r, e.sh), 1) then
 			return result(false, "¡Tanque de PETs lleno! Vuelve al Hogar y deposita en el Almacen.")
 		end
 		local agg = Stats.Aggregate(profile, os.time())
@@ -246,7 +264,7 @@ function Capture.Init(services)
 		if not distanceOk(player, e, params.range) then
 			return result(false, "El PET quedo fuera de alcance.")
 		end
-		local key = PetCatalog.Key(e.s, e.r)
+		local key = PetCatalog.Key(e.s, e.r, e.sh) -- Shiny: solo lo que decidio el servidor
 		if not PetStore.CanAdd(profile, "tank", key, 1) then
 			return result(false, "¡Tanque de PETs lleno!")
 		end
@@ -265,10 +283,15 @@ function Capture.Init(services)
 		if rng:NextNumber() <= params.chance then
 			data.list[e.id] = nil
 			local first = (profile.captured[e.s] or 0) == 0
-			PetStore.Give(profile, e.s, e.r, false)
-			PetStore.Register(profile, e.s, e.r)
+			local shiny = e.sh == true
+			PetStore.Give(profile, e.s, e.r, false, shiny)
+			PetStore.Register(profile, e.s, e.r, shiny)
 			sendAll(player, data)
-			if e.r == "mythic" or e.r == "legendary" then
+			if shiny then
+				for _, other in ipairs(Players:GetPlayers()) do
+					S.Net.Notify(other, "✨ " .. player.DisplayName .. " rescato un " .. sp.name .. " " .. rar.name .. " SHINY!", "rare")
+				end
+			elseif e.r == "mythic" or e.r == "legendary" then
 				for _, other in ipairs(Players:GetPlayers()) do
 					S.Net.Notify(other, "🌟 " .. player.DisplayName .. " rescato un " .. sp.name .. " " .. rar.name .. "!", "rare")
 				end
@@ -280,7 +303,8 @@ function Capture.Init(services)
 				end
 			end
 			S.Progress.CheckUnlocks(player, profile)
-			return result(true, "¡Capturaste un " .. sp.name .. " " .. rar.name .. "!", { captured = true, s = e.s, r = e.r, first = first })
+			return result(true, "¡Capturaste un " .. sp.name .. " " .. rar.name .. (shiny and " ✨ Shiny" or "") .. "!",
+				{ captured = true, s = e.s, r = e.r, shiny = shiny, first = first })
 		end
 		local escaped = rng:NextNumber() < Config.EscapeChanceOnFail
 		if escaped then
@@ -306,6 +330,7 @@ function Capture.Start()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		enc[player] = nil
+		forceShiny[player] = nil
 	end)
 end
 

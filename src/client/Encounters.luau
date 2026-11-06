@@ -119,13 +119,15 @@ local function spawnPet(e)
 	if not sp or not rar then
 		return
 	end
-	local model = PetModels.Build(e.s, e.r, { label = sp.name .. " · " .. rar.name })
+	local shiny = e.sh == true -- decidido por el servidor; solo cambia el aspecto
+	local model = PetModels.Build(e.s, e.r, { label = (shiny and "✨ " or "") .. sp.name .. " · " .. rar.name .. (shiny and " · Shiny" or ""),
+		shiny = shiny })
 	local radius = model:GetAttribute("Radius") or 1
 	local home = Vector3.new(e.x, radius + 0.2, e.z)
 	model:PivotTo(CFrame.new(home))
 	model.Parent = folder
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ObjectText = sp.name .. " " .. rar.name
+	prompt.ObjectText = sp.name .. " " .. rar.name .. (shiny and " ✨ Shiny" or "")
 	prompt.RequiresLineOfSight = false
 	prompt.KeyboardKeyCode = Enum.KeyCode.F
 	prompt.Parent = model.PrimaryPart
@@ -168,7 +170,8 @@ local function spawnPet(e)
 		stopBeam()
 		Net.Send("captureFinish", { id = e.id }, { silent = true }, function(r)
 			if r.ok and r.captured then
-				UI.Popup("¡Rescatado!", { (r.first and "¡Nueva especie! " or "") .. PetCatalog.Get(r.s).name .. " " .. PetCatalog.Rarity(r.r).name,
+				UI.Popup(r.shiny and "✨ ¡Rescate Shiny!" or "¡Rescatado!", { (r.first and "¡Nueva especie! " or "") .. PetCatalog.Get(r.s).name .. " "
+					.. PetCatalog.Rarity(r.r).name .. (r.shiny and " ✨ Shiny" or ""),
 					"Se guardo en tu tanque de PETs." }, PetCatalog.Rarity(r.r).color)
 				remove(e.id)
 			elseif r.msg then

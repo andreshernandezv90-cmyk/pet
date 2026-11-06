@@ -289,10 +289,13 @@ local function giveRewards(success)
 				local r = S.Capture.RollRarity(sp.id, 1, tier.weights)
 				local chance = math.min(0.95, 0.6 + 0.07 * profile.tools.vacuum)
 				if Random.new():NextNumber() <= chance then
-					PetStore.Give(profile, sp.id, r, true)
-					PetStore.Register(profile, sp.id, r)
+					-- Shiny: tirada independiente de la rareza, en el servidor
+					local shiny = S.Capture.RollShiny(Config.Shiny and Config.Shiny.raidChance)
+					PetStore.Give(profile, sp.id, r, true, shiny)
+					PetStore.Register(profile, sp.id, r, shiny)
 					captured = r
-					table.insert(lines, "¡Capturaste un " .. sp.name .. " " .. PetCatalog.Rarity(r).name .. " de tamaño normal!")
+					table.insert(lines, "¡Capturaste un " .. sp.name .. " " .. PetCatalog.Rarity(r).name .. (shiny and " ✨ Shiny" or "")
+						.. " de tamaño normal!")
 				else
 					table.insert(lines, "Tu tirada de captura (" .. PetCatalog.Rarity(r).name .. ") fallo esta vez.")
 				end

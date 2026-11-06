@@ -38,10 +38,12 @@ local function detail(parent, d, e, UI)
 	local sp = PetCatalog.Get(e.s)
 	local lv = e.lv or 0
 	K.vlist(8).Parent = parent
-	K.title(Common.PetName(e.s, e.r, lv), 22, { RichText = true, Parent = parent, LayoutOrder = 1 })
+	K.title(Common.PetName(e.s, e.r, lv) .. Common.ShinyTag(e.shiny), 22, { RichText = true, Parent = parent, LayoutOrder = 1 })
 	local status = e.kind == "stack" and ("Pila de " .. e.count .. " (🫙 tanque " .. e.tank .. " · 🏠 santuario " .. e.storage .. ")")
 		or ({ free = "Disponible", equipped = "Equipado", working = "Trabajando", fused = "Fusionado" })[e.st]
-	K.text(string.format("Nivel %d/5 · %s · Zona de origen %d", lv, status, sp.zone), 14, K.C.muted, { Parent = parent, LayoutOrder = 2 })
+	K.text(string.format("Nivel %d/5 · %s · Zona de origen %d", lv, status, sp.zone) ..
+		(e.shiny and "\n✨ Variante Shiny: apariencia especial, mismas estadisticas que su version normal." or ""), 14, K.C.muted,
+		{ Parent = parent, LayoutOrder = 2 })
 
 	local comp = K.card({ LayoutOrder = 3, Parent = parent })
 	K.vlist(3).Parent = comp
@@ -233,8 +235,12 @@ local function renderDex(body, d)
 		end
 	end
 	local _, complete = Progression.CollectionBonus(d)
-	K.text(string.format("PETdex: %d/%d variantes · %d especies con sus 4 rarezas (+1%% produccion cada una)", n, #all, complete), 15,
-		K.C.gold, { Parent = sc, LayoutOrder = 0 })
+	local shinyN = 0
+	for _ in pairs(d.shinyDex or {}) do
+		shinyN = shinyN + 1
+	end
+	K.text(string.format("PETdex: %d/%d variantes · %d especies con sus 4 rarezas (+1%% produccion cada una) · ✨ Shiny encontrados: %d",
+		n, #all, complete, shinyN), 15, K.C.gold, { Parent = sc, LayoutOrder = 0 })
 	for _, sp in ipairs(PetCatalog.Species) do
 		local row = K.card({ LayoutOrder = sp.num, Parent = sc })
 		K.vlist(4).Parent = row
@@ -245,10 +251,11 @@ local function renderDex(body, d)
 		K.hlist(6).Parent = cells
 		for i, r in ipairs(PetCatalog.RaritiesFor(sp.id)) do
 			local got = d.dex[PetCatalog.Key(sp.id, r.id)]
+			local gotShiny = d.shinyDex and d.shinyDex[PetCatalog.Key(sp.id, r.id)]
 			K.new("TextLabel", {
 				Size = UDim2.new(0, 110, 0, 28),
 				BackgroundColor3 = got and r.color:Lerp(Color3.new(0, 0, 0), 0.45) or Color3.fromRGB(50, 46, 70),
-				Text = got and r.name or "?",
+				Text = got and (r.name .. (gotShiny and " ✨" or "")) or "?",
 				TextColor3 = got and K.C.text or K.C.muted,
 				Font = K.Bold,
 				TextSize = 13,

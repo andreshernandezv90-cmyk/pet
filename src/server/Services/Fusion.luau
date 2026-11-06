@@ -110,8 +110,8 @@ function Fusion.Init(services)
 		free.fusion = {
 			id = "f" .. profile.fusion.nextId,
 			name = name,
-			a = { id = ua.id, s = ua.s, r = ua.r, lv = ua.lv },
-			b = { id = ub.id, s = ub.s, r = ub.r, lv = ub.lv },
+			a = { id = ua.id, s = ua.s, r = ua.r, lv = ua.lv, shiny = ua.shiny },
+			b = { id = ub.id, s = ub.s, r = ub.r, lv = ub.lv, shiny = ub.shiny },
 			startedAt = now,
 			endsAt = now + Config.FusionDuration,
 		}

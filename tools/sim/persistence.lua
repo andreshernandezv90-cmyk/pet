@@ -95,9 +95,9 @@ own.essence.talpa = 77
 DATABASE["u_304"] = { data = own }
 local D = join(304, "Propio")
 local pd = S.DataService.Get(D)
-check(S.DataService.IsPersistent(D) and pd.schemaVersion == 3 and pd.lineage == "main", "propio v2 migrado a v3 con linaje")
+check(S.DataService.IsPersistent(D) and pd.schemaVersion == Config.SchemaVersion and pd.lineage == "main", "propio v2 migrado a la version actual con linaje")
 check(pd.zones.unlocked == 4 and pd.tools.pick == 3 and pd.res.storage.piedra == 321 and pd.stacks.storage["talpa:rare"] == 3
-	and pd.essence.talpa == 77 and pd.story.visitedMines == true and type(pd.mines.visited) == "table", "migracion v3 sin perdida de datos")
+	and pd.essence.talpa == 77 and pd.story.visitedMines == true and type(pd.mines.visited) == "table", "migracion sin perdida de datos")
 -- otra implementacion escribe encima mientras jugamos: no la pisamos
 DATABASE["u_304"] = { data = { schemaVersion = 4, lineage = "astra" } }
 local before4 = snapshot(DATABASE["u_304"])

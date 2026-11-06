@@ -295,6 +295,6 @@ profile.mines.guardians = nil
 WC.Regions[2].mine.guardian.enabled = false
 
 -- 6. Datos -------------------------------------------------------------------------------
-check(profile.schemaVersion == 3 and profile.lineage == "main", "perfil v3 con linaje")
+check(profile.schemaVersion == require(RS.Shared.Config).SchemaVersion and profile.lineage == "main", "perfil actual con linaje")
 check(profile.mines.visited.m1 and profile.mines.visited.m3 and profile.mines.visited.m2, "galerias visitadas guardadas")
 print("ALL MINES TESTS PASSED")

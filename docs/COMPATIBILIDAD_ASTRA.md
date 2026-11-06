@@ -8,7 +8,7 @@
 |---|---|---|
 | Código disponible en esta sesión | Sí | **No.** Ningún repositorio accesible la contiene; la información sale del GDD Maestro (§17, §20, §24, Anexo B) |
 | Validación en Studio | Pendiente (Fases A–D y L0) | v0.1–v0.6, incluida una prueba con dos clientes |
-| Esquema de perfil | `schemaVersion` 2 → **3** desde la Fase D, con `lineage = "main"` | `schemaVersion` 4 (según el GDD) |
+| Esquema de perfil | `schemaVersion` 2 → 3 (Fase D, `lineage = "main"`) → **4** (Fase S, Shiny) | `schemaVersion` 4 (según el GDD) |
 | DataStore | `PortalPets_Perfiles_v1`, clave `u_<UserId>`, envoltorio `{ data = perfil, lock = {...} }` | **Desconocido** |
 | Modelo de PETs | Pilas `stacks.tank`/`storage` + individuos `units[id] = { id, s, r, lv, st, lock, loc }` | `petInstances[id, speciesId, rarityId, isShiny, level, status, lockFlag, traits?]` (GDD §17) |
 | Esencias | `essence[speciesId]` | `essenceBySpecies` |
@@ -26,10 +26,10 @@ Desde la Fase D, el repositorio principal se protege así (`DataService` + `Prof
 |---|---|
 | Clave vacía | Crea un perfil nuevo (como antes) |
 | `{ data = perfil }` con `schemaVersion` ≤ 2 y sin `lineage` | Perfil propio antiguo: lo migra a v3 de forma aditiva (como antes) |
-| `{ data = perfil }` con `lineage = "main"` y `schemaVersion` ≤ 3 | Perfil propio: lo carga |
+| `{ data = perfil }` con `lineage = "main"` y `schemaVersion` ≤ la versión actual (4) | Perfil propio: lo carga |
 | Cualquier otra forma: sin envoltorio `data`, `lineage` ajeno, `schemaVersion` mayor que el propio, o ≥ 3 sin `lineage` | **Perfil ajeno o futuro: no lo migra ni lo guarda.** En un servidor publicado expulsa al jugador con un aviso; en Studio juega con un perfil temporal que no se guarda |
 
-Así, un perfil de esquema 4 de Astra **nunca** se toca, aunque las dos versiones compartan almacén. Lo cubre `tools/sim/persistence.lua`.
+**Los dos usan ahora el número de esquema 4, pero no se confunden:** el linaje (`lineage = "main"`) identifica los perfiles propios, y cualquier perfil de esquema ≥ 3 sin linaje se trata como ajeno. Así, un perfil de esquema 4 de Astra **nunca** se toca, aunque las dos versiones compartan almacén. Lo cubre `tools/sim/persistence.lua`.
 
 **Recomendación:** publicar el repositorio principal en una experiencia **distinta** a la de Astra mientras dure la validación, o confirmar que sus `DataStoreName` son diferentes.
 

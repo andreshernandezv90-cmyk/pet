@@ -133,8 +133,11 @@ local function validate(name, template)
 	return ok
 end
 
--- Devuelve la plantilla valida para una especie y rareza, o nil (=> procedural)
-function PetAssets.Find(speciesId, rarityId)
+-- Devuelve la plantilla valida para una especie y rareza, o nil (=> procedural).
+-- Con shiny = true busca primero las variantes Shiny personalizadas:
+--   "<model>_<rareza>_shiny", "<model>_shiny"; despues las normales.
+-- Cuarto valor: true si la plantilla encontrada es una variante Shiny.
+function PetAssets.Find(speciesId, rarityId, shiny)
 	if not PetAssets.Enabled then
 		return nil
 	end
@@ -147,14 +150,20 @@ function PetAssets.Find(speciesId, rarityId)
 		return nil
 	end
 	local candidates = {}
-	if rarityId then
-		table.insert(candidates, cfg.model .. "_" .. rarityId)
+	if shiny then
+		if rarityId then
+			table.insert(candidates, { cfg.model .. "_" .. rarityId .. "_shiny", true })
+		end
+		table.insert(candidates, { cfg.model .. "_shiny", true })
 	end
-	table.insert(candidates, cfg.model)
-	for _, name in ipairs(candidates) do
-		local t = f:FindFirstChild(name)
-		if t and validate(name, t) then
-			return t, cfg, name
+	if rarityId then
+		table.insert(candidates, { cfg.model .. "_" .. rarityId, false })
+	end
+	table.insert(candidates, { cfg.model, false })
+	for _, c in ipairs(candidates) do
+		local t = f:FindFirstChild(c[1])
+		if t and validate(c[1], t) then
+			return t, cfg, c[1], c[2]
 		end
 	end
 	return nil

@@ -28,8 +28,12 @@ function Reactor.render(root, UI)
 		13, K.C.muted, { Parent = left, LayoutOrder = 0 })
 	local order = 0
 	local anyStack = false
+	local protectedShiny = 0
 	for _, e in ipairs(PetStore.Entries(d)) do
-		if e.kind == "stack" then
+		if e.kind == "stack" and e.shiny then
+			protectedShiny = protectedShiny + e.count -- los Shiny estan protegidos (GDD 23)
+			selection[e.key] = nil
+		elseif e.kind == "stack" then
 			anyStack = true
 			order = order + 1
 			local n = math.min(selection[e.key] or 0, e.count)
@@ -61,6 +65,9 @@ function Reactor.render(root, UI)
 	end
 	if not anyStack then
 		K.text("No tienes PETs repetidos en pilas.", 15, K.C.warn, { Parent = left, LayoutOrder = 1 })
+	end
+	if protectedShiny > 0 then
+		K.text("✨ " .. protectedShiny .. " PETs Shiny protegidos: el Reactor no los recicla.", 13, K.C.muted, { Parent = left, LayoutOrder = order + 1 })
 	end
 
 	local right = K.scroll({ Name = "ReactorPreview", Size = UDim2.new(0.38, 0, 1, 0), Position = UDim2.new(0.62, 0, 0, 0), Parent = root })

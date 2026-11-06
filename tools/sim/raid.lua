@@ -67,8 +67,13 @@ check(inc:FindFirstChild("Pilar1") ~= nil, "fase de pilares")
 for i = 1, 4 do
 	inc:FindFirstChild("Pilar" .. i):FindFirstChildOfClass("ProximityPrompt").Triggered:Fire(P)
 end
+-- Shiny en la recompensa: con probabilidad 1 el PET de la incursion sale Shiny
+local Cfg = require(RS.Shared.Config)
+local savedRaidChance = Cfg.Shiny.raidChance
+Cfg.Shiny.raidChance = 1
 hrp.__props.CFrame = CFrame.new(A.X + 5, 3, A.Z)
 for i = 1, 40 do STEP(1) end
+Cfg.Shiny.raidChance = savedRaidChance
 local got
 for _, f in ipairs(fx) do if f[1] == "raidReward" then got = f[2] end end
 check(got ~= nil, "recompensa entregada")
@@ -76,6 +81,13 @@ print("   ", table.concat(got.lines, " | "))
 local after = 0
 for k, v in pairs(profile.essence) do after = after + v end
 check(after > before and got.success, "esencias de incursion recibidas (" .. got.tier .. ")")
+if got.rarity then
+	local key = got.species .. ":" .. got.rarity .. ":shiny"
+	check(((profile.stacks.tank[key] or 0) + (profile.stacks.storage[key] or 0)) >= 1 and profile.shinyDex[got.species .. ":" .. got.rarity],
+		"PET de incursion Shiny decidido por el servidor (" .. key .. ")")
+else
+	print("info  la tirada de captura de la incursion fallo; sin PET que revisar")
+end
 for i = 1, 15 do STEP(1) end
 check(workspace:FindFirstChild("Incursion") == nil, "arena limpia al terminar")
 check(raidMsgs > 20, "estado de incursion transmitido")

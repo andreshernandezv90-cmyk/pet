@@ -77,6 +77,8 @@ art/lumi/
 
 Variantes opcionales por rareza: `Lumi_common`, `Lumi_rare`, `Lumi_epic`, `Lumi_legendary` y `Lumi_mythic`. Si existe `Lumi_<rareza>`, se usa esa; si no, `Lumi`.
 
+**Shiny:** para un Lumi Shiny se busca primero `Lumi_<rareza>_shiny` y luego `Lumi_shiny`. Si ninguna existe, se usa el modelo normal con las partículas Shiny. Una variante Shiny solo cambia la apariencia (paleta o texturas); la estructura del rig y los nombres de animación son los mismos.
+
 ## 4. Estructura esperada del rig
 
 - **Una malla principal deformada por huesos** (skinned mesh). Puede haber 1–3 piezas rígidas extra (por ejemplo, el halo) emparentadas a un hueso.

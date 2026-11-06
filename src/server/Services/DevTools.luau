@@ -63,6 +63,21 @@ function DevTools.Init(services)
 			profile.buildings.petStorage = math.max(profile.buildings.petStorage, 10)
 			S.Progress.CheckUnlocks(player, profile)
 			return { ok = true, msg = "+3 de cada variante (63) y +2000 esencias por especie." }
+		elseif cmd == "shiny" then
+			-- un Lumi comun Shiny en el almacen (para probar inventario y visual)
+			local PetStore = require(Shared.PetStore)
+			PetStore.Give(profile, "lumi", "common", true, true)
+			PetStore.Register(profile, "lumi", "common", true)
+			return { ok = true, msg = "+1 Lumi Comun ✨ Shiny en tu almacen." }
+		elseif cmd == "shinyspawn" then
+			-- todas las apariciones nuevas de este jugador seran Shiny (solo Studio, sesion)
+			local on = not player:GetAttribute("DevShinySpawn")
+			player:SetAttribute("DevShinySpawn", on)
+			S.Capture.SetForceShiny(player, on)
+			local area = player:GetAttribute("Area")
+			S.Capture.OnAreaChanged(player, "home")
+			S.Capture.OnAreaChanged(player, area)
+			return { ok = true, msg = on and "Apariciones Shiny forzadas (solo Studio). Repite para desactivar." or "Apariciones normales otra vez." }
 		elseif cmd == "raid" then
 			if S.Raid.ForceSoon() then
 				return { ok = true, msg = "La incursion se anunciara en un segundo." }

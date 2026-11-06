@@ -9,7 +9,7 @@ Config.Version = "1.0.0"
 
 -- Persistencia ---------------------------------------------------------------
 Config.DataStoreName = "PortalPets_Perfiles_v1"
-Config.SchemaVersion = 3 -- v2: Mundo PET continuo (faros, zonas visitadas, NPCs); v3: linaje + Minas de Zuar
+Config.SchemaVersion = 4 -- v2: Mundo PET continuo; v3: linaje + Minas de Zuar; v4: variantes Shiny
 Config.AutosaveInterval = 60 -- segundos
 Config.SessionLockStale = 180 -- un bloqueo sin renovar por mas de esto se considera abandonado
 Config.LoadRetries = 5
@@ -23,6 +23,15 @@ Config.MaxPaidSlots = 60 -- tope de espacios comprados por tipo
 Config.SpawnMin = 7
 Config.SpawnMax = 12
 Config.SpawnRefresh = 60 -- segundos
+
+-- Shiny (GDD 23): apariencia alternativa INDEPENDIENTE de la rareza. Sin efecto en
+-- estadisticas, habilidades, produccion ni combate. Lo decide siempre el servidor.
+Config.Shiny = {
+	enabled = true,
+	chance = 1 / 500, -- 0.2% por PET generado (apariciones salvajes y recompensa de incursion)
+	raidChance = 1 / 500,
+	protectInReactor = true, -- el Reactor no recicla Shiny salvo confirmacion explicita (allowShiny)
+}
 Config.EncounterRadius = 30 -- distancia maxima servidor (incluye deambular)
 Config.EscapeChanceOnFail = 0.5
 

@@ -56,16 +56,22 @@ function PetStore.Add(profile, loc, key, n)
 	profile.stacks[loc][key] = (profile.stacks[loc][key] or 0) + n
 end
 
--- Registra descubrimiento/captura
-function PetStore.Register(profile, speciesId, rarityId)
-	profile.dex[PetCatalog.Key(speciesId, rarityId)] = true
+-- Registra descubrimiento/captura. Un Shiny cuenta para la coleccion normal de su
+-- variante y, ademas, para el registro Shiny (shinyDex).
+function PetStore.Register(profile, speciesId, rarityId, shiny)
+	local base = PetCatalog.Key(speciesId, rarityId)
+	profile.dex[base] = true
+	if shiny then
+		profile.shinyDex = profile.shinyDex or {}
+		profile.shinyDex[base] = true
+	end
 	profile.captured[speciesId] = (profile.captured[speciesId] or 0) + 1
 end
 
 -- Agrega un PET nuevo: tanque -> almacen -> (force) almacen excedido.
--- Devuelve la ubicacion o nil si no cupo y no se forzo.
-function PetStore.Give(profile, speciesId, rarityId, force)
-	local key = PetCatalog.Key(speciesId, rarityId)
+-- Devuelve la ubicacion o nil si no cupo y no se forzo. Los Shiny van a su propia pila.
+function PetStore.Give(profile, speciesId, rarityId, force, shiny)
+	local key = PetCatalog.Key(speciesId, rarityId, shiny)
 	if PetStore.CanAdd(profile, "tank", key, 1) then
 		PetStore.Add(profile, "tank", key, 1)
 		return "tank"
@@ -103,9 +109,9 @@ function PetStore.Take(profile, key, n)
 	return true
 end
 
--- Saca un ejemplar de una pila y le da identidad propia
+-- Saca un ejemplar de una pila y le da identidad propia (conserva Shiny)
 function PetStore.Individualize(profile, key)
-	local s, r = PetCatalog.ParseKey(key)
+	local s, r, shiny = PetCatalog.ParseKey(key)
 	if not s then
 		return nil
 	end
@@ -123,7 +129,7 @@ function PetStore.Individualize(profile, key)
 	end
 	local id = "u" .. tostring(profile.nextUnitId)
 	profile.nextUnitId = profile.nextUnitId + 1
-	local unit = { id = id, s = s, r = r, lv = 0, st = "free", lock = false, loc = loc }
+	local unit = { id = id, s = s, r = r, lv = 0, st = "free", lock = false, loc = loc, shiny = shiny or nil }
 	profile.units[id] = unit
 	return unit
 end
@@ -150,7 +156,7 @@ end
 -- Si un individuo vuelve a ser ordinario (nivel 0, libre, sin proteccion), regresa a su pila
 function PetStore.TryMerge(profile, unit)
 	if unit.st == "free" and unit.lv == 0 and not unit.lock then
-		local key = PetCatalog.Key(unit.s, unit.r)
+		local key = PetCatalog.Key(unit.s, unit.r, unit.shiny)
 		local loc = unit.loc == "tank" and "tank" or "storage"
 		profile.stacks[loc][key] = (profile.stacks[loc][key] or 0) + 1
 		profile.units[unit.id] = nil
@@ -229,15 +235,15 @@ function PetStore.Entries(profile)
 		end
 	end
 	for key, c in pairs(merged) do
-		local s, r = PetCatalog.ParseKey(key)
+		local s, r, shiny = PetCatalog.ParseKey(key)
 		if s then
 			table.insert(list, { kind = "stack", key = key, s = s, r = r, lv = 0, tank = c.tank, storage = c.storage,
-				count = c.tank + c.storage })
+				count = c.tank + c.storage, shiny = shiny })
 		end
 	end
 	for id, u in pairs(profile.units) do
-		table.insert(list, { kind = "unit", unit = id, key = PetCatalog.Key(u.s, u.r), s = u.s, r = u.r, lv = u.lv,
-			st = u.st, lock = u.lock, loc = u.loc, count = 1 })
+		table.insert(list, { kind = "unit", unit = id, key = PetCatalog.Key(u.s, u.r, u.shiny), s = u.s, r = u.r, lv = u.lv,
+			st = u.st, lock = u.lock, loc = u.loc, count = 1, shiny = u.shiny == true })
 	end
 	table.sort(list, function(a, b)
 		local sa, sb = PetCatalog.Get(a.s), PetCatalog.Get(b.s)
@@ -247,6 +253,9 @@ function PetStore.Entries(profile)
 		local ra, rb = PetCatalog.Rarity(a.r).order, PetCatalog.Rarity(b.r).order
 		if ra ~= rb then
 			return ra > rb
+		end
+		if (a.shiny == true) ~= (b.shiny == true) then
+			return a.shiny == true
 		end
 		if a.kind ~= b.kind then
 			return a.kind == "unit"
