@@ -22,6 +22,8 @@ DIMENSIONAL**
 
 Versión: 1.1 \| Fecha: 4 de noviembre de 2026 (1.0 → 1.1: reestructuración del mundo)
 
+> **Documento maestro vigente:** `docs/gdd/PortalPets_GDD_Maestro_v1.1.md` (6 nov 2026), que añade duelos por turnos, cuevas con guardianes y Shiny. Este archivo conserva los ajustes de implementación aprobados en este repositorio (1.1b–1.1d). Las diferencias entre ambos y las decisiones pendientes están en `docs/GDD_MAESTRO_ANALISIS.md`.
+
 Alcance: visión de producto, reglas de juego, economía, progresión, especificación técnica y plan de desarrollo.
 
 Nota de control: números de producción, probabilidades, tiempos y precios son parámetros iniciales para equilibrar en pruebas; las reglas centrales se consideran aprobadas.
