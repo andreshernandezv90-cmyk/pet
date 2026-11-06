@@ -29,7 +29,7 @@ Desde la Fase D, el repositorio principal se protege así (`DataService` + `Prof
 | `{ data = perfil }` con `lineage = "main"` y `schemaVersion` ≤ 3 | Perfil propio: lo carga |
 | Cualquier otra forma: sin envoltorio `data`, `lineage` ajeno, `schemaVersion` mayor que el propio, o ≥ 3 sin `lineage` | **Perfil ajeno o futuro: no lo migra ni lo guarda.** En un servidor publicado expulsa al jugador con un aviso; en Studio juega con un perfil temporal que no se guarda |
 
-Así, un perfil de esquema 4 de Astra **nunca** se toca, aunque las dos versiones compartan almacén. Lo cubren las pruebas de `tools/sim/mines.lua` (sección de persistencia).
+Así, un perfil de esquema 4 de Astra **nunca** se toca, aunque las dos versiones compartan almacén. Lo cubre `tools/sim/persistence.lua`.
 
 **Recomendación:** publicar el repositorio principal en una experiencia **distinta** a la de Astra mientras dure la validación, o confirmar que sus `DataStoreName` son diferentes.
 

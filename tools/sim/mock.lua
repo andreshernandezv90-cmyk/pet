@@ -400,7 +400,7 @@ function methods.IsDescendantOf(o, a) local p = o.__props.Parent; while p do if 
 function methods.Play() end
 function methods.BindToClose() end
 function methods.Fire(o, ...) o.Event:Fire(...) end
-function methods.Kick(o, msg) print("KICK", msg) end
+function methods.Kick(o, msg) o.__props.Kicked = msg; print("KICK", msg) end
 function methods.FireClient(o, player, ...) if o.__onFireClient then o.__onFireClient(player, ...) end end
 function methods.FireAllClients(o, ...) if o.__onFireClient then o.__onFireClient(nil, ...) end end
 function methods.InvokeServer(o, ...) return o.OnServerInvoke(LOCAL_PLAYER, ...) end

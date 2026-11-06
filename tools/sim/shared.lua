@@ -123,7 +123,7 @@ v1.captured = { lumi = 4, rocon = 1 }
 v1.stacks.storage["lumi:rare"] = 7
 v1.essence.lumi = 99
 local m = Schema.Migrate(v1)
-check(m.schemaVersion == 2 and m.world.beacons.z1 and m.world.beacons.z2 and not m.world.beacons.z3, "v1->v2: faros de zonas ya visitadas")
+check(m.schemaVersion == 3 and m.lineage == "main" and m.world.beacons.z1 and m.world.beacons.z2 and not m.world.beacons.z3, "v1->v3: faros de zonas ya visitadas y linaje propio")
 check(m.stacks.storage["lumi:rare"] == 7 and m.essence.lumi == 99 and m.zones.unlocked == 3, "v1->v2 conserva PETs, esencias y zonas")
 local copy = Schema.DeepCopy(m)
 m.schemaVersion = 1

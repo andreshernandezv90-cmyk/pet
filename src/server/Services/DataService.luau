@@ -3,7 +3,9 @@
 --
 -- Formato guardado: { data = <perfil>, lock = { job = JobId, t = os.time() } | nil }
 -- Si la carga falla en un servidor publicado, se expulsa al jugador en lugar de
--- arriesgar sobrescribir un perfil valido. En Studio sin acceso a API se juega
+-- arriesgar sobrescribir un perfil valido. Un registro ajeno (otra implementacion,
+-- p. ej. Astra v0.6) o de una version futura NUNCA se migra ni se sobrescribe
+-- (ProfileSchema.Classify, docs/COMPATIBILIDAD_ASTRA.md). En Studio sin acceso a API se juega
 -- con un perfil temporal (no se guarda) y se avisa al jugador.
 
 local DataStoreService = game:GetService("DataStoreService")
@@ -42,15 +44,21 @@ function DataService.Init(services)
 	end
 end
 
--- Devuelve: data, status ("ok" | "locked" | "error"), mensaje
+-- Devuelve: data, status ("ok" | "locked" | "foreign" | "error"), mensaje
 local function tryLoad(userId)
 	if not store then
 		return nil, "error", storeError or "sin DataStore"
 	end
-	local data, status
+	local data, status, why
 	local ok, err = pcall(function()
 		store:UpdateAsync(keyFor(userId), function(old)
 			local now = os.time()
+			local class, reason = ProfileSchema.Classify(old)
+			if class == "foreign" then
+				status = "foreign"
+				why = reason
+				return nil -- no se toca un perfil ajeno o futuro
+			end
 			if type(old) == "table" and type(old.lock) == "table" and old.lock.job ~= jobId()
 				and now - (tonumber(old.lock.t) or 0) < Config.SessionLockStale then
 				status = "locked"
@@ -71,7 +79,7 @@ local function tryLoad(userId)
 	if not ok then
 		return nil, "error", tostring(err)
 	end
-	return data, status, nil
+	return data, status, why
 end
 
 local function studioNoApi(msg)
@@ -87,7 +95,7 @@ function DataService.Load(player)
 	local data, status, msg
 	for attempt = 1, Config.LoadRetries do
 		data, status, msg = tryLoad(player.UserId)
-		if status == "ok" then
+		if status == "ok" or status == "foreign" then
 			break
 		end
 		if status == "error" and studioNoApi(msg) then
@@ -102,7 +110,17 @@ function DataService.Load(player)
 		return nil
 	end
 	local persist = true
-	if status ~= "ok" then
+	if status == "foreign" then
+		warn("[PortalPets] El perfil de " .. player.Name .. " pertenece a otra version (" .. tostring(msg) .. "); no se modifica.")
+		if RunService:IsStudio() then
+			data = ProfileSchema.Default()
+			data.createdAt = os.time()
+			persist = false
+		else
+			player:Kick("Tus datos pertenecen a otra version de Portal Pets y no se modificaran. Entra a la experiencia correcta.")
+			return nil
+		end
+	elseif status ~= "ok" then
 		if status == "error" and studioNoApi(msg) then
 			warn("[PortalPets] Studio sin acceso a DataStore; perfil temporal. Activa Game Settings > Security > Enable Studio Access to API Services.")
 			data = ProfileSchema.Default()
@@ -136,6 +154,9 @@ local function save(player, rec, release)
 	for attempt = 1, 3 do
 		ok, err = pcall(function()
 			store:UpdateAsync(keyFor(player.UserId), function(old)
+				if ProfileSchema.Classify(old) == "foreign" then
+					return nil -- jamas sobrescribir un registro ajeno o futuro
+				end
 				if type(old) == "table" and type(old.lock) == "table" and old.lock.job ~= jobId()
 					and os.time() - (tonumber(old.lock.t) or 0) < Config.SessionLockStale then
 					-- otro servidor tomo la sesion: no sobrescribir

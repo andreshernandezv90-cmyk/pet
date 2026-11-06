@@ -6,6 +6,11 @@ local PetCatalog = require(script.Parent.PetCatalog)
 
 local ProfileSchema = {}
 
+-- Linaje de los perfiles de ESTE repositorio. Sirve para no confundirlos nunca con
+-- perfiles de otra implementacion (p. ej. Astra/Codex v0.6, esquema 4) si ambas
+-- llegaran a compartir DataStore. Ver docs/COMPATIBILIDAD_ASTRA.md.
+ProfileSchema.Lineage = "main"
+
 local STATIONS = { "stone", "copper", "iron", "moon", "zuarita", "nexus", "garden" }
 
 function ProfileSchema.Default()
@@ -15,6 +20,7 @@ function ProfileSchema.Default()
 	end
 	return {
 		schemaVersion = Config.SchemaVersion,
+		lineage = ProfileSchema.Lineage,
 		createdAt = 0,
 		lastSave = 0,
 		playTime = 0,
@@ -62,6 +68,11 @@ function ProfileSchema.Default()
 			visited = {}, -- ["z1"] = true: zona visitada al menos una vez
 			npc = {}, -- ["guide"] = true: dialogos vistos
 		},
+
+		-- v3: Minas de Zuar como mundo propio
+		mines = {
+			visited = {}, -- ["m1"] = true: galeria visitada al menos una vez
+		},
 	}
 end
 
@@ -83,6 +94,32 @@ local function reconcile(target, template)
 			end
 		end
 	end
+end
+
+-- Clasifica un registro guardado ANTES de tocarlo:
+--   "empty"   -> no hay datos: se crea un perfil nuevo
+--   "own"     -> perfil de este repositorio (cualquier version <= la actual)
+--   "foreign" -> formato ajeno, linaje ajeno o version futura: NO se migra ni se guarda
+-- Devuelve: clase, motivo
+function ProfileSchema.Classify(record)
+	if record == nil then
+		return "empty", nil
+	end
+	if type(record) ~= "table" or type(record.data) ~= "table" then
+		return "foreign", "formato desconocido"
+	end
+	local d = record.data
+	local v = tonumber(d.schemaVersion) or 0
+	if d.lineage ~= nil and d.lineage ~= ProfileSchema.Lineage then
+		return "foreign", "linaje " .. tostring(d.lineage)
+	end
+	if v > Config.SchemaVersion then
+		return "foreign", "esquema " .. v .. " (este servidor usa " .. Config.SchemaVersion .. ")"
+	end
+	if d.lineage == nil and v >= 3 then
+		return "foreign", "esquema " .. v .. " sin linaje propio"
+	end
+	return "own", nil
 end
 
 function ProfileSchema.Migrate(profile)
@@ -112,6 +149,11 @@ function ProfileSchema.Migrate(profile)
 				profile.world.beacons["z" .. k] = true
 			end
 		end
+	end
+	if v < 3 then
+		-- v2 -> v3: solo AGREGA el linaje y el registro de galerias visitadas.
+		-- Quien ya habia entrado a las minas antiguas conserva esa marca.
+		profile.lineage = ProfileSchema.Lineage
 	end
 	profile.schemaVersion = Config.SchemaVersion
 	return profile

@@ -234,7 +234,7 @@ local P2 = MAKE_PLAYER(202, "Veterano")
 Players.PlayerAdded:Fire(P2)
 RUN_DELAYS()
 local p2 = S.DataService.Get(P2)
-check(p2 and p2.schemaVersion == 2 and p2.world.beacons.z1, "perfil v1 migrado a v2 al entrar")
+check(p2 and p2.schemaVersion == 3 and p2.lineage == "main" and p2.world.beacons.z1, "perfil v1 migrado a v3 al entrar")
 check(p2.stacks.storage["lumi:epic"] == 2 and p2.essence.lumi == 42 and p2.zones.unlocked == 2, "migracion sin perdida de datos")
 check(P2:GetAttribute("Plot") == 1, "la parcela liberada al salir se reutiliza")
 
