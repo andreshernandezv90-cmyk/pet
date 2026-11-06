@@ -64,6 +64,12 @@ Nota de control: números de producción, probabilidades, tiempos y precios son 
 | PETs salvajes | Claros en la pradera central. | Claros más pequeños junto al camino. El 60% de las apariciones usa uno de los dos claros más cercanos al jugador; el número de PETs activos (7–12) no cambia. |
 | Iluminación | Bloom y reflejos marcados. | Más suave: bloom, reflejos del agua y partículas reducidos, sobre todo en el santuario. |
 
+## Ajustes 1.1d (preparación de arte importado)
+
+| Tema | Antes | Vigente |
+|---|---|---|
+| Modelos de PETs | Solo procedurales con primitivas. | Cada especie puede tener un **modelo importado** (Blender → Studio) en `ReplicatedStorage.PetAssets`, con animaciones Idle, Walk, Run, Jump y CaptureReaction. El modelo procedural queda como respaldo permanente. El aspecto no afecta a especie, rareza, estadísticas, captura ni datos guardados. Lumi es la primera especie preparada (ver `docs/ART_PIPELINE.md`). |
+
 ## Minerales por región (probabilidad por ciclo de generación, configurable)
 
 Los porcentajes indican la probabilidad de que un recurso aparezca en un ciclo de generación de nodos de esa mina. No son excluyentes ni deben sumar 100%.

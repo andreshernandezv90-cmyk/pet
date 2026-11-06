@@ -9,14 +9,20 @@ Sigue las mismas reglas de Rojo para carpetas y scripts:
   *.server.luau -> Script, *.client.luau -> LocalScript, *.luau -> ModuleScript.
 La forma recomendada sigue siendo `rojo build` o `rojo serve`; este script es
 una alternativa para abrir el juego directamente en Roblox Studio.
+
+Modelos importados (assets/pets): los archivos .rbxmx (XML) se incrustan tal cual
+(con sus SharedStrings). Los .rbxm binarios no se pueden convertir aqui: se avisa
+y hay que usar `rojo build` / `rojo serve` o guardar el modelo como .rbxmx.
 """
 import json
 import os
 import sys
+import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ref_counter = [0]
+shared_strings = []  # elementos <SharedString> de los .rbxmx incrustados
 
 
 def ref():
@@ -39,7 +45,35 @@ def script_item(cls, name, path):
     return cls, name, '<ProtectedString name="Source">%s</ProtectedString>' % cdata(src)
 
 
+def rbxmx_items(path):
+    """Devuelve el XML de los <Item> raiz de un .rbxmx (y guarda sus SharedStrings)."""
+    tree = ET.parse(path)
+    root = tree.getroot()
+    items = [c for c in root if c.tag == "Item"]
+    if len(items) == 1:
+        # como Rojo: la instancia raiz toma el nombre del archivo
+        stem = os.path.basename(path)[:-len(".rbxmx")]
+        props = items[0].find("Properties")
+        if props is not None:
+            for prop in props:
+                if prop.get("name") == "Name":
+                    prop.text = stem
+    out = ""
+    for child in root:
+        if child.tag == "Item":
+            out += ET.tostring(child, encoding="unicode")
+        elif child.tag == "SharedStrings":
+            for ss in child:
+                shared_strings.append(ET.tostring(ss, encoding="unicode"))
+    return out
+
+
 def build_path(path, name):
+    if os.path.isfile(path) and path.endswith(".rbxmx"):
+        return rbxmx_items(path)
+    if os.path.isfile(path) and path.endswith(".rbxm"):
+        print("AVISO: %s es binario (.rbxm); usa `rojo build` o guardalo como .rbxmx para este script." % path)
+        return ""
     if os.path.isfile(path):
         base = os.path.basename(path)
         if base.endswith(".server.luau"):
@@ -62,7 +96,7 @@ def build_path(path, name):
     children = ""
     for e in entries:
         full = os.path.join(path, e)
-        if os.path.isdir(full) or e.endswith(".luau"):
+        if os.path.isdir(full) or e.endswith(".luau") or e.endswith(".rbxmx") or e.endswith(".rbxm"):
             children += build_path(full, None)
     return item(cls, name, props, children)
 
@@ -101,7 +135,9 @@ def main():
     xml = ('<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" '
            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
            'xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">'
-           '<External>null</External><External>nil</External>' + body + '</roblox>')
+           '<External>null</External><External>nil</External>' + body
+           + ('<SharedStrings>' + "".join(shared_strings) + '</SharedStrings>' if shared_strings else '')
+           + '</roblox>')
     with open(out, "w", encoding="utf-8") as f:
         f.write(xml)
     print("Generado:", out)

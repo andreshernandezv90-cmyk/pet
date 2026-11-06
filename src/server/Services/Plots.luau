@@ -9,6 +9,7 @@ local CollectionService = game:GetService("CollectionService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local PetModels = require(Shared.PetModels)
+local PetAnimator = require(Shared.PetAnimator)
 local Items = require(Shared.Items)
 
 local WorldFolder = script.Parent:WaitForChild("World")
@@ -207,6 +208,10 @@ local function buildWorkers(parent, base, profile)
 					m:PivotTo(base * CFrame.new(spot.x, 0, spot.z) * off)
 					m.Parent = parent
 					CollectionService:AddTag(m, "WorkerPet")
+					local anim = PetAnimator.Attach(m) -- solo modelos importados con animaciones
+					if anim then
+						anim:Play("Idle")
+					end
 				end
 			end
 		end

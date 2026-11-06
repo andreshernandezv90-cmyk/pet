@@ -278,7 +278,8 @@ function methods.Destroy(o) o.Parent = nil end
 function methods.IsA(o, cls)
 	local c = o.__props.ClassName
 	if c == cls then return true end
-	if cls == "BasePart" then return c == "Part" or c == "WedgePart" or c == "SpawnLocation" end
+	if cls == "BasePart" then return c == "Part" or c == "WedgePart" or c == "SpawnLocation" or c == "MeshPart" end
+	if cls == "LuaSourceContainer" then return c == "Script" or c == "LocalScript" or c == "ModuleScript" end
 	if cls == "GuiObject" then return c:find("Text") ~= nil or c == "Frame" or c == "ScrollingFrame" end
 	return false
 end
@@ -288,12 +289,112 @@ function methods.GetAttributeChangedSignal(o, k) o.__signals["attr_" .. k] = o._
 function methods.GetPropertyChangedSignal() return Signal() end
 function methods.GetPivot(o)
 	local pp = o.__props.PrimaryPart
-	if pp then return pp.__props.CFrame end
+	if pp then
+		local off = pp.__props.PivotOffset
+		return off and pp.__props.CFrame * off or pp.__props.CFrame
+	end
 	return o.__props.CFrame or CFrame.new()
 end
 function methods.PivotTo(o, cf)
 	local pp = o.__props.PrimaryPart
-	if pp then pp.__props.CFrame = cf else o.__props.CFrame = cf end
+	if pp then
+		local off = pp.__props.PivotOffset
+		pp.__props.CFrame = off and cf * off:Inverse() or cf
+	else
+		o.__props.CFrame = cf
+	end
+end
+-- Clonado profundo con referencias internas reasignadas (PrimaryPart, Part0/Part1...)
+function methods.Clone(o)
+	local map = {}
+	local function copy(x)
+		local c = newInstance(x.__props.ClassName)
+		map[x] = c
+		for k, v in pairs(x.__props) do
+			if k ~= "Parent" then c.__props[k] = v end
+		end
+		for k, v in pairs(x.__attrs) do c.__attrs[k] = v end
+		for _, ch in ipairs(x.__children) do
+			local cc = copy(ch)
+			cc.__props.Parent = c
+			table.insert(c.__children, cc)
+		end
+		return c
+	end
+	local root = copy(o)
+	root.__props.Parent = nil
+	for orig, c in pairs(map) do
+		for k, v in pairs(c.__props) do
+			if type(v) == "table" and getmetatable(v) == Inst and k ~= "Parent" and map[v] then c.__props[k] = map[v] end
+		end
+	end
+	return root
+end
+local function partsOf(o)
+	local t = {}
+	for _, d in ipairs(o:GetDescendants()) do if d:IsA("BasePart") then table.insert(t, d) end end
+	return t
+end
+-- Caja alineada a los ejes del mundo (suficiente para modelos sin rotar)
+function methods.GetBoundingBox(o)
+	local lo, hi
+	for _, p in ipairs(partsOf(o)) do
+		local c, h = p.__props.CFrame.p, p.__props.Size / 2
+		local a, b = c - h, c + h
+		if not lo then lo, hi = a, b else
+			lo = Vector3.new(math.min(lo.X, a.X), math.min(lo.Y, a.Y), math.min(lo.Z, a.Z))
+			hi = Vector3.new(math.max(hi.X, b.X), math.max(hi.Y, b.Y), math.max(hi.Z, b.Z))
+		end
+	end
+	if not lo then return CFrame.new(), Vector3.new() end
+	return CFrame.new((lo + hi) / 2), hi - lo
+end
+function methods.GetExtentsSize(o) local _, s = o:GetBoundingBox(); return s end
+function methods.GetScale(o) return o.__props.__scale or 1 end
+function methods.ScaleTo(o, k)
+	local f = k / (o.__props.__scale or 1)
+	local pivot = o:GetPivot().p
+	for _, p in ipairs(partsOf(o)) do
+		local cf = p.__props.CFrame
+		p.__props.Size = p.__props.Size * f
+		p.__props.CFrame = cf - cf.p + (pivot + (cf.p - pivot) * f)
+		if p.__props.PivotOffset then
+			local po = p.__props.PivotOffset
+			p.__props.PivotOffset = po - po.p + po.p * f
+		end
+	end
+	o.__props.__scale = k
+end
+-- Partes unidas por Motor6D / Weld / WeldConstraint (recursivo)
+function methods.GetConnectedParts(o)
+	local model = o.__props.Parent
+	while model and model.__props.Parent and model.__props.ClassName ~= "Model" do model = model.__props.Parent end
+	local joints = {}
+	for _, d in ipairs((model or o):GetDescendants()) do
+		local c = d.__props.ClassName
+		if (c == "Motor6D" or c == "Weld" or c == "WeldConstraint") and d.__props.Part0 and d.__props.Part1 then
+			table.insert(joints, d)
+		end
+	end
+	local seen, out, queue = { [o] = true }, { o }, { o }
+	while #queue > 0 do
+		local x = table.remove(queue)
+		for _, j in ipairs(joints) do
+			local other = (j.__props.Part0 == x and j.__props.Part1) or (j.__props.Part1 == x and j.__props.Part0) or nil
+			if other and not seen[other] then seen[other] = true; table.insert(out, other); table.insert(queue, other) end
+		end
+	end
+	return out
+end
+-- Animator simulado: registra pistas y estados de reproduccion
+function methods.LoadAnimation(o, anim)
+	local track = { Animation = anim, IsPlaying = false, Speed = 1, Looped = false, Priority = nil, plays = 0 }
+	function track:Play() self.IsPlaying = true; self.plays = self.plays + 1 end
+	function track:Stop() self.IsPlaying = false end
+	function track:AdjustSpeed(v) self.Speed = v end
+	o.__tracks = o.__tracks or {}
+	table.insert(o.__tracks, track)
+	return track
 end
 function methods.IsDescendantOf(o, a) local p = o.__props.Parent; while p do if p == a then return true end; p = p.__props.Parent end; return false end
 function methods.Play() end

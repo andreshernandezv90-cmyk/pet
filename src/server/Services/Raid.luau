@@ -15,6 +15,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 local PetCatalog = require(Shared.PetCatalog)
 local PetModels = require(Shared.PetModels)
+local PetAnimator = require(Shared.PetAnimator)
 local PetStore = require(Shared.PetStore)
 local Stats = require(Shared.Stats)
 local Items = require(Shared.Items)
@@ -175,6 +176,10 @@ local function spawnBoss()
 	boss:PivotTo(CFrame.new(A + Vector3.new(0, 22, 0)) * CFrame.Angles(0, math.rad(180), 0))
 	boss.Parent = f
 	state.boss = boss
+	local anim = PetAnimator.Attach(boss) -- solo modelos importados con animaciones
+	if anim then
+		anim:Play("Idle")
+	end
 	local shield = Instance.new("Part")
 	shield.Name = "Shield"
 	shield.Shape = Enum.PartType.Ball

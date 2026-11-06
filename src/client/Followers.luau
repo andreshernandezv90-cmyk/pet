@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local PetModels = require(Shared.PetModels)
+local PetAnimator = require(Shared.PetAnimator)
 local PetCatalog = require(Shared.PetCatalog)
 
 local Followers = {}
@@ -18,6 +19,9 @@ local function clear(player)
 	local data = byPlayer[player]
 	if data then
 		for _, f in ipairs(data.list) do
+			if f.anim then
+				f.anim:Destroy()
+			end
 			f.model:Destroy()
 			if f.extra then
 				f.extra:Destroy()
@@ -57,6 +61,7 @@ local function rebuild(player)
 			entry = { model = m }
 		end
 		if entry then
+			entry.anim = PetAnimator.Attach(entry.model) -- nil con el modelo procedural
 			entry.phase = math.random() * 6
 			table.insert(data.list, entry)
 		end
@@ -197,14 +202,26 @@ function Followers.Init()
 			local hrp = char and char:FindFirstChild("HumanoidRootPart")
 			if hrp then
 				local base = hrp.CFrame
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				local airborne = hum ~= nil and hum.FloorMaterial == Enum.Material.Air
 				for i, f in ipairs(data.list) do
 					f.phase = f.phase + dt * 4
 					local side = (i % 2 == 0) and 1 or -1
 					local back = 3.5 + math.floor((i - 1) / 2) * 3
 					local target = (base * CFrame.new(side * 3, 0, back)).Position
-					local groundY = hrp.Position.Y - 1.5 + math.abs(math.sin(f.phase)) * 0.6
+					local bob = f.anim and 0 or math.abs(math.sin(f.phase)) * 0.6
+					local groundY = hrp.Position.Y - 1.5 + bob
 					target = Vector3.new(target.X, groundY, target.Z)
+					local prev = f.pos
 					f.pos = f.pos and f.pos:Lerp(target, alpha) or target
+					if f.anim then
+						if airborne then
+							f.anim:Play("Jump")
+						else
+							local moved = prev and Vector3.new(f.pos.X - prev.X, 0, f.pos.Z - prev.Z).Magnitude or 0
+							f.anim:SetMoveSpeed(dt > 0 and moved / dt or 0)
+						end
+					end
 					local look = base.LookVector
 					local cf = CFrame.lookAt(f.pos, f.pos + Vector3.new(look.X, 0, look.Z))
 					f.model:PivotTo(cf)

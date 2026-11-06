@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local PetCatalog = require(Shared.PetCatalog)
 local PetModels = require(Shared.PetModels)
+local PetAnimator = require(Shared.PetAnimator)
 local Stats = require(Shared.Stats)
 
 local State = require(script.Parent.State)
@@ -20,7 +21,7 @@ local player = Players.LocalPlayer
 
 local Encounters = {}
 local folder
-local pets = {} -- [id] = { model, data, home, target, nextMove, prompt, phase }
+local pets = {} -- [id] = { model, data, home, target, nextMove, prompt, phase, anim }
 local capturing = nil
 local beam, a0, a1
 
@@ -70,6 +71,10 @@ local function startBeam(model)
 	a0.Position = Vector3.new(1, 0.5, -1)
 	a1 = model.PrimaryPart:FindFirstChild("VacuumA1") or Instance.new("Attachment")
 	a1.Name = "VacuumA1"
+	local po = model.PrimaryPart.PivotOffset
+	if po then
+		a1.Position = po.Position -- centro del PET (modelos importados con raiz en los pies)
+	end
 	a1.Parent = model.PrimaryPart
 	beam.Attachment0 = a0
 	beam.Attachment1 = a1
@@ -87,9 +92,19 @@ local function remove(id)
 		capturing = nil
 		stopBeam()
 	end
+	if p.anim then
+		p.anim:Destroy()
+		p.anim = nil
+	end
 	local m = p.model
 	local body = m.PrimaryPart
-	if body then
+	if m:GetAttribute("Source") == "asset" then
+		for _, d in ipairs(m:GetDescendants()) do
+			if d:IsA("BasePart") and d.Transparency < 1 then
+				TweenService:Create(d, TweenInfo.new(0.35), { Transparency = 1 }):Play()
+			end
+		end
+	elseif body then
 		local t = TweenService:Create(body, TweenInfo.new(0.35), { Transparency = 1 })
 		t:Play()
 	end
@@ -117,6 +132,7 @@ local function spawnPet(e)
 	local p = { model = model, data = e, home = home, pos = home, target = home, nextMove = os.clock() + math.random() * 3, prompt = prompt,
 		phase = math.random() * 6, radius = radius }
 	pets[e.id] = p
+	p.anim = PetAnimator.Attach(model) -- nil con el modelo procedural (sin rig)
 	updatePrompt(p)
 
 	prompt.PromptButtonHoldBegan:Connect(function()
@@ -228,10 +244,20 @@ function Encounters.Init()
 					local step = math.min(delta.Magnitude, dt * 4)
 					if step > 0.01 then
 						p.pos = p.pos + delta.Unit * step
+					else
+						step = 0
 					end
+					if p.anim then
+						p.anim:SetMoveSpeed(dt > 0 and step / dt or 0)
+					end
+				elseif p.anim then
+					p.anim:Play("CaptureReaction")
 				end
 				p.phase = p.phase + dt * (id == capturing and 20 or 5)
 				local hop = math.abs(math.sin(p.phase)) * (id == capturing and 0.4 or 0.8)
+				if p.anim then
+					hop = 0 -- el rig ya anima el cuerpo; el rebote procedural queda para el respaldo
+				end
 				local look = (p.target - p.pos)
 				local cf
 				if look.Magnitude > 0.1 then

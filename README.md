@@ -89,6 +89,7 @@ En un servidor publicado estos atajos no funcionan.
 
 ```
 default.project.json        Mapa de Rojo
+assets/pets/  → ReplicatedStorage.PetAssets   Modelos importados desde Studio (.rbxmx); ver docs/ART_PIPELINE.md
 src/shared/   → ReplicatedStorage.Shared
   Config.luau               Parámetros de balance, tiempos, IDs de productos
   PetCatalog.luau           15 especies, rarezas, habilidades, trabajos, costos de nivel
@@ -99,7 +100,9 @@ src/shared/   → ReplicatedStorage.Shared
   Stats.luau                Bonos de compañero/apoyo/fusión/pociones con topes; parámetros de captura
   PetStore.luau             Lógica pura de inventario: pilas de 50, individuos, tanque, almacén, mochila
   ProfileSchema.luau        Perfil persistente, valores por defecto y migraciones
-  PetModels.luau            Modelos de PETs procedurales (silueta por especie, efectos por rareza)
+  PetModels.luau            Modelos de PETs: plantilla importada si existe (PetAssets), si no procedural
+  PetAssets.luau            Registro de modelos importados por especie (Lumi), validación y respaldo
+  PetAnimator.luau          Animaciones Idle/Walk/Run/Jump/CaptureReaction con respaldos
 src/server/   → ServerScriptService.Server
   init.server.luau          Arranque y entrada de jugadores
   Services/
@@ -225,12 +228,17 @@ lua5.4 tools/sim/sanctuary.lua
 lua5.4 tools/sim/petworld.lua
 ```
 
+```bash
+lua5.4 tools/sim/petassets.lua
+```
+
 Qué cubre cada prueba:
 
 - `shared.lua`: reglas del GDD (63 variantes, 6750 esencias, pilas de 50, mochila, recetas y topes).
 - `smoke.lua`: arranque del servidor, entrada de un jugador, captura, todas las recetas, estaciones, offline, huerto, alquimia, equipo, Reactor con nonce, niveles 0→5, fusiones con VIP, tienda, guardado con bloqueo y los 10 paneles de la interfaz.
 - `raid.lua`: bucles reales (áreas, caídas, zonas bloqueadas) y una incursión completa con recompensa en la arena de su zona (viaje validado).
 - `petworld.lua`: largo compacto (1.400–1.600 studs), una arena temática por zona (dentro de la zona, junto al camino y sin pisar claros ni regalos), cinco retos con mecánica propia (pasos alcanzables, checkpoints, caminos temporales que alternan), puntos de llegada y teletransportes válidos, estructura del Mundo PET (barreras, faros, minas selladas, retos, NPCs), áreas, barreras validadas en el servidor, viajes por faro, PETs en su pradera, Comerciante (cobro exacto, nonce, zona, cantidades), cupo de regalos, perfil antiguo intacto y presupuesto de partes.
+- `petassets.lua`: integración de modelos importados con una plantilla **simulada**: respaldo procedural en las 15 especies, Lumi importado (escala, raíz anclada, sin colisión, soldaduras, scripts eliminados, efectos de rareza), variantes por rareza, interruptores, plantillas inválidas, animaciones con respaldos y PETs salvajes y compañeros en el cliente.
 - `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables, áreas señalizadas y fogata en las 8 parcelas, portal central único, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, hacha por niveles, regalos (privados, validados y únicos) y presupuesto de partes.
 
 ## 8. Pendiente para fases posteriores (según el GDD)

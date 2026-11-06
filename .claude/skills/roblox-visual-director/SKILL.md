@@ -75,6 +75,7 @@ Antes de proponer o tocar nada, lee el estado real del proyecto. No trabajes de 
 - **Colisión:** la decoración lleva `CanCollide = false`, `CanQuery = false` y `CanTouch = false`. Si algo debe chocar, usa `CollisionFidelity = Box` o `Hull`. Solo el tronco de los árboles talables conserva la colisión y el `CanQuery` (`Props.Oak` devuelve `trunk` para las interacciones).
 - **Fidelidad:** `RenderFidelity = Automatic`. Los árboles en grupo deben ser variantes de una misma malla, porque reutilizar el `MeshId` abarata la memoria.
 - **Restricción técnica:** un script no puede asignar `MeshId` ni las texturas de `SurfaceAppearance` en tiempo de ejecución. Los assets se guardan como **plantillas** en `ServerStorage/Assets` y el código las clona (`template:Clone()`).
+- **PETs:** sus modelos importados van en `ReplicatedStorage.PetAssets` (desde `assets/pets/`), porque los usan cliente y servidor. Se integran con `src/shared/PetAssets.luau`, `PetModels.luau` y `PetAnimator.luau` siguiendo `docs/ART_PIPELINE.md`.
 - **Integración con Rojo:** guarda las plantillas exportadas desde Studio como `.rbxm`/`.rbxmx` dentro de una carpeta sincronizada (propuesta: `assets/` mapeada a `ServerStorage.Assets` en `default.project.json`). Los IDs de malla y textura deben estar subidos por la cuenta o el grupo dueño de la experiencia.
 - **Patrón de código** (propuesto, sin implementar todavía):
   ```lua

@@ -1,9 +1,16 @@
--- PetModels: construye modelos de PETs con primitivas (sin assets externos).
--- Cada especie tiene una silueta reconocible y cada rareza efectos distintos.
--- El modelo tiene una parte raiz "Body" anclada; el resto va soldado a ella,
--- por lo que basta con mover Body (o usar :PivotTo) para mover todo el PET.
+-- PetModels: construye el modelo visual de un PET.
+-- 1) Si la especie tiene una plantilla importada valida en ReplicatedStorage.PetAssets
+--    (ver PetAssets y docs/ART_PIPELINE.md), clona esa plantilla, la escala y le
+--    añade los efectos de rareza.
+-- 2) Si no, construye el modelo procedural con primitivas (respaldo permanente).
+-- En ambos casos el modelo tiene una parte raiz (PrimaryPart) anclada; el resto va
+-- unido a ella, por lo que basta con :PivotTo para mover todo el PET. El pivote
+-- queda en el centro del PET y el frente mira hacia -Z.
+-- Atributos comunes: Radius, Species, Rarity, Source ("procedural" | "asset").
+-- El aspecto nunca altera la especie, la rareza, el inventario ni los datos.
 
 local PetCatalog = require(script.Parent.PetCatalog)
+local PetAssets = require(script.Parent.PetAssets)
 
 local PetModels = {}
 
@@ -34,13 +41,59 @@ local function attach(model, body, className, props, offset)
 	return p
 end
 
--- opts: { scale = 1, hat = bool, label = string|nil, anchored = true }
-function PetModels.Build(speciesId, rarityId, opts)
-	opts = opts or {}
-	local sp = PetCatalog.Get(speciesId) or PetCatalog.Species[1]
-	local rar = PetCatalog.Rarity(rarityId) or PetCatalog.Rarities[1]
-	local u = 2 * (opts.scale or 1) * rar.size
+-- Efectos de rareza y etiqueta (comunes a ambos tipos de modelo)
+local function rarityEffects(model, body, sp, rar, u, opts, labelHeight)
+	local order = rar.order
+	local c2 = sp.color2
+	if sp.shape == "round" or sp.flags.light then
+		local l = Instance.new("PointLight")
+		l.Color = c2
+		l.Range = 10 + order * 2
+		l.Brightness = 1
+		l.Parent = body
+	end
+	if order >= 2 then
+		local sparkles = Instance.new("Sparkles")
+		sparkles.SparkleColor = rar.color
+		sparkles.Parent = body
+	end
+	if order >= 3 then
+		local l = Instance.new("PointLight")
+		l.Color = rar.color
+		l.Range = 8 + order * 2
+		l.Brightness = 1.5
+		l.Parent = body
+	end
+	if order >= 4 then
+		local hl = Instance.new("Highlight")
+		hl.FillTransparency = 1
+		hl.OutlineColor = rar.color
+		hl.OutlineTransparency = 0.1
+		hl.DepthMode = Enum.HighlightDepthMode.Occluded
+		hl.Parent = model
+	end
 
+	if opts.label then
+		local bb = Instance.new("BillboardGui")
+		bb.Name = "Tag"
+		bb.Size = UDim2.new(0, 160, 0, 40)
+		bb.StudsOffset = Vector3.new(0, labelHeight, 0)
+		bb.AlwaysOnTop = false
+		bb.MaxDistance = 60
+		bb.Parent = body
+		local t = Instance.new("TextLabel")
+		t.BackgroundTransparency = 1
+		t.Size = UDim2.new(1, 0, 1, 0)
+		t.Font = Enum.Font.FredokaOne
+		t.TextScaled = true
+		t.TextColor3 = rar.color
+		t.TextStrokeTransparency = 0.3
+		t.Text = opts.label
+		t.Parent = bb
+	end
+end
+
+local function buildProcedural(sp, rar, u, opts)
 	local model = Instance.new("Model")
 	model.Name = sp.name
 
@@ -197,56 +250,137 @@ function PetModels.Build(speciesId, rarityId, opts)
 			Color = Color3.fromRGB(80, 50, 160) }, CFrame.new(0, u * 0.68, 0) * CFrame.Angles(0, 0, math.rad(90)))
 	end
 
-	-- Efectos de rareza
-	local order = rar.order
-	if shape == "round" or sp.flags.light then
-		local l = Instance.new("PointLight")
-		l.Color = c2
-		l.Range = 10 + order * 2
-		l.Brightness = 1
-		l.Parent = body
-	end
-	if order >= 2 then
-		local sparkles = Instance.new("Sparkles")
-		sparkles.SparkleColor = rar.color
-		sparkles.Parent = body
-	end
-	if order >= 3 then
-		local l = Instance.new("PointLight")
-		l.Color = rar.color
-		l.Range = 8 + order * 2
-		l.Brightness = 1.5
-		l.Parent = body
-	end
-	if order >= 4 then
-		local hl = Instance.new("Highlight")
-		hl.FillTransparency = 1
-		hl.OutlineColor = rar.color
-		hl.OutlineTransparency = 0.1
-		hl.DepthMode = Enum.HighlightDepthMode.Occluded
-		hl.Parent = model
-	end
-
-	if opts.label then
-		local bb = Instance.new("BillboardGui")
-		bb.Name = "Tag"
-		bb.Size = UDim2.new(0, 160, 0, 40)
-		bb.StudsOffset = Vector3.new(0, u * 0.6 + 1.2, 0)
-		bb.AlwaysOnTop = false
-		bb.MaxDistance = 60
-		bb.Parent = body
-		local t = Instance.new("TextLabel")
-		t.BackgroundTransparency = 1
-		t.Size = UDim2.new(1, 0, 1, 0)
-		t.Font = Enum.Font.FredokaOne
-		t.TextScaled = true
-		t.TextColor3 = rar.color
-		t.TextStrokeTransparency = 0.3
-		t.Text = opts.label
-		t.Parent = bb
-	end
+	rarityEffects(model, body, sp, rar, u, opts, u * 0.6 + 1.2)
 
 	model:SetAttribute("Radius", u * 0.5)
+	model:SetAttribute("Source", "procedural")
+	return model
+end
+
+local SCRIPT_CLASSES = { Script = true, LocalScript = true, ModuleScript = true }
+
+-- Modelo importado: clon de la plantilla, sin fisica, escalado al tamaño del PET
+local function buildFromAsset(template, cfg, assetName, sp, rar, u, opts)
+	local model = template:Clone()
+	model.Name = sp.name
+	for _, d in ipairs(model:GetDescendants()) do
+		if SCRIPT_CLASSES[d.ClassName] then
+			d:Destroy()
+		end
+	end
+	local root = PetAssets.RootOf(model)
+	if not root then
+		model:Destroy()
+		return nil
+	end
+	model.PrimaryPart = root
+
+	-- Fisica: nada choca ni pesa; lo que no este unido a la raiz se suelda
+	local joined = {}
+	local okJ, list = pcall(function()
+		return root:GetConnectedParts(true)
+	end)
+	if okJ and list then
+		for _, p in ipairs(list) do
+			joined[p] = true
+		end
+	end
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.Anchored = false
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = d == root
+			d.Massless = true
+			d.CastShadow = false
+			if d ~= root and not joined[d] then
+				local w = Instance.new("WeldConstraint")
+				w.Part0 = root
+				w.Part1 = d
+				w.Parent = d
+			end
+		end
+	end
+	root.Anchored = opts.anchored ~= false
+
+	-- Escala: el alto final coincide con el PET procedural de la misma rareza
+	local target = u * (cfg.heightFactor or 1)
+	local baseHeight = template:GetAttribute("BaseHeight")
+	if type(baseHeight) ~= "number" or baseHeight <= 0 then
+		baseHeight = model:GetExtentsSize().Y
+	end
+	if baseHeight > 0.01 then
+		local okS = pcall(function()
+			model:ScaleTo(model:GetScale() * target / baseHeight)
+		end)
+		if not okS then
+			warn("[PetModels] no se pudo escalar " .. assetName)
+		end
+	end
+
+	-- Pivote en el centro vertical del PET, con la orientacion de la raiz (+ yaw)
+	local bb, size = model:GetBoundingBox()
+	local rot = root.CFrame - root.CFrame.Position
+	local pivot = CFrame.new(root.Position.X, bb.Position.Y, root.Position.Z) * rot * CFrame.Angles(0, math.rad(cfg.yaw or 0), 0)
+	root.PivotOffset = root.CFrame:Inverse() * pivot
+	local height = size.Y
+
+	if opts.hat then
+		local function hatPart(name, size3, color, offset)
+			local p = Instance.new("Part")
+			p.Name = name
+			p.Shape = Enum.PartType.Cylinder
+			p.Size = size3
+			p.Color = color
+			p.Anchored = false
+			p.CanCollide = false
+			p.CanTouch = false
+			p.CanQuery = false
+			p.Massless = true
+			p.CastShadow = false
+			p.CFrame = pivot * offset
+			p.Parent = model
+			local w = Instance.new("WeldConstraint")
+			w.Part0 = root
+			w.Part1 = p
+			w.Parent = p
+		end
+		hatPart("HatBrim", Vector3.new(u * 0.05, u * 0.6, u * 0.6), Color3.fromRGB(60, 40, 120),
+			CFrame.new(0, height * 0.5, 0) * CFrame.Angles(0, 0, math.rad(90)))
+		hatPart("HatTop", Vector3.new(u * 0.35, u * 0.35, u * 0.35), Color3.fromRGB(80, 50, 160),
+			CFrame.new(0, height * 0.5 + u * 0.18, 0) * CFrame.Angles(0, 0, math.rad(90)))
+	end
+
+	rarityEffects(model, root, sp, rar, u, opts, height * 0.6 + 1.2)
+	model:SetAttribute("Radius", height * 0.5)
+	model:SetAttribute("Source", "asset")
+	model:SetAttribute("AssetName", assetName)
+	return model
+end
+
+-- opts: { scale = 1, hat = bool, label = string|nil, anchored = true, procedural = bool }
+function PetModels.Build(speciesId, rarityId, opts)
+	opts = opts or {}
+	local sp = PetCatalog.Get(speciesId) or PetCatalog.Species[1]
+	local rar = PetCatalog.Rarity(rarityId) or PetCatalog.Rarities[1]
+	local u = 2 * (opts.scale or 1) * rar.size
+	local model = nil
+	if not opts.procedural then
+		local template, cfg, assetName = PetAssets.Find(sp.id, rar.id)
+		if template then
+			local ok, res = pcall(buildFromAsset, template, cfg, assetName, sp, rar, u, opts)
+			if ok and res then
+				model = res
+			else
+				warn("[PetModels] fallo el modelo importado de " .. sp.name .. "; se usa el procedural. " .. tostring(res))
+			end
+		end
+	end
+	if not model then
+		model = buildProcedural(sp, rar, u, opts)
+	end
+	model:SetAttribute("Species", sp.id)
+	model:SetAttribute("Rarity", rar.id)
 	return model
 end
 
