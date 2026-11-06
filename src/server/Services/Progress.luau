@@ -11,6 +11,7 @@ local PetCatalog = require(Shared.PetCatalog)
 local PetStore = require(Shared.PetStore)
 local Stats = require(Shared.Stats)
 local Items = require(Shared.Items)
+local WorldConfig = require(Shared.WorldConfig)
 
 local Progress = {}
 local S
@@ -19,7 +20,7 @@ local lastTeleport = {}
 local checkpoints = {} -- [player] = CFrame
 
 local DEST_NAMES = {
-	home = "tu santuario", forest = "el Bosque", mines = "las Minas de Zuar", world = "el campamento del Mundo PET",
+	home = "tu santuario", forest = "el Bosque", mines = "el campamento de las Minas de Zuar", world = "el campamento del Mundo PET",
 	camp = "el campamento del Mundo PET", realm = "el campamento del Mundo PET", arena = "la arena de la incursion",
 }
 local CollectionService = game:GetService("CollectionService")
@@ -60,7 +61,7 @@ local function destCFrame(player, profile, dest)
 	elseif dest == "forest" then
 		return S.World.Spawns.forest or CFrame.new(0, 4, 262)
 	elseif dest == "mines" then
-		-- temporal: las Minas de Zuar se integran al Mundo PET en la Fase D
+		-- Minas de Zuar (mundo propio): hub con la Cantera libre
 		return S.World.Spawns.mines
 	elseif dest == "world" or dest == "camp" or dest == "realm" then
 		return S.World.Spawns.world
@@ -76,6 +77,23 @@ local function destCFrame(player, profile, dest)
 			return nil, "La incursion es en la Zona " .. zone .. ", que aun no desbloqueas."
 		end
 		return a.spawn
+	end
+	-- galeria k de las Minas de Zuar (requiere la zona k del Reino)
+	local gk = tonumber(string.match(dest, "^m(%d)$"))
+	if gk and gk >= 1 and gk <= 5 then
+		local open, why = S.Mining.GalleryOpen(profile, gk)
+		if not open then
+			return nil, why
+		end
+		return S.World.Spawns["mine_m" .. gk]
+	end
+	-- salida de una galeria a la boca de mina de su zona en el Reino
+	local ek = tonumber(string.match(dest, "^mineexit_z(%d)$"))
+	if ek and ek >= 1 and ek <= 5 then
+		if profile.zones.unlocked < ek then
+			return nil, "Zona " .. ek .. " bloqueada."
+		end
+		return S.World.Spawns["minegate_z" .. ek]
 	end
 	local k = tonumber(string.match(dest, "^z(%d)m?$"))
 	if k and k >= 1 and k <= 5 then
@@ -119,8 +137,10 @@ function Progress.Teleport(player, dest, force)
 		player:RequestStreamAroundAsync(cf.Position, 3)
 	end)
 	char:PivotTo(cf)
-	local k = string.match(dest, "^z(%d)")
-	local name = DEST_NAMES[dest] or (k and ("la Zona " .. k .. " · " .. Progression.Zones[tonumber(k)].name)) or dest
+	local k = string.match(dest, "^z(%d)") or string.match(dest, "^mineexit_z(%d)$")
+	local g = string.match(dest, "^m(%d)$")
+	local name = DEST_NAMES[dest] or (g and WorldConfig.Regions[tonumber(g)].mine.name)
+		or (k and ("la Zona " .. k .. " · " .. Progression.Zones[tonumber(k)].name)) or dest
 	return result(true, "Viajaste a " .. name .. ".")
 end
 
@@ -244,17 +264,36 @@ function Progress.Start()
 						-- Barreras del Mundo PET: el servidor es la autoridad
 						local inWorld = area == "camp" or string.match(area, "^z%d$") ~= nil
 						local zoneX = inWorld and S.World.ZoneAtX(pos.X) or 0
+						-- Galerias de las Minas de Zuar: tambien las valida el servidor
+						local gk = S.World.GalleryOfArea(area)
+						local galleryOpen, galleryWhy = true, nil
+						if gk then
+							galleryOpen, galleryWhy = S.Mining.GalleryOpen(profile, gk)
+						end
 						if inWorld and zoneX > profile.zones.unlocked then
 							local gate = S.World.Gates[profile.zones.unlocked + 1] or S.World.Spawns.world
 							hrp.AssemblyLinearVelocity = Vector3.zero
 							char:PivotTo(gate)
 							local missing = Progression.Missing(profile, profile.zones.unlocked + 1)
 							S.Net.Notify(player, "🔒 La barrera te detiene. Falta: " .. table.concat(missing, ", "), "error")
+						elseif gk and not galleryOpen then
+							hrp.AssemblyLinearVelocity = Vector3.zero
+							char:PivotTo(S.World.MineMouths[gk] or S.World.Spawns.mines)
+							S.Net.Notify(player, "🔒 " .. tostring(galleryWhy), "error")
 						elseif area ~= "void" and area ~= player:GetAttribute("Area") then
 							player:SetAttribute("Area", area)
-							if area == "mines" and not profile.story.visitedMines then
+							if (area == "mines" or gk) and not profile.story.visitedMines then
 								profile.story.visitedMines = true
 								S.Net.MarkDirty(player)
+							end
+							if gk then
+								local key = "m" .. gk
+								if not profile.mines.visited[key] then
+									profile.mines.visited[key] = true
+									S.Net.Notify(player, "⛏️ ¡Descubriste " .. WorldConfig.Regions[gk].mine.name .. "! Tus vetas son solo tuyas.", "unlock")
+									S.Net.MarkDirty(player)
+								end
+								S.Mining.EnsureVeins(player, gk)
 							end
 							local zone = S.World.ZoneOfArea(area)
 							if zone then

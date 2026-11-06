@@ -160,7 +160,7 @@ function Progression.Objective(p)
 	end
 	if p.zones.unlocked < 2 then
 		if not p.story.visitedMines and totalRes(p, "piedra") < 10 then
-			return "Entra a una Mina de Zuar y consigue piedra con tu pico de madera."
+			return "Viaja a las Minas de Zuar (Mapa) y pica piedra en la Cantera con tu pico de madera."
 		end
 		if totalRes(p, "madera") < 10 and (p.buildings.sanctuary < 2 or p.stations.stone.level < 1) then
 			return "Tala arboles alrededor de tu santuario para conseguir madera."

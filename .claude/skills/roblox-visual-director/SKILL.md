@@ -126,7 +126,7 @@ Objetivo: **que el bosque no parezca hecho de esferas.** Hoy las copas se constr
 
 ## 5. Construcciones
 
-Casas (`House.luau`, niveles 0–5), talleres y estaciones (`StationArt.luau`), tiendas y puestos (`Props.Stall`), y minas (`buildMineEntrance`, selladas hasta la Fase D).
+Casas (`House.luau`, niveles 0–5), talleres y estaciones (`StationArt.luau`), tiendas y puestos (`Props.Stall`), y minas (`World/Mines.luau`: hub, Cantera y galerías I–V; bocas del Reino en `buildMineEntrance`).
 
 - **Lenguaje constructivo común:**
   - **Cimiento:** piedra irregular (cobblestone) de 1–2 studs de alto, para que la casa no "flote".
@@ -144,7 +144,7 @@ Casas (`House.luau`, niveles 0–5), talleres y estaciones (`StationArt.luau`), 
   La huella máxima es `PlotLayout.House` (24×20 studs) y no se excede.
 - **Taller y estaciones:** cada uno con su silueta reconocible. El taller tiene banco de trabajo, yunque y herramientas colgadas; el almacén, cajas, sacos y estanterías; el reactor y la fusión, un núcleo de cristal y anillos de piedra; los extractores, torres de madera y metal con engranaje visible. Siempre dentro del radio reservado en `PlotLayout.Spots`.
 - **Tiendas y puestos:** toldo de tela con pliegues (mesh o cuñas), mostrador con mercancía coherente con el NPC y letrero colgante de madera.
-- **Minas:** marco de vigas (dos postes y un dintel con refuerzos), rocas de la montaña alrededor, raíles y vagoneta, farol cálido en la boca y oscuridad progresiva hacia dentro. En C/C.1 la boca sigue **sellada** visualmente: tablones y cartel "se abre en la Fase D".
+- **Minas:** marco de vigas (dos postes y un dintel con refuerzos), rocas de la montaña alrededor, raíles y vagoneta, farol cálido en la boca y oscuridad progresiva hacia dentro. Desde la Fase D, las Minas de Zuar son un mundo propio: las galerías se excavan en el terreno y cada veta pinta su mineral en el cliente (reparto privado).
 - **Escala:** marcos de puerta de 7–8 studs de alto y 4–5 de ancho, mostradores a 3–3,5 studs y escalones de 0,5–1 stud.
 
 ## 6. Iluminación

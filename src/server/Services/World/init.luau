@@ -1,8 +1,11 @@
 -- World: registro y orquestador de la construccion del mundo.
 -- Modulos: Helpers (utilidades), Terrain, Props, House, StationArt, PlotLayout,
--- Lighting, Home (santuario), Mines (Minas de Zuar separadas: temporales hasta
--- la Fase D) y PetWorld (Mundo PET continuo con campamento, 5 zonas, barreras,
--- faros, retos opcionales y arena). No depende de modelos externos.
+-- Lighting y los TRES MUNDOS (decision oficial GDD 1.1):
+--   Home     -> Hogar Dimensional (santuario y parcelas)
+--   Mines    -> Minas de Zuar (hub, Cantera libre y galerias I-V con vetas privadas)
+--   PetWorld -> Reino de los PETs (campamento, 5 zonas, barreras, faros, retos y
+--               arenas; las bocas de mina de cada zona llevan a su galeria)
+-- No depende de modelos externos.
 
 local Helpers = require(script.Helpers)
 local Home = require(script.Home)
@@ -15,6 +18,7 @@ World.HOME = Vector3.new(0, 0, 0)
 World.MINES = Vector3.new(2000, 0, 0)
 World.ARENA = Vector3.new(0, 0, 0) -- lo define PetWorld (claro del campamento)
 World.PetWorld = PetWorld
+World.Mines = Mines
 
 World.Nodes = {} -- [id] = { id, type, model, part, pos, area }
 World.Checkpoints = {} -- lista { part, zone, index, meadow }
@@ -38,8 +42,9 @@ function World.AreaAt(pos)
 	if math.abs(x) <= 460 and math.abs(z) <= 460 then
 		return "home"
 	end
-	if math.abs(x - World.MINES.X) <= 270 and math.abs(z - World.MINES.Z) <= 270 then
-		return "mines"
+	local mines = Mines.AreaAt(x - World.MINES.X, z - World.MINES.Z)
+	if mines then
+		return mines -- "mines" (hub y cantera) o "m1".."m5" (galerias)
 	end
 	local O = PetWorld.Origin
 	local area = PetWorld.LocalArea(x - O.X, z - O.Z)
@@ -62,6 +67,12 @@ end
 
 function World.ZoneCenter(k)
 	return PetWorld.ZoneCenter(k)
+end
+
+-- Galeria de las Minas de Zuar de un area ("m3" -> 3)
+function World.GalleryOfArea(area)
+	local k = area and string.match(area, "^m(%d)$")
+	return k and tonumber(k) or nil
 end
 
 function World.ZoneOfArea(area)

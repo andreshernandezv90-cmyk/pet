@@ -1,10 +1,14 @@
 -- WorldConfig: configuracion de datos del mundo, independiente por region.
--- (GDD 1.1: Santuario + Mundo PET con las cinco Minas de Zuar integradas)
+-- (GDD 1.1, decision oficial: tres mundos. Hogar Dimensional, Minas de Zuar y
+-- Reino de los PETs. Cada region del Reino tiene su galeria en las Minas de
+-- Zuar, que se abre al desbloquear esa zona.)
 --
 -- Cada region del Mundo PET es un bloque de datos. Para ampliar una zona o
 -- cambiar su balance, edita este archivo; no hace falta tocar la logica.
 --
 --   requirements: lista de condiciones (ver WorldConfig.RequirementTypes).
+--   mine: galeria k de las Minas de Zuar (slots = vetas por jugador, cycle = s,
+--     size = escala de la camara, guardian = sello futuro de guardianes).
 --   mine.chances: probabilidad (0..1) de que cada recurso aparezca en un ciclo
 --     de generacion. NO son excluyentes ni deben sumar 1: en la Zona 5 pueden
 --     aparecer piedra, cobre, hierro, cristal y zuarita a la vez.
@@ -38,6 +42,7 @@ WorldConfig.Regions = {
 			size = 1,
 			slots = 14, -- vetas por ciclo (por jugador)
 			cycle = 120, -- segundos entre ciclos de generacion
+			guardian = { enabled = false }, -- Fase G: cuevas con guardianes (desactivado)
 			chances = { piedra = 1.00, cobre = 0.15 },
 		},
 		challenge = "Parkour tutorial con checkpoints (opcional, con cofre).",
@@ -59,6 +64,7 @@ WorldConfig.Regions = {
 			size = 1.2,
 			slots = 16,
 			cycle = 120,
+			guardian = { enabled = false }, -- Fase G: cuevas con guardianes (desactivado)
 			chances = { piedra = 1.00, cobre = 0.40, hierro = 0.15 },
 		},
 		challenge = "Plataformas moviles (opcional, con cofre).",
@@ -79,6 +85,7 @@ WorldConfig.Regions = {
 			size = 1.4,
 			slots = 18,
 			cycle = 120,
+			guardian = { enabled = false }, -- Fase G: cuevas con guardianes (desactivado)
 			chances = { piedra = 1.00, cobre = 0.65, hierro = 0.40, lunar = 0.10 },
 		},
 		challenge = "Tunel oscuro (opcional, con cofre). Nox da vision nocturna.",
@@ -100,6 +107,7 @@ WorldConfig.Regions = {
 			size = 1.6,
 			slots = 20,
 			cycle = 120,
+			guardian = { enabled = false }, -- Fase G: cuevas con guardianes (desactivado)
 			chances = { piedra = 1.00, cobre = 0.85, hierro = 0.75, lunar = 0.40, zuarita = 0.10 },
 		},
 		challenge = "Trampolines y muros de hielo (opcional, con cofre). Flamin derrite el hielo.",
@@ -121,6 +129,7 @@ WorldConfig.Regions = {
 			size = 2.2,
 			slots = 28,
 			cycle = 120,
+			guardian = { enabled = false }, -- Fase G: cuevas con guardianes (desactivado)
 			chances = { piedra = 1.00, cobre = 1.00, hierro = 1.00, lunar = 0.75, zuarita = 0.25 },
 		},
 		challenge = "Gravedad baja y plataformas ocultas (opcional, con cofre). Prisma las revela.",
@@ -157,6 +166,17 @@ WorldConfig.MineralNode = {
 	hierro = "iron",
 	lunar = "lunar",
 	zuarita = "zuarita",
+}
+
+-- Minas de Zuar (mundo propio) --------------------------------------------------------
+WorldConfig.Mines = {
+	-- Cantera de Zuar: siempre libre (GDD 22: la piedra del primer pico nunca se bloquea)
+	quarry = { nodes = 12, type = "stone" },
+	-- reparto de vetas entre los minerales presentes en un ciclo (mas alto = mas vetas)
+	veinWeights = { piedra = 10, cobre = 6, hierro = 4, lunar = 3, zuarita = 2 },
+	-- tipo de nodo (Items.Nodes) de cada mineral
+	nodeType = { piedra = "stone", cobre = "copper", hierro = "iron", lunar = "lunar", zuarita = "zuarita" },
+	order = { "piedra", "cobre", "hierro", "lunar", "zuarita" },
 }
 
 -- Faros de viaje rapido (uno por zona; se activan al visitarla por primera vez)

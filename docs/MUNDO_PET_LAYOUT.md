@@ -1,6 +1,6 @@
 # Mundo PET — layout vigente (Fase C.1, compacto)
 
-Bosque continuo dividido en zonas consecutivas con barreras translúcidas, PETs salvajes en claros junto al camino, una mina por zona hacia el norte (sellada hasta la Fase D), una arena de incursiones temática por zona y un reto opcional de parkour por zona en el bosque sur.
+Bosque continuo dividido en zonas consecutivas con barreras translúcidas, PETs salvajes en claros junto al camino, una boca de mina por zona hacia el norte (lleva a su galería de las Minas de Zuar), una arena de incursiones temática por zona y un reto opcional de parkour por zona en el bosque sur.
 
 Plano a escala, generado con `tools/preview/layout_map.py` a partir de las mismas fórmulas de `PetWorld.luau`: [`previews/mundo-pet-layout.png`](previews/mundo-pet-layout.png).
 
@@ -9,7 +9,7 @@ Plano a escala, generado con `tools/preview/layout_map.py` a partir de las misma
 ## 1. Estructura general
 
 ```
- NORTE  ── montaña con las cinco Minas de Zuar (selladas hasta la Fase D) ──
+ NORTE  ── montaña con las bocas de mina (cada una lleva a su galería de las Minas de Zuar) ──
         ┌────────┬───────────┬───────────┬───────────┬───────────┬────────────┐
         │CAMPAM. │  ZONA 1   ║  ZONA 2   ║  ZONA 3   ║  ZONA 4   ║  ZONA 5    │
  OESTE  │ portal │  claros ● ║  claros ● ║  claros ● ║  claros ● ║  claros ●  │  ESTE
@@ -76,7 +76,7 @@ Uno por zona, en el bosque sur (entre el 58% y el 92% del largo de la zona). Tod
 | Cuadros a la izquierda | **Campamento** con 3 puestos de madera con toldo, letrero e iluminación. **Norte: Comerciante.** **Centro: Guía**, que explica captura, rarezas, minas, recursos, pico, hacha, barreras y extractores. **Sur: Tienda premium**, que muestra los productos de `Config` con su precio real de MarketplaceService; la compra se confirma solo en el servidor. |
 | Puntos de colores | **PETs salvajes privados** en claros junto al camino. Usan puntos de aparición validados (sin árboles, rocas ni pendientes) y conservan las probabilidades de rareza actuales. |
 | Franjas negras | **Barreras translúcidas**: una cortina mágica de borde a borde con pilares de runas cada ~20 studs. En el camino principal hay una **puerta-arco** con letrero que muestra los requisitos que te faltan. |
-| Círculos naranjas | **Minas de Zuar** excavadas en la montaña norte. Una boca de cueva con vigas de madera y faroles da a un túnel y a una o varias cámaras. Los minerales son **privados por jugador** y siguen la tabla de probabilidades acordada. La Gran Mina tiene varias cámaras y una caverna central con cristales. |
+| Círculos naranjas | **Bocas de mina** en la montaña norte, que llevan a las galerías del mundo Minas de Zuar. Una boca de cueva con vigas de madera y faroles da a un túnel y a una o varias cámaras. Los minerales son **privados por jugador** y siguen la tabla de probabilidades acordada. La Gran Mina tiene varias cámaras y una caverna central con cristales. |
 
 ## 3. Barreras (cómo funcionan)
 
@@ -87,17 +87,19 @@ Uno por zona, en el bosque sur (entre el 58% y el 92% del largo de la zona). Tod
   - El servidor es la autoridad: si apareces del otro lado sin haber desbloqueado la zona, por un error de colisión, un salto o un rodeo, te devuelve a la puerta.
 - Al acercarte, la puerta muestra **✅/❌ por requisito**. Al cumplirlos, se abre con un efecto solo para ti.
 
-## 4. Minas (diseño)
+## 4. Minas (Fase D: mundo propio)
 
-| Mina | Tamaño | Vetas por jugador y ciclo | Minerales posibles |
-|---|---|---|---|
-| I | 1 cámara (≈ 45 studs) | 14 | Piedra, cobre |
-| II | 1 cámara + túnel | 16 | + hierro |
-| III | 2 cámaras | 18 | + cristal lunar (cristales luminosos) |
-| IV | 2 cámaras + galería | 20 | + Zuarita |
-| V · Gran Mina | 3 cámaras + caverna central (≈ 110 studs) | 28 | Todos, con más vetas de lo valioso |
+Por decisión oficial (GDD 1.1), las Minas de Zuar son **un mundo diferenciado**. En el Reino, la boca de mina de cada zona (al norte del camino) lleva a su galería; desde la galería se vuelve a esa boca. El diseño completo está en `docs/ARQUITECTURA_TRES_MUNDOS.md`.
 
-Cada mina tiene **puntos de veta fijos** en paredes y suelo. Cada ciclo, el servidor tira el dado de cada mineral por separado para cada jugador y le asigna vetas. Cada jugador ve solo sus vetas: lo que tú agotas no afecta a nadie más.
+| Galería | Radio de la cámara | Vetas por jugador y ciclo | Minerales posibles | Se abre con |
+|---|---|---|---|---|
+| I · Galería del Musgo | 30 | 14 | Piedra, cobre | Zona 1 (abierta) |
+| II · Túneles de Cobre | 36 | 16 | + hierro | Zona 2 |
+| III · Grieta de Cristal | 42 | 18 | + cristal lunar | Zona 3 |
+| IV · Caverna Elemental | 48 | 20 | + Zuarita | Zona 4 |
+| V · Gran Mina | 66 | 28 | Todos | Zona 5 |
+
+Cada ciclo (120 s), el servidor tira el dado de cada mineral por separado para cada jugador y reparte las vetas entre los minerales presentes. Cada jugador ve solo sus vetas: lo que tú agotas no afecta a nadie más. La **Cantera de Zuar** del hub siempre está abierta.
 
 ## 5. Regalos aleatorios
 
@@ -133,6 +135,6 @@ Recomendaciones (se aplican al publicar; ver el informe de la Fase C.1):
 
 - Las islas de zona, el hub del Reino y los portales por zona (Fase C).
 - La arena única del campamento (Fase C.1): ahora hay una arena por zona.
-- Las Minas de Zuar separadas siguen accesibles desde el Mapa hasta la Fase D.
+- Fase D: las Minas de Zuar pasan a ser un mundo propio, con hub, Cantera y cinco galerías.
 
 Los datos guardados no cambian: zonas desbloqueadas, parkours completados, faros y PETs se conservan.

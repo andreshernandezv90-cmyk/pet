@@ -11,10 +11,10 @@ local Guide = { title = "🧙 Guia del bosque" }
 local page = 1
 
 local PAGES = {
-	{ "¡Bienvenido al Mundo PET!", "Este bosque enorme tiene cinco zonas. Sigue el camino hacia el este: cada zona tiene sus PETs, su mina y su faro." },
+	{ "¡Bienvenido al Mundo PET!", "Este bosque enorme tiene cinco zonas. Sigue el camino hacia el este: cada zona tiene sus PETs, su boca de mina y su faro." },
 	{ "Capturar PETs", "Acercate a un PET salvaje y manten F (o el boton) para usar tu Succionador. Los PETs que ves son solo tuyos: nadie te los quita." },
 	{ "Rarezas", "Comun, Raro, Epico, Legendario y Mitico. Los mas raros brillan mas y cuestan mas de capturar. La pocion Fortuna mejora la suerte." },
-	{ "Minas de Zuar", "Al norte de cada zona hay una Mina de Zuar. Cada jugador tiene sus propios minerales. (Las cinco minas se abren en la proxima actualizacion.)" },
+	{ "Minas de Zuar", "Las Minas de Zuar son otro mundo: la Cantera siempre esta abierta y cada galeria se abre con su zona. Entra por la boca de mina de cada zona o desde el Mapa. Tus vetas son solo tuyas y cambian cada pocos minutos." },
 	{ "Herramientas", "En el Taller de tu santuario mejoras el pico (minerales mas duros), el hacha (mas madera) y el succionador (capturas mas faciles)." },
 	{ "Barreras", "Las cortinas magicas separan las zonas. Puedes ver la siguiente, pero solo la cruzas cuando cumples sus requisitos. Acercate a la puerta para verlos." },
 	{ "Extractores", "En tu parcela, asigna PETs a los extractores y produciran recursos incluso cuando no estes conectado (hasta 2 horas)." },

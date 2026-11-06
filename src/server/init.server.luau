@@ -45,6 +45,7 @@ S.Net.Register("hello", function(player)
 	for id, secs in pairs(S.Mining.RespawnTimes(player)) do
 		S.Net.Fire(player, "NodeState", id, secs)
 	end
+	S.Mining.ResendVeins(player)
 	return { ok = true }
 end)
 

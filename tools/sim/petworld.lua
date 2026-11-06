@@ -23,8 +23,12 @@ end
 
 -- 1. Estructura del mundo ------------------------------------------------------------------
 check(PW.TotalLength >= 1400 and PW.TotalLength <= 1600, "mundo compacto: " .. PW.TotalLength .. " studs (objetivo 1400-1600)")
-local barriers = CS:GetTagged("ZoneBarrier")
-check(#barriers == 4, "4 barreras translucidas")
+local barriers = {}
+local reinoFolder = World.Root:FindFirstChild("MundoPET")
+for _, b in ipairs(CS:GetTagged("ZoneBarrier")) do
+	if b:IsDescendantOf(reinoFolder) then table.insert(barriers, b) end
+end
+check(#barriers == 4, "4 barreras translucidas en el Reino")
 for _, b in ipairs(barriers) do
 	local k = b:GetAttribute("Zone")
 	check(b.CanCollide == true and b.Transparency >= 0.4 and b.Transparency <= 0.7 and tostring(b.Material):find("ForceField"), "barrera zona " .. k .. ": solida en el servidor y translucida (deja ver la siguiente zona)")
@@ -35,7 +39,10 @@ local beacons = 0
 for _ in pairs(World.Beacons) do beacons = beacons + 1 end
 check(beacons == 6 and World.Beacons.camp and World.Beacons.z5, "faros: campamento + 5 zonas")
 for k = 1, 5 do
-	check(World.MineEntrances[k] ~= nil, "entrada de la Mina de Zuar " .. k .. " (sellada hasta la Fase D)")
+	local toGallery = false
+	for _, p in ipairs(World.Portals) do if p.dest == "m" .. k then toGallery = true end end
+	check(World.MineEntrances[k] ~= nil and toGallery and World.Spawns["minegate_z" .. k] ~= nil,
+		"boca de mina de la zona " .. k .. " lleva a la galeria " .. k .. " de las Minas de Zuar")
 	check(World.Chests[k] ~= nil, "reto opcional con cofre en la zona " .. k)
 	local final = false
 	for _, cp in ipairs(World.Checkpoints) do if cp.zone == k and cp.meadow then final = true end end

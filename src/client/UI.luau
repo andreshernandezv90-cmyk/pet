@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Progression = require(Shared.Progression)
+local WorldConfig = require(Shared.WorldConfig)
 local PetStore = require(Shared.PetStore)
 local PetCatalog = require(Shared.PetCatalog)
 local Items = require(Shared.Items)
@@ -43,6 +44,10 @@ local function areaName(area)
 	local k = area and tonumber(string.match(area, "^z(%d)$"))
 	if k then
 		return "🌸 Zona " .. k .. " · " .. Progression.Zones[k].name
+	end
+	local g = area and tonumber(string.match(area, "^m(%d)$"))
+	if g then
+		return "⛏️ " .. WorldConfig.Regions[g].mine.name
 	end
 	return "Portal Pets"
 end

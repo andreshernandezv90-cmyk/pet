@@ -1,6 +1,7 @@
 -- WorldFx: iluminacion por zona, gravedad, poderes de navegacion de los PETs
 -- (planeo, vision nocturna, derretir hielo, revelar plataformas, anomalias),
--- trampolines, nodos agotados por jugador, ondas de incursion y efectos.
+-- trampolines, nodos agotados por jugador, vetas privadas de las Minas de Zuar,
+-- ondas de incursion y efectos.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,6 +10,9 @@ local TweenService = game:GetService("TweenService")
 local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local Debris = game:GetService("Debris")
+
+local SharedFolder = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Items = require(SharedFolder:WaitForChild("Items"))
 
 local State = require(script.Parent.State)
 local Net = require(script.Parent.Net)
@@ -39,6 +43,17 @@ local LOOKS = {
 		tint = Color3.fromRGB(235, 255, 245), fog = 800, fogColor = Color3.fromRGB(200, 255, 230) },
 	z5 = { clock = 19, ambient = Color3.fromRGB(100, 80, 140), outdoor = Color3.fromRGB(120, 95, 170), bright = 1.5,
 		tint = Color3.fromRGB(230, 210, 255), fog = 700, fogColor = Color3.fromRGB(120, 90, 180) },
+	-- Minas de Zuar: galerias interiores (ambiente suficiente para leer las vetas)
+	m1 = { clock = 17.5, ambient = Color3.fromRGB(118, 112, 100), outdoor = Color3.fromRGB(96, 90, 84), bright = 1.2,
+		tint = Color3.fromRGB(255, 244, 226), fog = 320, fogColor = Color3.fromRGB(58, 52, 46) },
+	m2 = { clock = 17.5, ambient = Color3.fromRGB(122, 108, 92), outdoor = Color3.fromRGB(98, 88, 78), bright = 1.2,
+		tint = Color3.fromRGB(255, 236, 210), fog = 320, fogColor = Color3.fromRGB(64, 52, 40) },
+	m3 = { clock = 17.5, ambient = Color3.fromRGB(96, 110, 120), outdoor = Color3.fromRGB(80, 90, 100), bright = 1.1,
+		tint = Color3.fromRGB(226, 238, 255), fog = 300, fogColor = Color3.fromRGB(40, 48, 62) },
+	m4 = { clock = 17.5, ambient = Color3.fromRGB(100, 124, 116), outdoor = Color3.fromRGB(84, 100, 96), bright = 1.15,
+		tint = Color3.fromRGB(230, 255, 244), fog = 300, fogColor = Color3.fromRGB(40, 60, 58) },
+	m5 = { clock = 17.5, ambient = Color3.fromRGB(112, 98, 132), outdoor = Color3.fromRGB(90, 80, 110), bright = 1.1,
+		tint = Color3.fromRGB(236, 224, 255), fog = 340, fogColor = Color3.fromRGB(52, 42, 70) },
 	arena = { clock = 18, ambient = Color3.fromRGB(130, 80, 100), outdoor = Color3.fromRGB(160, 90, 120), bright = 1.8,
 		tint = Color3.fromRGB(255, 220, 230), fog = 700, fogColor = Color3.fromRGB(200, 100, 140) },
 }
@@ -157,6 +172,43 @@ local function applyBarriers()
 	end
 end
 
+-- Vetas privadas de las Minas de Zuar --------------------------------------------------------
+-- El servidor envia el reparto de cada galeria solo a este jugador; aqui se pinta
+-- localmente. Una veta sin mineral se ve como roca y su indicador se oculta.
+local veinTypes = {} -- [galeria] = { [nodeId] = nodeType }
+local GLOW = { lunar = true, zuarita = true }
+
+local function paintVein(m, nodeType)
+	local def = nodeType and Items.Nodes[nodeType]
+	for _, d in ipairs(m:GetDescendants()) do
+		if d:IsA("BasePart") and d:GetAttribute("Ore") then
+			if def then
+				d.Color = def.color
+				d.Material = GLOW[nodeType] and Enum.Material.Neon or (nodeType == "stone" and Enum.Material.Slate or Enum.Material.Metal)
+				d.Transparency = 0
+			else
+				d.Color = Color3.fromRGB(110, 104, 108)
+				d.Material = Enum.Material.Slate
+				d.Transparency = 1
+			end
+			d:SetAttribute("OrigT", d.Transparency)
+		elseif d:IsA("ProximityPrompt") then
+			d.Enabled = def ~= nil
+			if def then
+				local pick = Items.Picks[def.pick]
+				d.ObjectText = def.pick > 1 and (def.name .. " (" .. pick.name .. ")") or def.name
+				d.ActionText = def.action
+			end
+		end
+	end
+end
+
+local function paintSocket(m)
+	local k = m:GetAttribute("Gallery")
+	local types = k and veinTypes[k]
+	paintVein(m, types and types[m:GetAttribute("NodeId")] or nil)
+end
+
 -- Nodos agotados (por jugador) ---------------------------------------------------------------
 
 local nodes = {}
@@ -252,6 +304,21 @@ function WorldFx.Init()
 				setNodeVisible(m, true)
 			end)
 		end
+	end)
+
+	Net.On("Veins", function(k, types)
+		veinTypes[k] = types or {}
+		for _, m in ipairs(CollectionService:GetTagged("VeinSocket")) do
+			if m:GetAttribute("Gallery") == k then
+				paintSocket(m)
+			end
+		end
+	end)
+	for _, m in ipairs(CollectionService:GetTagged("VeinSocket")) do
+		paintSocket(m) -- sin reparto: roca sin mineral hasta entrar a la galeria
+	end
+	CollectionService:GetInstanceAddedSignal("VeinSocket"):Connect(function(m)
+		task.defer(paintSocket, m) -- StreamingEnabled: vetas que llegan tarde
 	end)
 
 	Net.On("Fx", function(kind, a, b)

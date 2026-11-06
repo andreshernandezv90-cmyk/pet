@@ -67,7 +67,7 @@ Para guardar datos, el lugar debe estar **publicado** (File → Publish to Roblo
 
 1. Apareces en tu parcela, con tu casa deteriorada.
 2. **Mapa → Zona 1**: completa el parkour con checkpoints y captura tu primer **Lumi**.
-3. **Mapa → Minas de Zuar**: consigue piedra con el pico de madera.
+3. **Mapa → Minas de Zuar**: pica piedra en la **Cantera de Zuar** (siempre abierta) con el pico de madera.
 4. Tala árboles del **bosque** que rodea el Hogar para conseguir madera.
 5. En el **Taller**, mejora el **Santuario a nivel 2** y fabrica el **Pico de piedra**: se desbloquea la Zona 2.
 
@@ -120,12 +120,14 @@ src/server/   → ServerScriptService.Server
       PetWorld.luau         Mundo PET compacto (1.530 studs): campamento (NPCs), 5 zonas con identidad
                             propia, arena de incursion tematica por zona, barreras, faros, entradas de mina,
                             retos de parkour con mecanica propia
-      Mines.luau            Minas de Zuar separadas (temporales hasta la Fase D)
+      Mines.luau            Minas de Zuar (mundo propio): hub, Cantera libre y galerias I-V
+                            excavadas en el terreno, vinculadas a las zonas del Reino
     DataService.luau        DataStore: bloqueo de sesión, reintentos, autosave, BindToClose
     Net.luau                Remotos, límite de frecuencia y sincronización de estado
     Plots.luau              Parcelas: la casa cambia con el nivel, estaciones, trabajadores visibles
     Inventory.luau          Equipo, protección, depósito, cebos y pociones
-    Mining.luau             Nodos con durabilidad individual por jugador
+    Mining.luau             Nodos con durabilidad individual por jugador; vetas privadas por
+                            jugador y ciclo en las galerias; acceso por zona (y sello de guardian)
     Capture.luau            Apariciones privadas (7–12 cada 60 s), succionador y validación
     Progress.luau           Áreas, portales, viajes, desbloqueos, checkpoints, cofres secretos
     Crafting.luau           Recetas validadas en servidor
@@ -153,7 +155,7 @@ src/client/   → StarterPlayerScripts.Client
 
 | GDD | Implementación |
 |---|---|
-| 02 Mundos (GDD 1.1b) | Santuario (0,0,0) con el portal central; Mundo PET continuo desde (3000,0,1500), ≈ 2.550 studs de oeste a este. Las Minas de Zuar separadas (2000,0,0) siguen hasta la Fase D. |
+| 02 Tres mundos (GDD 1.1, decisión oficial) | Hogar Dimensional (0,0,0) con el portal central; **Minas de Zuar** (2000,0,0): hub con Cantera libre y cinco galerías con vetas privadas; **Reino de los PETs** desde (3000,0,1500), 1.530 studs. La boca de mina de cada zona lleva a su galería. Ver `docs/ARQUITECTURA_TRES_MUNDOS.md`. |
 | 03 Desbloqueo de zonas | `WorldConfig.Regions[i].requirements` (configurable): Z2 pico de piedra + santuario 2 + extractor de piedra; Z3 pico de cobre + extractor; Z4 pico de hierro + huerto 2 + succionador mejorado; Z5 equipo avanzado + santuario 4 + misión de las 10 especies. |
 | 04 Quince especies | `PetCatalog.Species`: zonas 1+2+3+4+5. Lumi, Nox y Eclipsar tienen mítico: 63 variantes. |
 | 05 Roles | Cada PET individual está en un solo estado: libre, equipado, trabajando o fusionado. Equipo 1/2/3 (herrería 2, santuario 3); el apoyo aplica 50%. |
@@ -232,6 +234,14 @@ lua5.4 tools/sim/petworld.lua
 lua5.4 tools/sim/petassets.lua
 ```
 
+```bash
+lua5.4 tools/sim/mines.lua
+```
+
+```bash
+lua5.4 tools/sim/persistence.lua
+```
+
 Qué cubre cada prueba:
 
 - `shared.lua`: reglas del GDD (63 variantes, 6750 esencias, pilas de 50, mochila, recetas y topes).
@@ -239,6 +249,8 @@ Qué cubre cada prueba:
 - `raid.lua`: bucles reales (áreas, caídas, zonas bloqueadas) y una incursión completa con recompensa en la arena de su zona (viaje validado).
 - `petworld.lua`: largo compacto (1.400–1.600 studs), una arena temática por zona (dentro de la zona, junto al camino y sin pisar claros ni regalos), cinco retos con mecánica propia (pasos alcanzables, checkpoints, caminos temporales que alternan), puntos de llegada y teletransportes válidos, estructura del Mundo PET (barreras, faros, minas selladas, retos, NPCs), áreas, barreras validadas en el servidor, viajes por faro, PETs en su pradera, Comerciante (cobro exacto, nonce, zona, cantidades), cupo de regalos, perfil antiguo intacto y presupuesto de partes.
 - `petassets.lua`: integración de modelos importados con una plantilla **simulada**: respaldo procedural en las 15 especies, Lumi importado (escala, raíz anclada, sin colisión, soldaduras, scripts eliminados, efectos de rareza), variantes por rareza, interruptores, plantillas inválidas, animaciones con respaldos y PETs salvajes y compañeros en el cliente.
+- `mines.lua`: Minas de Zuar como mundo propio (hub, Cantera libre, 5 galerías con sus vetas, cortinas, terreno excavado, presupuesto), reparto de vetas fiel a `mine.chances`, flujo completo (Cantera, galería abierta y bloqueada, pico necesario, distancia, privacidad entre jugadores, ciclo nuevo), enlace con las bocas de mina del Reino y sello de guardián desactivable.
+- `persistence.lua`: perfiles ajenos o futuros (p. ej. Astra v0.6, esquema 4) nunca se migran ni se sobrescriben; migración v2 → v3 sin pérdidas.
 - `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables, áreas señalizadas y fogata en las 8 parcelas, portal central único, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, hacha por niveles, regalos (privados, validados y únicos) y presupuesto de partes.
 
 ## 8. Pendiente para fases posteriores (según el GDD)

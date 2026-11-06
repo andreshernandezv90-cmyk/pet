@@ -2,7 +2,7 @@
 -- docs/MUNDO_PET_LAYOUT.md). De oeste a este:
 --   Campamento (portal de regreso, Comerciante, Guia, Tienda premium, arena)
 --   Zona 1 | barrera | Zona 2 | barrera | Zona 3 | barrera | Zona 4 | barrera | Zona 5
--- Norte: montaña con las entradas de las Minas de Zuar (se abren en la Fase D).
+-- Norte: montaña con las bocas de mina; cada una lleva a su galeria de las Minas de Zuar.
 -- Sur: bosque denso con senderos, retos opcionales y cofres.
 -- Coordenadas locales: x = avance (0..2550), z = norte (+) / sur (-).
 
@@ -354,7 +354,7 @@ local function buildBeacon(f, id, zone, lx, lz, rng)
 	World.Spawns["beacon_" .. id] = CFrame.lookAt(W(lx + 6, lz - 4, 4), W(lx + 30, PathZ(lx + 30), 4))
 end
 
--- Entradas de las Minas de Zuar (selladas hasta la Fase D) ----------------------------------
+-- Bocas de mina: cada zona del Reino conecta con su galeria de las Minas de Zuar --------
 
 local function buildMineEntrance(f, k, rng)
 	local L = PetWorld.Lengths[k]
@@ -372,17 +372,24 @@ local function buildMineEntrance(f, k, rng)
 		Part(m, p * CFrame.Angles(0, 0, t + math.pi / 2) * CFrame.Angles(rng:NextNumber(-0.1, 0.1), 0, 0), Vector3.new(3.6, 3.4, 4.5) * scale,
 			Props.Vary(Color3.fromRGB(116, 108, 104), rng, 0.08), Mat.Slate, { CanCollide = true })
 	end
-	-- marco de madera y tablas que la sellan por ahora
+	-- marco de madera y boca oscura que lleva a la galeria de esta zona
 	for _, sx in ipairs({ -1, 1 }) do
 		Part(m, cf * CFrame.new(sx * 6 * scale, 4.5 * scale, -0.6), Vector3.new(1.2, 9 * scale, 1.2), Color3.fromRGB(100, 72, 50), Mat.Wood)
 	end
 	Part(m, cf * CFrame.new(0, 9 * scale, -0.6), Vector3.new(13.5 * scale, 1.2, 1.2), Color3.fromRGB(100, 72, 50), Mat.Wood)
-	Part(m, cf * CFrame.new(0, 4.5 * scale, 0.6), Vector3.new(12 * scale, 9 * scale, 0.6), Color3.fromRGB(26, 22, 24), Mat.SmoothPlastic,
-		{ CanCollide = true })
-	for i = 0, 3 do
-		Part(m, cf * CFrame.new(0, 1.6 + i * 2.1 * scale, -0.9) * CFrame.Angles(0, 0, (i % 2 == 0) and 0.12 or -0.1),
-			Vector3.new(12.5 * scale, 1, 0.3), Color3.fromRGB(150, 110, 70), Mat.WoodPlanks, { CanCollide = true })
+	local mouth = Part(m, cf * CFrame.new(0, 4.5 * scale, 0.6), Vector3.new(12 * scale, 9 * scale, 0.6), Color3.fromRGB(26, 22, 24),
+		Mat.SmoothPlastic, { CanCollide = true, Name = "Boca" })
+	for _, sx in ipairs({ -1.6, 1.6 }) do
+		Part(m, cf * CFrame.new(sx, 0.15, -4), Vector3.new(0.3, 0.3, 8), Color3.fromRGB(90, 84, 80), Mat.Metal)
 	end
+	local pp = Instance.new("ProximityPrompt")
+	pp.ActionText = "Entrar"
+	pp.ObjectText = region.mine.name
+	pp.MaxActivationDistance = 12
+	pp.RequiresLineOfSight = false
+	pp:SetAttribute("Dest", "m" .. k)
+	pp.Parent = mouth
+	table.insert(World.Portals, { prompt = pp, dest = "m" .. k })
 	Props.Lantern(m, (cf * CFrame.new(8 * scale, 0, -3)).Position, rng, 5)
 	local minerals = {}
 	for _, res in ipairs({ "piedra", "cobre", "hierro", "lunar", "zuarita" }) do
@@ -391,9 +398,10 @@ local function buildMineEntrance(f, k, rng)
 			table.insert(minerals, Items.Resources[res].icon .. " " .. math.floor(c * 100 + 0.5) .. "%")
 		end
 	end
-	Props.Sign(m, cf * CFrame.new(-11 * scale, 0, -4), region.mine.name .. "\n" .. table.concat(minerals, "  ") .. "\n(se abre en la Fase D)", 10)
+	Props.Sign(m, cf * CFrame.new(-11 * scale, 0, -4), region.mine.name .. "\n" .. table.concat(minerals, "  ") .. "\nEntrada a las Minas de Zuar", 10)
 	exclude(mx - 16, 92, mx + 16, 180)
 	World.MineEntrances[k] = cf
+	World.Spawns["minegate_z" .. k] = CFrame.lookAt(W(mx, 150, 4), W(mx, 100, 4))
 	-- sendero desde el camino principal
 	Terrain.Path({ W(mx, PathZ(mx)), W(mx + 6, 120), W(mx, 158) }, 7, Mat.Ground)
 end

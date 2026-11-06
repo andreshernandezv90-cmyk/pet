@@ -1,5 +1,6 @@
--- Mapa: viaje rapido por faros del Mundo PET y regreso al santuario.
--- Un faro solo lleva a zonas desbloqueadas y visitadas; el servidor lo valida.
+-- Mapa: viaje entre los tres mundos (Hogar, Minas de Zuar y Reino de los PETs),
+-- faros del Reino y galerias de las minas. El servidor valida cada viaje: un faro
+-- solo lleva a zonas desbloqueadas y visitadas; una galeria, a zonas desbloqueadas.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -55,12 +56,22 @@ function Map.render(root, UI)
 				table.insert(minerals, Items.Resources[res].icon .. math.floor(c * 100 + 0.5) .. "%")
 			end
 		end
-		K.text("PETs: " .. table.concat(species, ", ") .. "\nMina: " .. table.concat(minerals, " "), 14, K.C.muted, { Parent = card, LayoutOrder = 2 })
-		if unlocked and beacon then
-			K.button("Viajar al faro", Z.color:Lerp(Color3.new(0, 0, 0), 0.35), function() go("z" .. k, UI) end,
-				{ Size = UDim2.new(0, 200, 0, 38), LayoutOrder = 3, Parent = card })
-		elseif unlocked then
-			K.text("Camina hasta la Zona " .. k .. " para activar su faro.", 14, K.C.warn, { Parent = card, LayoutOrder = 3 })
+		K.text("PETs: " .. table.concat(species, ", ") .. "\n" .. WorldConfig.Regions[k].mine.name .. ": " .. table.concat(minerals, " "),
+			14, K.C.muted, { Parent = card, LayoutOrder = 2 })
+		if unlocked then
+			local buttons = {}
+			if beacon then
+				table.insert(buttons, K.button("Viajar al faro", Z.color:Lerp(Color3.new(0, 0, 0), 0.35), function() go("z" .. k, UI) end,
+					{ Size = UDim2.new(0, 180, 0, 38) }))
+			end
+			table.insert(buttons, K.button("⛏️ Galeria " .. k, Color3.fromRGB(200, 120, 60), function() go("m" .. k, UI) end,
+				{ Size = UDim2.new(0, 160, 0, 38) }))
+			local row = K.row(buttons, 8)
+			row.LayoutOrder = 3
+			row.Parent = card
+			if not beacon then
+				K.text("Camina hasta la Zona " .. k .. " para activar su faro.", 14, K.C.warn, { Parent = card, LayoutOrder = 4 })
+			end
 		else
 			local lines = {}
 			for _, st in ipairs(Progression.Status(d, k)) do
@@ -74,10 +85,10 @@ function Map.render(root, UI)
 	K.vlist(6).Parent = other
 	K.title("Otros lugares", 16, { Parent = other })
 	K.row({
-		K.button("⛏️ Minas de Zuar (temporal)", Color3.fromRGB(200, 120, 60), function() go("mines", UI) end, { Size = UDim2.new(0, 250, 0, 38) }),
+		K.button("⛏️ Minas de Zuar", Color3.fromRGB(200, 120, 60), function() go("mines", UI) end, { Size = UDim2.new(0, 220, 0, 38) }),
 		K.button("⚔️ Ir a la incursion activa", Color3.fromRGB(220, 70, 110), function() go("arena", UI) end, { Size = UDim2.new(0, 240, 0, 38) }),
 	}, 8).Parent = other
-	K.text("Las minas separadas se mantienen hasta la Fase D, cuando cada zona tendra su propia Mina de Zuar. Cada zona tiene su arena; durante una incursion este boton te lleva a la arena de esa zona si ya la desbloqueaste.",
+	K.text("Minas de Zuar: la Cantera siempre esta abierta y cada galeria se abre con su zona del Reino. Cada zona tiene su arena; durante una incursion este boton te lleva a la arena de esa zona si ya la desbloqueaste.",
 		13, K.C.muted, { Parent = other })
 end
 

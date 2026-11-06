@@ -191,7 +191,42 @@ local function makeNode(parent, nodeType, pos, area, rng)
 	return m
 end
 
+-- Veta de galeria (Minas de Zuar): roca neutra con cristales de mineral. El mineral
+-- de cada veta es PRIVADO por jugador y por ciclo (Mining + MineVeins); el cliente
+-- pinta localmente su reparto. El servidor valida cada golpe contra ese reparto.
+local function makeVein(parent, pos, gallery, rng, faceTo)
+	nodeCounter = nodeCounter + 1
+	local id = "n" .. nodeCounter
+	local m = Instance.new("Model")
+	m.Name = "Veta"
+	local s = rng:NextNumber(4.2, 5.6)
+	local look = faceTo and CFrame.lookAt(pos, Vector3.new(faceTo.X, pos.Y, faceTo.Z)) or CFrame.new(pos)
+	local main = part({ Name = "Node", Size = Vector3.new(s, s * 0.85, s * 0.9),
+		CFrame = look * CFrame.new(0, s * 0.36, 0) * CFrame.Angles(rng:NextNumber(-0.25, 0.25), rng:NextNumber(-0.4, 0.4), rng:NextNumber(-0.25, 0.25)),
+		Color = Color3.fromRGB(92, 86, 90), Material = Enum.Material.Slate }, m)
+	for i = 1, 4 do
+		local ore = part({ Name = "Ore", Size = Vector3.new(1.1, rng:NextNumber(1.6, 2.6), 1.1),
+			CFrame = look * CFrame.new(rng:NextNumber(-1.4, 1.4), s * 0.55 + rng:NextNumber(0, 1.2), -s * 0.3 + rng:NextNumber(-0.6, 0.6))
+				* CFrame.Angles(rng:NextNumber(-0.5, 0.5), rng:NextNumber(0, 6), rng:NextNumber(-0.5, 0.5)),
+			Color = Color3.fromRGB(110, 104, 108), Material = Enum.Material.Slate, CanCollide = false, CastShadow = false }, m)
+		ore:SetAttribute("Ore", i)
+	end
+	m.PrimaryPart = main
+	m:SetAttribute("NodeId", id)
+	m:SetAttribute("NodeType", "vein")
+	m:SetAttribute("Gallery", gallery)
+	local pp = addPrompt(main, "Minar", "Veta", 0.45, 12)
+	pp.Name = "NodePrompt"
+	pp.KeyboardKeyCode = Enum.KeyCode.E
+	m.Parent = parent
+	CollectionService:AddTag(m, "ResourceNode")
+	CollectionService:AddTag(m, "VeinSocket")
+	World.Nodes[id] = { id = id, type = "vein", gallery = gallery, model = m, part = main, pos = main.Position, area = "m" .. gallery, prompt = pp }
+	return m, id
+end
+
 Helpers.Folder = folder
 Helpers.MakeNode = makeNode
+Helpers.MakeVein = makeVein
 
 return Helpers

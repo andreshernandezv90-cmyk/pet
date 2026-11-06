@@ -72,6 +72,17 @@ Nota de control: números de producción, probabilidades, tiempos y precios son 
 |---|---|---|
 | Modelos de PETs | Solo procedurales con primitivas. | Cada especie puede tener un **modelo importado** (Blender → Studio) en `ReplicatedStorage.PetAssets`, con animaciones Idle, Walk, Run, Jump y CaptureReaction. El modelo procedural queda como respaldo permanente. El aspecto no afecta a especie, rareza, estadísticas, captura ni datos guardados. Lumi es la primera especie preparada (ver `docs/ART_PIPELINE.md`). |
 
+## Decisiones oficiales 1.1e (6 de noviembre de 2026)
+
+| Tema | Decisión |
+|---|---|
+| Repositorio | Este repositorio es la **dirección única de desarrollo**. La implementación de Astra/Codex (v0.6, esquema 4) se conserva sin mezclar persistencias (`docs/COMPATIBILIDAD_ASTRA.md`). Este repositorio no se considera validado hasta probarlo en Roblox Studio. |
+| Mundos | **Tres mundos**: Hogar Dimensional, **Minas de Zuar (mundo diferenciado)** y Reino de los PETs. Las galerías de las minas se abren con las zonas del Reino (`docs/ARQUITECTURA_TRES_MUNDOS.md`). Reemplaza la idea anterior de minas dentro del Reino. |
+| Arenas | Una arena temática por zona, usada en las Incursiones Dimensionales. |
+| Zona 1 | Nombre oficial: **Bosque de Lumi**. |
+| Orden | D (minería) → Shiny → combate PvE por turnos (Lumi contra Rocón) → guardianes de cuevas y jefes → PvP y arenas competitivas. Los sistemas futuros se mantienen desacoplados. |
+| Shiny | 1 entre 500 apariciones (0,2%), configurable. Es independiente de la rareza y puede aparecer en cualquiera disponible. No modifica estadísticas ni la igualdad en PvP. Se guarda permanentemente y los ejemplares existentes se migran sin perder atributos. |
+
 ## Minerales por región (probabilidad por ciclo de generación, configurable)
 
 Los porcentajes indican la probabilidad de que un recurso aparezca en un ciclo de generación de nodos de esa mina. No son excluyentes ni deben sumar 100%.
