@@ -210,7 +210,7 @@ local function buildWorkers(parent, base, profile)
 					CollectionService:AddTag(m, "WorkerPet")
 					local anim = PetAnimator.Attach(m) -- solo modelos importados con animaciones
 					if anim then
-						anim:Play("Idle")
+						anim:SetWorking(true) -- Work (respaldo: Idle); se replica a todos los clientes
 					end
 				end
 			end

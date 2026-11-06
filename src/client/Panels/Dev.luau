@@ -2,6 +2,7 @@
 
 local K = require(script.Parent.Parent.UIKit)
 local Net = require(script.Parent.Parent.Net)
+local Followers = require(script.Parent.Parent.Followers)
 
 local Dev = { title = "🛠️ Herramientas de prueba (Studio)" }
 
@@ -22,6 +23,24 @@ function Dev.render(root)
 		K.button(c[2], c[3], function()
 			Net.Send("dev", { cmd = c[1] })
 		end, { Size = UDim2.new(0, 420, 0, 40), LayoutOrder = i, Parent = sc })
+	end
+
+	-- Vista previa de animaciones (solo local, sin datos ni red): compañeros equipados
+	-- con modelo importado. Quedate quieto: al moverse, el PET despierta solo.
+	local base = #cmds + 1
+	local status = K.text("Animaciones de compañeros (equipa un Lumi y quedate quieto):", 14, K.C.muted,
+		{ Parent = sc, LayoutOrder = base })
+	local anims = {
+		{ "happy", "Animacion: Happy (celebrar)" },
+		{ "sleep", "Animacion: Sleep (dormir)" },
+		{ "wake", "Animacion: despertar" },
+	}
+	for i, a in ipairs(anims) do
+		K.button(a[2], K.C.accent, function()
+			local n = Followers.PreviewAnimation(a[1])
+			status.Text = n > 0 and (a[2] .. " en " .. n .. " compañero(s)")
+				or "Ningun compañero animado la tiene (modelo procedural o sin ids publicados)."
+		end, { Size = UDim2.new(0, 420, 0, 40), LayoutOrder = base + i, Parent = sc })
 	end
 end
 

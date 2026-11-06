@@ -68,6 +68,30 @@ local function rebuild(player)
 	end
 end
 
+-- Solo para pruebas en Studio (panel Dev): reproduce Happy / Sleep / Wake en los
+-- compañeros del jugador local. No es una mecanica del juego.
+function Followers.PreviewAnimation(action)
+	local data = byPlayer[Players.LocalPlayer]
+	local n = 0
+	for _, f in ipairs(data and data.list or {}) do
+		if f.anim then
+			local ok
+			if action == "happy" then
+				ok = f.anim:Celebrate() ~= nil
+			elseif action == "sleep" then
+				ok = f.anim:Sleep()
+			elseif action == "wake" then
+				f.anim:Wake()
+				ok = true
+			end
+			if ok then
+				n = n + 1
+			end
+		end
+	end
+	return n
+end
+
 local function cosmetics(player)
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -215,7 +239,7 @@ function Followers.Init()
 					local prev = f.pos
 					f.pos = f.pos and f.pos:Lerp(target, alpha) or target
 					if f.anim then
-						if airborne then
+						if airborne and f.anim:Has("Jump") then
 							f.anim:Play("Jump")
 						else
 							local moved = prev and Vector3.new(f.pos.X - prev.X, 0, f.pos.Z - prev.Z).Magnitude or 0

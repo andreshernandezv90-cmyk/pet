@@ -161,6 +161,96 @@ local cfgAnim = PetAnimator.Attach(PetModels.Build("lumi", "rare"))
 check(cfgAnim ~= nil and cfgAnim:Has("Idle") and cfgAnim:SetMoveSpeed(5) == "Idle", "ids configurados como respaldo de la plantilla")
 PetAssets.Species.lumi.animations.Idle = nil
 check(next(PetAssets.Species.lumi.animations) == nil, "la configuracion publicada no trae ids inventados")
+
+-- 3b) Conjunto completo de Lumi Comun (7 animaciones) y controlador por capas ------
+-- Ids marcadores de prueba (no son assets reales); se vacian al terminar.
+local SET = PetAssets.AnimationSets.Lumi_v7
+local LUMI7 = { "Idle", "Walk", "Run", "Happy", "Sleep_Enter", "Sleep_Loop", "Work" }
+for i, s in ipairs(LUMI7) do SET.ids[s] = "rbxassetid://90" .. i end
+local m7 = PetModels.Build("lumi", "rare") -- Lumi_rare: sin carpeta Animations, usa el conjunto
+local a7 = PetAnimator.Attach(m7)
+check(a7 ~= nil, "conjunto Lumi_v7: animador conectado")
+local allSeven = true
+for _, s in ipairs(LUMI7) do allSeven = allSeven and a7:Has(s) end
+check(allSeven and not a7:Has("Jump") and not a7:Has("CaptureReaction"), "carga las 7 animaciones de Lumi y nada mas")
+local t7 = a7.tracks
+check(t7.Idle.Looped and t7.Walk.Looped and t7.Run.Looped and t7.Work.Looped and t7.Sleep_Loop.Looped
+	and not t7.Happy.Looped and not t7.Sleep_Enter.Looped, "bucles: Idle/Walk/Run/Work/Sleep_Loop si; Happy/Sleep_Enter no")
+check(t7.Idle.Priority == Enum.AnimationPriority.Idle and t7.Walk.Priority == Enum.AnimationPriority.Movement
+	and t7.Run.Priority == Enum.AnimationPriority.Movement and t7.Work.Priority == Enum.AnimationPriority.Action
+	and t7.Happy.Priority == Enum.AnimationPriority.Action, "prioridades configuradas")
+local function playing()
+	local list = {}
+	for s, t in pairs(t7) do if t.IsPlaying then table.insert(list, s) end end
+	return list
+end
+local function only(state)
+	local p = playing()
+	return #p == 1 and p[1] == state
+end
+check(a7:SetMoveSpeed(0) == "Idle" and only("Idle"), "quieto -> Idle (una sola pista)")
+check(a7:SetMoveSpeed(4) == "Walk" and only("Walk") and near(t7.Walk.Speed, 1), "Walk a 4 studs/s, velocidad 1")
+check(a7:SetMoveSpeed(18) == "Run" and only("Run") and near(t7.Run.Speed, 1.5), "Run a 18 studs/s, velocidad 1.5")
+local runPlays = t7.Run.plays
+for _ = 1, 20 do a7:SetMoveSpeed(18) end
+check(t7.Run.plays == runPlays, "mismo estado: la pista no se reinicia cada fotograma")
+check(a7:SetWorking(true) == "Work" and only("Work"), "trabajo -> Work")
+-- Happy: reaccion de una vez que respeta la capa base y vuelve a ella
+check(a7:Celebrate() == "Happy" and only("Happy"), "Happy interrumpe con fundido y queda sola")
+a7:SetMoveSpeed(4)
+check(only("Happy") and a7.base == "Walk", "durante Happy, la locomocion se anota sin cortar la reaccion")
+t7.Happy:__finish()
+check(only("Walk"), "al terminar Happy vuelve al estado base actual (Walk)")
+a7:Celebrate()
+a7:Celebrate()
+check(only("Happy") and t7.Happy.plays >= 3, "Happy repetido reinicia la reaccion")
+t7.Happy:__finish()
+-- Sueño: Sleep_Enter -> Sleep_Loop -> despertar
+a7:SetMoveSpeed(0)
+check(a7:Sleep() == true and only("Sleep_Enter") and a7:IsSleeping(), "Sleep empieza con Sleep_Enter")
+a7:SetMoveSpeed(0)
+check(only("Sleep_Enter"), "quieto mientras se acuesta: sigue la transicion")
+t7.Sleep_Enter:__finish()
+check(only("Sleep_Loop"), "al terminar Sleep_Enter pasa a Sleep_Loop")
+check(a7:Celebrate() == nil and only("Sleep_Loop"), "dormido no celebra")
+a7:Wake()
+check(not a7:IsSleeping() and only("Idle"), "Wake vuelve al estado base")
+a7:Sleep()
+a7:SetMoveSpeed(5)
+check(not a7:IsSleeping() and only("Walk"), "si el PET se desplaza dormido, despierta (nunca se desliza dormido)")
+t7.Sleep_Enter:__finish()
+check(only("Walk"), "un final atrasado de Sleep_Enter no reactiva el sueño")
+-- Reutilizacion: pistas cargadas una vez; Animation compartidas entre modelos
+local an7 = m7:FindFirstChildOfClass("AnimationController"):FindFirstChildOfClass("Animator")
+check(#an7.__tracks == 7, "7 pistas cargadas una sola vez tras todas las transiciones")
+local m7b = PetModels.Build("lumi", "rare")
+local a7b = PetAnimator.Attach(m7b)
+check(a7b.tracks.Idle.Animation == t7.Idle.Animation, "los objetos Animation se comparten entre PETs")
+a7b:Destroy()
+check(a7b:Play("Idle") == nil and a7b:Celebrate() == nil and a7b:Sleep() == false, "Destroy deja el controlador inerte")
+-- Rarezas: mismo rig reutiliza el conjunto; rig distinto no se anima con el
+local mr7 = PetModels.Build("lumi", "epic")
+check(PetAnimator.Attach(mr7):Has("Sleep_Loop"), "otra rareza con el mismo rig reutiliza el conjunto")
+noAnim:SetAttribute("Rig", "Otro_rig")
+local nw0 = #warnings
+check(PetAnimator.Attach(PetModels.Build("lumi", "rare")) == nil and #warnings > nw0, "rig incompatible: no se usa el conjunto (aviso)")
+table.remove(warnings) -- aviso esperado
+noAnim:SetAttribute("Rig", "Lumi_v7")
+check(PetAnimator.Attach(PetModels.Build("lumi", "rare")) ~= nil, "Rig = Lumi_v7 coincide con el conjunto")
+noAnim:SetAttribute("Rig", nil)
+PetAssets.Species.lumi.variants.rare = { animations = { Happy = "rbxassetid://999" } }
+local av = PetAnimator.Attach(PetModels.Build("lumi", "rare"))
+check(av.tracks.Happy.Animation.AnimationId == "rbxassetid://999" and av.tracks.Idle.Animation.AnimationId == SET.ids.Idle,
+	"una variante puede sustituir animaciones sueltas y reutilizar el resto")
+PetAssets.Species.lumi.variants.rare = nil
+-- Modelo sin Sleep/Happy (plantilla con carpeta parcial): las funciones preparadas no rompen nada
+local partial = PetAnimator.Attach(PetModels.Build("lumi", "common"))
+SET.ids = {}
+local partialOnly = PetAnimator.Attach(PetModels.Build("lumi", "common"))
+check(partialOnly:Sleep() == false and partialOnly:Celebrate() == nil and partialOnly:SetMoveSpeed(0) == "Idle",
+	"sin Sleep/Happy: Sleep() = false, Celebrate() = nil y sigue en Idle")
+check(partial ~= nil, "plantilla con carpeta Animations y conjunto a la vez")
+check(next(SET.ids) == nil, "el conjunto publicado no trae ids inventados")
 noAnim.Parent = nil
 
 -- 4) Plantillas invalidas -> respaldo con aviso ------------------------------------
@@ -202,8 +292,29 @@ for _, w in ipairs(wildModels) do if w:GetAttribute("Source") ~= "asset" then al
 check(allAsset, "los Lumi salvajes usan el modelo importado")
 for _ = 1, 30 do RunService.RenderStepped:Fire(1 / 30) end
 check(true, "animacion de PETs salvajes por fotograma sin errores")
+for i, s in ipairs(LUMI7) do SET.ids[s] = "rbxassetid://90" .. i end -- marcadores de prueba
 P:SetAttribute("Followers", "lumi:legendary,V:lumi:common")
 for _ = 1, 10 do RunService.RenderStepped:Fire(1 / 30) end
+local Followers = require(CLIENT_SCRIPT.Followers)
+for _ = 1, 30 do RunService.RenderStepped:Fire(1 / 30) end -- el compañero llega a su sitio
+check(Followers.PreviewAnimation("happy") == 2, "panel Dev: Happy en los 2 compañeros")
+check(Followers.PreviewAnimation("sleep") == 2 and Followers.PreviewAnimation("wake") == 2, "panel Dev: Sleep y Wake")
+P.Character.Humanoid.FloorMaterial = Enum.Material.Air
+local hrp0 = P.Character.HumanoidRootPart
+local moving = 0
+for i = 1, 6 do
+	hrp0.__props.CFrame = hrp0.CFrame + Vector3.new(0.6, 0, 0) -- el jugador avanza en el aire (18 studs/s)
+	RunService.RenderStepped:Fire(1 / 30)
+end
+for _, c in ipairs(workspace:FindFirstChild("Compañeros"):GetChildren()) do
+	local ac = c:FindFirstChildOfClass("AnimationController")
+	for _, t in ipairs(ac and ac:FindFirstChildOfClass("Animator").__tracks or {}) do
+		if t.IsPlaying and (t.Animation.Name == "Walk" or t.Animation.Name == "Run") then moving = moving + 1 end
+	end
+end
+P.Character.Humanoid.FloorMaterial = Enum.Material.Grass
+check(moving == 2, "compañero en el aire sin animacion Jump: sigue caminando/corriendo (" .. moving .. ")")
+SET.ids = {}
 local comp = workspace:FindFirstChild("Compañeros")
 local ca = 0
 for _, c in ipairs(comp and comp:GetChildren() or {}) do if c:GetAttribute("Source") == "asset" then ca = ca + 1 end end

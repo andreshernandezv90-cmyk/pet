@@ -14,7 +14,7 @@ Estados de cada asset (regla de `roblox-visual-director`). Nunca se da por integ
 
 `Propuesto → Exportado desde Blender → Importado en Studio → Guardado en assets/pets → Referenciado en código con respaldo → Verificado en Studio`
 
-**Estado actual de Lumi:** el código ya está preparado (el sistema busca el modelo y, si no lo encuentra, usa el procedural). **Todavía no hay ningún modelo, textura ni animación de Lumi importado en Roblox.**
+**Estado actual de Lumi Común V1.0:** `Exportado desde Blender` (modelo + 7 animaciones, analizados en la sección 10). El código está preparado para las 7 animaciones. **Todavía no hay nada importado en Roblox ni ningún id publicado.**
 
 ---
 
@@ -67,13 +67,17 @@ art/lumi/
 
 **Nombres de las acciones en Blender y de los objetos `Animation` en Roblox** (exactos, con mayúsculas):
 
-| Estado | Bucle | Duración orientativa | Cuándo lo usa el juego |
-|---|---|---|---|
-| `Idle` | sí | 2–4 s | Quieto: PET salvaje, compañero parado, trabajador y jefe |
-| `Walk` | sí | 0,8–1,2 s por ciclo | Se mueve a ≥ 0,6 studs/s |
-| `Run` | sí | 0,5–0,8 s por ciclo | Se mueve a ≥ 7 studs/s (compañero siguiendo a un jugador que corre). Si falta, se usa `Walk` |
-| `Jump` | no | 0,6–0,9 s | El compañero salta cuando el jugador está en el aire. Si falta, se usa `Idle` |
-| `CaptureReaction` | sí (el juego la repite) | 1–1,5 s | Mientras el jugador lo succiona. Si falta, se usa `Idle` |
+| Estado | Capa | Bucle | Prioridad | Cuándo lo usa el juego |
+|---|---|---|---|---|
+| `Idle` | base | sí | Idle | Quieto: PET salvaje, compañero parado y jefe de incursión |
+| `Walk` | base | sí | Movement | Se mueve a ≥ 0,6 studs/s. Si falta, `Idle` |
+| `Run` | base | sí | Movement | Se mueve a ≥ 7 studs/s (compañero de un jugador que corre). Si falta, `Walk` |
+| `Work` | base | sí | Action | PET asignado a una estación de la parcela (estado `working`). Si falta, `Idle` |
+| `Happy` | acción | no | Action | **Preparada, sin mecánica todavía** (`anim:Celebrate()`). Al terminar vuelve a la capa de debajo |
+| `Sleep_Enter` | sueño | no | Action | **Preparada, sin mecánica todavía** (`anim:Sleep()`); enlaza sola con `Sleep_Loop` |
+| `Sleep_Loop` | sueño | sí | Action | Mientras duerme, hasta `anim:Wake()` o hasta que el PET se desplace |
+| `Jump` | base | no | Action | Compañero con el jugador en el aire, **solo si el PET tiene `Jump`**; si no, sigue con su locomoción |
+| `CaptureReaction` | base | sí | Action | Mientras el jugador lo succiona. Si falta, `Idle` (Lumi Común no la tiene) |
 
 Variantes opcionales por rareza: `Lumi_common`, `Lumi_rare`, `Lumi_epic`, `Lumi_legendary` y `Lumi_mythic`. Si existe `Lumi_<rareza>`, se usa esa; si no, `Lumi`.
 
@@ -136,17 +140,22 @@ Las mallas, texturas y animaciones deben estar **subidas por la cuenta o el grup
 
 1. En Studio: **Avatar → Animation Editor** y selecciona el modelo `Lumi`.
 2. Menú `…` → **Import → From FBX Animation** y elige `Lumi_Idle.fbx`. Repite con cada animación.
-3. Marca el bucle en `Idle`, `Walk`, `Run` y `CaptureReaction`. El juego también lo fuerza por código.
+3. Marca el bucle en `Idle`, `Walk`, `Run`, `Work`, `Sleep_Loop` y `CaptureReaction`, y desmárcalo en `Happy` y `Sleep_Enter`. El juego también lo fuerza por código.
 4. **Publish to Roblox** con la cuenta o el grupo dueño de la experiencia y copia el id que te da Studio.
 5. En `Lumi/Animations`, crea un `Animation` por estado, con el nombre exacto, y pega `rbxassetid://<id>` en `AnimationId`.
 6. Alternativa: escribe los ids en `PetAssets.Species.lumi.animations` (en `src/shared/PetAssets.luau`). **Hoy esa tabla está vacía a propósito: no se inventan ids.** Los ids de la plantilla tienen prioridad.
 
 Comportamiento del código (`PetAnimator`):
 - Solo existe en los modelos importados que tienen al menos una animación válida. El modelo procedural conserva su rebote de siempre.
-- Prioridades: `Idle` → Idle, `Walk` y `Run` → Movement, `Jump` y `CaptureReaction` → Action. El cambio entre estados tiene un fundido de 0,15 s.
-- Velocidad de reproducción: `Walk` se ajusta a la velocidad real con referencia de 4 studs/s, y `Run` con referencia de 12 studs/s.
-- Cadena de respaldo: `Run → Walk → Idle`, `Jump → Idle` y `CaptureReaction → Idle`.
-- Todos los valores están en `PetAssets.StateInfo` y `PetAssets.Locomotion`.
+- Tres capas (base < sueño < acción) y **una sola pista sonando a la vez**, con fundido cruzado (0,1–0,25 s según el estado, en `PetAssets.StateInfo`).
+- Las pistas se cargan una vez por modelo y se reutilizan; los objetos `Animation` se comparten entre todos los PETs. Pedir el mismo estado cada fotograma no reinicia la pista.
+- Velocidad de reproducción: `Walk` con referencia de 4 studs/s y `Run` con referencia de 12 studs/s.
+- Una acción (`Happy`) no se corta por la locomoción: el cambio se anota y se aplica al terminar. Dormido no celebra. Si un PET dormido se desplaza, despierta (nunca se desliza dormido).
+- Los finales de pistas sin bucle se detectan por duración (fundido antes del final) y por `Stopped`.
+- Réplica: los trabajadores y el jefe se animan en el servidor (el `Animator` del servidor se replica a todos). Los PETs salvajes (privados) y los compañeros los construye y anima cada cliente, así que todos ven animados los compañeros de los demás. Una futura mecánica de sueño o celebración de compañeros tendrá que publicarse (por ejemplo, con un atributo replicado) para que la vean los demás.
+- Conjuntos por rig (`PetAssets.AnimationSets`): Lumi usa `Lumi_v7`. Las rarezas con el mismo rig lo reutilizan sin configurar nada; una rareza con rig propio declara `variants[rareza].animationSet`. Si la plantilla tiene el atributo `Rig` y no coincide con el del conjunto, no se anima con él (aviso en Output).
+- Orden de búsqueda de cada animación: carpeta `Animations` de la plantilla → `variants[rareza].animations` → `animations` de la especie → conjunto.
+- Panel **Dev** (solo Studio): botones para ver `Happy`, `Sleep` y despertar en tus compañeros equipados. Es solo una vista previa local.
 
 ## 8. Cómo se conserva el respaldo procedural
 
@@ -186,7 +195,7 @@ Nada de esto está verificado todavía, porque el modelo aún no existe.
 5. **Otros usos:**
    - fusiones (PET principal + PET pequeño encima);
    - sombrero VIP;
-   - Lumi trabajando en el extractor de piedra (animación `Idle`);
+   - Lumi trabajando en una estación de la parcela (animación `Work`; los demás jugadores también la ven);
    - jefe de incursión Lumi (escala 6).
 6. **Multijugador** con 2 clientes: cada uno ve animados los compañeros del otro, y los PETs salvajes siguen siendo privados.
 7. **Captura y datos:**
@@ -195,3 +204,36 @@ Nada de esto está verificado todavía, porque el modelo aún no existe.
 8. **Respaldo:** con `UseProcedural = true` en PetAssets, los Lumi nuevos vuelven a ser procedurales.
 9. **Rendimiento:** 12 Lumi en pantalla más compañeros en un móvil, o con el emulador de dispositivos. Revisar los FPS y la memoria en el MicroProfiler o en Stats.
 10. Hacer capturas desde los puntos fijos de la skill `roblox-visual-director` (zona 1 y parcela) para compararlas.
+
+## 10. Lumi Común V1.0 (`Downloads/Lumi_Roblox_Export`)
+
+### Análisis de los FBX (hecho por código, sin abrir Studio)
+
+| Archivo | Toma | Duración | Fotogramas | Bucle cerrado |
+|---|---|---|---|---|
+| `Lumi_Comun_Model.fbx` | — (malla + rig) | — | — | — |
+| `Lumi_Idle.fbx` | `Lumi_Idle` | 3,0 s | 91 | sí |
+| `Lumi_Walk.fbx` | `Lumi_Walk` | 1,0 s | 31 | sí |
+| `Lumi_Run.fbx` | `Lumi_Run` | 0,6 s | 19 | sí |
+| `Lumi_Happy.fbx` | `Lumi_Happy` | 1,33 s | 41 | vuelve a su pose inicial |
+| `Lumi_Sleep_Enter.fbx` | `Lumi_Sleep_Enter` | 1,2 s | 37 | no (transición) |
+| `Lumi_Sleep_Loop.fbx` | `Lumi_Sleep_Loop` | 3,8 s | 115 | sí |
+| `Lumi_Work.fbx` | `Lumi_Work` | 1,6 s | 49 | sí |
+
+- FBX 7.4 binario, 30 fps en los 8 archivos.
+- **Mismo esqueleto en los 8:** 34 huesos con nombres y jerarquía idénticos (`Lumi_Rig` → `Root` → `Hips` → …), 34 clusters de piel.
+- **Sin root motion:** `Root` y `Lumi_Rig` no se desplazan en ninguna animación. Solo `Hips` sube o baja unos centímetros.
+- **Transiciones:** la pose final de `Sleep_Enter` coincide con la inicial de `Sleep_Loop` (0°), y la inicial de `Sleep_Enter` coincide con `Idle` (0°). Entre los demás estados, la diferencia de pose la cubre el fundido cruzado.
+- Malla `Lumi_Comun_Body`: 7.886 vértices y **15.631 triángulos**. Está dentro del límite de importación de Roblox, pero es casi 4 veces el presupuesto de este documento (≤ 4.000), así que hay que medir el rendimiento con 12 Lumi en pantalla en móvil.
+- Textura `Lumi_Comun_Texture.png`: 2048×2048, idéntica a `Lumi_Comun_Model.fbm/texture_0.png`. Roblox la reduce a 1024×1024 al subirla.
+- Los huesos usan sufijos `.L` y `.R` (no `_L` y `_R`). Es válido: lo único que importa es que el modelo y las animaciones usen los mismos nombres, y así es.
+
+### Pasos en Roblox Studio
+
+Pasos generales en las secciones 6 y 7. Resumen para Lumi Común:
+1. **Import 3D** de `Lumi_Comun_Model.fbx` como rig propio (no R15). En la vista previa deben verse los 34 huesos y la textura.
+2. Renombra el modelo a `Lumi`, comprueba `PrimaryPart`, añade el atributo `Rig = "Lumi_v7"` (texto) y muévelo a `ReplicatedStorage → PetAssets`.
+3. Importa cada FBX de animación en el Animation Editor sobre `Lumi`. Activa el bucle en `Idle`, `Walk`, `Run`, `Work` y `Sleep_Loop`, y desactívalo en `Happy` y `Sleep_Enter`.
+4. Publica cada animación con la cuenta o el grupo dueño de la experiencia.
+5. Antes de guardar `assets/pets/Lumi.rbxmx`, borra la carpeta `AnimSaves` si el editor la creó.
+6. Los 7 ids van en `PetAssets.AnimationSets.Lumi_v7.ids`.

@@ -388,10 +388,14 @@ function methods.GetConnectedParts(o)
 end
 -- Animator simulado: registra pistas y estados de reproduccion
 function methods.LoadAnimation(o, anim)
-	local track = { Animation = anim, IsPlaying = false, Speed = 1, Looped = false, Priority = nil, plays = 0 }
-	function track:Play() self.IsPlaying = true; self.plays = self.plays + 1 end
-	function track:Stop() self.IsPlaying = false end
+	-- Length = 0 imita una pista cuya duracion aun no se conoce (el final llega por Stopped)
+	local track = { Animation = anim, IsPlaying = false, Speed = 1, Looped = false, Priority = nil, plays = 0, Length = 0,
+		Stopped = Signal() }
+	function track:Play(fade, weight, speed) self.IsPlaying = true; self.plays = self.plays + 1; self.Speed = speed or 1 end
+	function track:Stop() local was = self.IsPlaying; self.IsPlaying = false; if was then self.Stopped:Fire() end end
 	function track:AdjustSpeed(v) self.Speed = v end
+	-- Prueba: la pista sin bucle llega a su final
+	function track:__finish() self:Stop() end
 	o.__tracks = o.__tracks or {}
 	table.insert(o.__tracks, track)
 	return track

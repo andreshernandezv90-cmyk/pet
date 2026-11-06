@@ -17,19 +17,48 @@ local PetAssets = {}
 PetAssets.Enabled = true
 
 -- Estados de animacion admitidos (nombres exactos de los objetos Animation)
-PetAssets.States = { "Idle", "Walk", "Run", "Jump", "CaptureReaction" }
+PetAssets.States = { "Idle", "Walk", "Run", "Work", "Happy", "Sleep_Enter", "Sleep_Loop", "Jump", "CaptureReaction" }
 
--- Ajustes por estado: bucle, prioridad y a que estado recurrir si falta
+-- Ajustes por estado:
+--   kind: "base"   estado continuo (locomocion, trabajo, succion): solo uno a la vez
+--         "action" reaccion de una sola vez (Happy): al terminar vuelve al estado base
+--         "sleep"  secuencia de sueño (Sleep_Enter -> Sleep_Loop) hasta despertar
+--   looped / priority: se fuerzan por codigo al cargar la pista
+--   fallback: estado al que recurrir si falta la animacion (nil = no se reproduce)
+--   fade: segundos de fundido al entrar en el estado
 PetAssets.StateInfo = {
-	Idle = { looped = true, priority = "Idle", fallback = nil },
-	Walk = { looped = true, priority = "Movement", fallback = "Idle" },
-	Run = { looped = true, priority = "Movement", fallback = "Walk" },
-	Jump = { looped = false, priority = "Action", fallback = "Idle" },
-	CaptureReaction = { looped = true, priority = "Action", fallback = "Idle" },
+	Idle = { kind = "base", looped = true, priority = "Idle", fallback = nil, fade = 0.2 },
+	Walk = { kind = "base", looped = true, priority = "Movement", fallback = "Idle", fade = 0.15 },
+	Run = { kind = "base", looped = true, priority = "Movement", fallback = "Walk", fade = 0.15 },
+	Work = { kind = "base", looped = true, priority = "Action", fallback = "Idle", fade = 0.2 },
+	CaptureReaction = { kind = "base", looped = true, priority = "Action", fallback = "Idle", fade = 0.1 },
+	Jump = { kind = "base", looped = false, priority = "Action", fallback = "Idle", fade = 0.1 },
+	Happy = { kind = "action", looped = false, priority = "Action", fallback = nil, fade = 0.12 },
+	Sleep_Enter = { kind = "sleep", looped = false, priority = "Action", fallback = nil, fade = 0.25 },
+	Sleep_Loop = { kind = "sleep", looped = true, priority = "Action", fallback = nil, fade = 0.1 },
 }
 
 -- Umbrales de velocidad (studs/s) para elegir Idle / Walk / Run
 PetAssets.Locomotion = { walk = 0.6, run = 7, fade = 0.15, referenceWalkSpeed = 4, referenceRunSpeed = 12 }
+
+-- Conjuntos de animaciones por esqueleto. Todas las variantes que compartan el
+-- mismo rig (mismos nombres y jerarquia de huesos) reutilizan el mismo conjunto.
+--   rig: identificador del esqueleto. Si la plantilla tiene el atributo "Rig" y no
+--        coincide, el conjunto no se usa (evita animar un rig incompatible).
+--   ids: AnimationId por estado. Deben ser ids reales publicados por la cuenta o el
+--        grupo dueño de la experiencia. Vacio hasta tenerlos: no se inventan.
+PetAssets.AnimationSets = {
+	-- Lumi Comun: Lumi_Comun_rig_v7.blend, 34 huesos (Root, Hips, Spine, Chest, Neck,
+	-- Head, Jaw, Ear_01-03.L/R, Shoulder/UpperArm/Forearm/FrontPaw.L/R, Tail_01-05,
+	-- Thigh/Shin/BackFoot/BackPaw.L/R), 30 fps, sin root motion.
+	Lumi_v7 = {
+		rig = "Lumi_v7",
+		ids = {
+			-- Idle = "rbxassetid://<id real>",
+			-- Walk, Run, Happy, Sleep_Enter, Sleep_Loop, Work
+		},
+	},
+}
 
 -- Limites de seguridad para plantillas (avisos, no bloqueos, salvo maxParts)
 PetAssets.Limits = { maxParts = 40, maxBones = 64 }
@@ -40,15 +69,21 @@ PetAssets.Limits = { maxParts = 40, maxBones = 64 }
 --   heightFactor: alto final = alto del PET procedural (2 * escala * tamaño de
 --          rareza) * heightFactor. La plantilla se escala sola con Model:ScaleTo.
 --   yaw: grados para corregir la orientacion si la cara no mira hacia -Z.
---   animations: AnimationId por estado SOLO si no vienen dentro de la plantilla.
---          Deben ser ids reales publicados por la cuenta dueña de la experiencia.
+--   animationSet: conjunto de PetAssets.AnimationSets que usa la especie.
+--   animations: AnimationId por estado que sustituyen a los del conjunto (opcional).
+--   variants[rareza]: { animationSet = ..., animations = {...} } para una rareza con
+--          rig propio. Sin entrada, la rareza reutiliza el conjunto de la especie.
+-- Orden de busqueda por estado: carpeta "Animations" de la plantilla ->
+-- variants[rareza].animations -> animations -> conjunto (de la variante o especie).
 PetAssets.Species = {
 	lumi = {
 		model = "Lumi",
 		heightFactor = 1.0,
 		yaw = 0,
-		animations = {
-			-- Idle = "rbxassetid://<id real>", -- dejar vacio hasta tener el id publicado
+		animationSet = "Lumi_v7",
+		animations = {},
+		variants = {
+			-- rare = { animationSet = "Lumi_v7" }, -- cuando exista Lumi_rare con el mismo rig
 		},
 	},
 }
@@ -160,21 +195,64 @@ function PetAssets.Find(speciesId, rarityId)
 	return nil
 end
 
--- Fuentes de animacion: objetos Animation dentro de la plantilla (carpeta
--- "Animations") y, si faltan, los ids configurados. Devuelve { [estado] = Animation }.
+-- Un unico objeto Animation por (estado, id): todos los PETs lo comparten
+local animCache = {}
+local function animationObject(state, id)
+	local key = state .. "|" .. id
+	local a = animCache[key]
+	if not a then
+		a = Instance.new("Animation")
+		a.Name = state
+		a.AnimationId = id
+		animCache[key] = a
+	end
+	return a
+end
+
+-- Conjunto de animaciones aplicable a un modelo, o nil si no hay o si el rig no coincide
+function PetAssets.AnimationSetFor(model, speciesId)
+	local cfg = PetAssets.Species[speciesId]
+	if not cfg then
+		return nil
+	end
+	local rarity = model:GetAttribute("Rarity")
+	local variant = cfg.variants and rarity and cfg.variants[rarity] or nil
+	local setName = (variant and variant.animationSet) or cfg.animationSet
+	local set = setName and PetAssets.AnimationSets[setName] or nil
+	if not set then
+		return nil, variant
+	end
+	local rig = model:GetAttribute("Rig")
+	if rig ~= nil and set.rig ~= nil and rig ~= set.rig then
+		warnOnce(tostring(model:GetAttribute("AssetName")) .. ":rig:" .. setName,
+			tostring(model:GetAttribute("AssetName")) .. " tiene Rig=" .. tostring(rig) .. " y el conjunto " .. setName .. " es para " .. set.rig .. "; no se usa.")
+		return nil, variant
+	end
+	return set, variant
+end
+
+-- Fuentes de animacion por estado: carpeta "Animations" de la plantilla y, si
+-- faltan, los ids configurados (variante, especie, conjunto). Devuelve { [estado] = Animation }.
 function PetAssets.AnimationsFor(model, speciesId)
 	local out = {}
 	local folderA = model:FindFirstChild("Animations")
 	local cfg = PetAssets.Species[speciesId]
+	local set, variant = PetAssets.AnimationSetFor(model, speciesId)
 	for _, state in ipairs(PetAssets.States) do
 		local a = folderA and folderA:FindFirstChild(state)
 		if a and a.ClassName == "Animation" and PetAssets.IsAnimationId(a.AnimationId) then
 			out[state] = a
-		elseif cfg and cfg.animations and PetAssets.IsAnimationId(cfg.animations[state]) then
-			local anim = Instance.new("Animation")
-			anim.Name = state
-			anim.AnimationId = cfg.animations[state]
-			out[state] = anim
+		else
+			local id = (variant and variant.animations and variant.animations[state])
+			if not PetAssets.IsAnimationId(id) then
+				id = cfg and cfg.animations and cfg.animations[state]
+			end
+			if not PetAssets.IsAnimationId(id) then
+				id = set and set.ids and set.ids[state]
+			end
+			if PetAssets.IsAnimationId(id) then
+				out[state] = animationObject(state, id)
+			end
 		end
 	end
 	return out
