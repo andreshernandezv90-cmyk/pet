@@ -206,8 +206,11 @@ local function validate(name, template)
 	return ok
 end
 
--- Devuelve la plantilla valida para una especie y rareza, o nil (=> procedural)
-function PetAssets.Find(speciesId, rarityId)
+-- Devuelve la plantilla valida para una especie y rareza, o nil (=> procedural).
+-- Con shiny = true busca primero las variantes Shiny personalizadas:
+--   "<model>_<rareza>_shiny", "<model>_shiny"; despues las normales.
+-- Cuarto valor: true si la plantilla encontrada es una variante Shiny.
+function PetAssets.Find(speciesId, rarityId, shiny)
 	if not PetAssets.Enabled then
 		return nil
 	end
@@ -220,19 +223,27 @@ function PetAssets.Find(speciesId, rarityId)
 		return nil
 	end
 	local candidates = {}
-	if rarityId then
-		table.insert(candidates, cfg.model .. "_" .. rarityId)
+	if shiny then
+		if rarityId then
+			table.insert(candidates, { cfg.model .. "_" .. rarityId .. "_shiny", true })
+		end
+		table.insert(candidates, { cfg.model .. "_shiny", true })
 	end
-	table.insert(candidates, cfg.model)
-	for i, name in ipairs(candidates) do
+	if rarityId then
+		table.insert(candidates, { cfg.model .. "_" .. rarityId, false })
+	end
+	table.insert(candidates, { cfg.model, false })
+	for _, c in ipairs(candidates) do
+		local name = c[1]
 		local t = f:FindFirstChild(name)
 		if t and validate(name, t) then
-			if i > 1 and rarityId and cfg.rarityModels and cfg.rarityModels[rarityId] then
+			-- Se cayo al modelo base aunque esta rareza tiene plantilla propia prevista
+			if name == cfg.model and rarityId and cfg.rarityModels and cfg.rarityModels[rarityId] then
 				local want = cfg.model .. "_" .. rarityId
 				warnOnce(want .. ":missing", "Falta (o no es valida) la plantilla " .. want .. " en ReplicatedStorage.PetAssets (assets/pets/" .. want
 					.. ".rbxm); este PET usa " .. name .. " con los efectos de su rareza. Ver docs/ART_PIPELINE.md, seccion 14.")
 			end
-			return t, cfg, name
+			return t, cfg, name, c[2]
 		end
 	end
 	return nil

@@ -128,10 +128,31 @@ Vector3.zAxis = Vector3.new(0, 0, 1)
 
 -- Opacos --------------------------------------------------------------------
 local C3 = {}
-C3.__index = { Lerp = function(a) return a end }
 Color3 = {
 	fromRGB = function(r, g, b) return setmetatable({ R = r / 255, G = g / 255, B = b / 255 }, C3) end,
 	new = function(r, g, b) return setmetatable({ R = r or 0, G = g or 0, B = b or 0 }, C3) end,
+}
+function Color3.fromHSV(h, s, v)
+	local i = math.floor(h * 6) % 6
+	local f = h * 6 - math.floor(h * 6)
+	local p, q, t = v * (1 - s), v * (1 - f * s), v * (1 - (1 - f) * s)
+	local r, g, b
+	if i == 0 then r, g, b = v, t, p elseif i == 1 then r, g, b = q, v, p elseif i == 2 then r, g, b = p, v, t
+	elseif i == 3 then r, g, b = p, q, v elseif i == 4 then r, g, b = t, p, v else r, g, b = v, p, q end
+	return Color3.new(r, g, b)
+end
+C3.__index = {
+	Lerp = function(a, b, t) return Color3.new(a.R + (b.R - a.R) * t, a.G + (b.G - a.G) * t, a.B + (b.B - a.B) * t) end,
+	ToHSV = function(c)
+		local mx, mn = math.max(c.R, c.G, c.B), math.min(c.R, c.G, c.B)
+		local d = mx - mn
+		local h = 0
+		if d > 0 then
+			if mx == c.R then h = ((c.G - c.B) / d) % 6 elseif mx == c.G then h = (c.B - c.R) / d + 2 else h = (c.R - c.G) / d + 4 end
+			h = h / 6
+		end
+		return h, mx > 0 and d / mx or 0, mx
+	end,
 }
 local function opaque(name) return { new = function(...) return { __type = name, ... } end } end
 UDim2 = opaque("UDim2"); UDim = opaque("UDim"); Vector2 = opaque("Vector2"); TweenInfo = opaque("TweenInfo")

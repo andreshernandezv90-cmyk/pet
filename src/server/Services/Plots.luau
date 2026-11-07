@@ -201,7 +201,7 @@ local function buildWorkers(parent, base, profile)
 				end
 				local u = profile.units[id]
 				if u then
-					local m = PetModels.Build(u.s, u.r, { scale = 0.7 })
+					local m = PetModels.Build(u.s, u.r, { scale = 0.7, shiny = u.shiny })
 					local off
 					if stationId == "garden" then
 						off = CFrame.new((i - 2) * 6, 2, -spot.d / 2 - 2)

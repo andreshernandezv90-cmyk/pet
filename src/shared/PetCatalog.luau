@@ -165,22 +165,45 @@ function PetCatalog.Rarity(rarityId)
 	return PetCatalog.RarityById[rarityId]
 end
 
-function PetCatalog.Key(speciesId, rarityId)
+-- Clave de pila: "especie:rareza" (normal) o "especie:rareza:shiny" (Shiny).
+-- Shiny es una dimension aparte de la rareza: "lumi:common:shiny" y "lumi:common"
+-- son pilas distintas. Las claves antiguas (sin sufijo) siguen siendo normales.
+PetCatalog.ShinySuffix = "shiny"
+
+function PetCatalog.Key(speciesId, rarityId, shiny)
+	if shiny then
+		return speciesId .. ":" .. rarityId .. ":" .. PetCatalog.ShinySuffix
+	end
 	return speciesId .. ":" .. rarityId
 end
 
+-- Devuelve especie, rareza, shiny (o nil si la clave no es valida)
 function PetCatalog.ParseKey(key)
 	if type(key) ~= "string" then
-		return nil, nil
+		return nil, nil, nil
 	end
-	local s, r = string.match(key, "^(%a+):(%a+)$")
+	local s, r, rest = string.match(key, "^(%a+):(%a+)(.*)$")
+	local shiny
+	if rest == "" then
+		shiny = false
+	elseif rest == ":" .. PetCatalog.ShinySuffix then
+		shiny = true
+	else
+		return nil, nil, nil
+	end
 	if s and PetCatalog.ById[s] and PetCatalog.RarityById[r] then
 		if r == "mythic" and not PetCatalog.ById[s].mythic then
-			return nil, nil
+			return nil, nil, nil
 		end
-		return s, r
+		return s, r, shiny
 	end
-	return nil, nil
+	return nil, nil, nil
+end
+
+-- Clave base (sin Shiny) para la coleccion de 63 variantes
+function PetCatalog.BaseKey(key)
+	local s, r = PetCatalog.ParseKey(key)
+	return s and PetCatalog.Key(s, r) or nil
 end
 
 -- Rarezas disponibles para una especie (4 o 5 si tiene mitico)

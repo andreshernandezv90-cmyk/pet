@@ -2,18 +2,21 @@
 -- de nivel 0..5 con costos por salto 50/200/500/1000/5000 = 6750. (GDD 12 y 13)
 --  * Solo PETs ordinarios en pilas (no equipados, trabajando, fusionados,
 --    evolucionados ni protegidos) pueden reciclarse.
+--  * Los Shiny estan protegidos: no se reciclan salvo confirmacion explicita
+--    (allowShiny) y dan exactamente las mismas esencias que su rareza (GDD 23).
 --  * Descontar PETs y acreditar esencias ocurre en una sola operacion atomica,
 --    con nonce de idempotencia contra reintentos.
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local PetCatalog = require(Shared.PetCatalog)
 local PetStore = require(Shared.PetStore)
+local Config = require(Shared.Config)
 
 local Essence = {}
 local S
 
 -- Calcula la conversion exacta (usado tambien para la vista previa)
-function Essence.Preview(profile, items)
+function Essence.Preview(profile, items, allowShiny)
 	local bySpecies = {}
 	local total = 0
 	if type(items) ~= "table" then
@@ -25,10 +28,13 @@ function Essence.Preview(profile, items)
 		if count > 80 then
 			return nil, "Seleccion demasiado grande."
 		end
-		local s, r = PetCatalog.ParseKey(key)
+		local s, r, shiny = PetCatalog.ParseKey(key)
 		n = tonumber(n)
 		if not s or not n or n < 0 or n % 1 ~= 0 then
 			return nil, "Seleccion invalida."
+		end
+		if shiny and n > 0 and Config.Shiny.protectInReactor and not allowShiny then
+			return nil, "Los PETs Shiny estan protegidos y no se reciclan."
 		end
 		if n > 0 then
 			if PetStore.StackCount(profile, key) < n then
@@ -54,7 +60,7 @@ function Essence.Init(services)
 		if not fresh then
 			return cached
 		end
-		local bySpecies, err, total = Essence.Preview(profile, payload.items)
+		local bySpecies, err, total = Essence.Preview(profile, payload.items, payload.allowShiny == true)
 		if not bySpecies then
 			return { ok = false, msg = err }
 		end

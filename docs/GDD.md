@@ -83,6 +83,17 @@ Nota de control: números de producción, probabilidades, tiempos y precios son 
 | Orden | D (minería) → Shiny → combate PvE por turnos (Lumi contra Rocón) → guardianes de cuevas y jefes → PvP y arenas competitivas. Los sistemas futuros se mantienen desacoplados. |
 | Shiny | 1 entre 500 apariciones (0,2%), configurable. Es independiente de la rareza y puede aparecer en cualquiera disponible. No modifica estadísticas ni la igualdad en PvP. Se guarda permanentemente y los ejemplares existentes se migran sin perder atributos. |
 
+## Implementación Shiny (Fase S)
+
+| Regla del GDD 23 | Implementación |
+|---|---|
+| Probabilidad independiente y baja | `Config.Shiny.chance = 1/500`, tirada del servidor al generar cada encuentro (y `raidChance` en la recompensa de incursión). La poción Fortuna no la cambia |
+| Independiente de rareza y nivel | Tirada separada de `RollRarity`; puede salir en cualquier rareza disponible de la especie |
+| Mismas estadísticas | Stats, producción, captura y Reactor ignoran Shiny (probado) |
+| Datos | Pilas `especie:rareza:shiny`, `unit.shiny = true` en individuos, `shinyDex` por variante. Esquema v4 aditivo: lo existente queda como normal |
+| Reactor | Protegidos por defecto (`protectInReactor`); con confirmación explícita (`allowShiny`) dan las mismas esencias que su rareza |
+| Apariencia | Provisional: paleta alternativa automática, partículas ligeras (3/s) y etiqueta ✨. Personalizable por especie en `ShinyStyle.Species` y con modelos `<Modelo>_shiny` |
+
 ## Minerales por región (probabilidad por ciclo de generación, configurable)
 
 Los porcentajes indican la probabilidad de que un recurso aparezca en un ciclo de generación de nodos de esa mina. No son excluyentes ni deben sumar 100%.

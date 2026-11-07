@@ -47,12 +47,19 @@ local function rebuild(player)
 	byPlayer[player] = data
 	local hat = player:GetAttribute("PetHat") == true
 	local spec = player:GetAttribute("Followers") or ""
+	-- una rareza terminada en "*" indica Shiny (solo apariencia)
+	local function rar(token)
+		local r, star = string.match(token or "", "^(%a+)(%*?)$")
+		return r, star == "*"
+	end
 	for item in string.gmatch(spec, "[^,]+") do
 		local parts = string.split(item, ":")
 		local entry
 		if parts[1] == "F" then
-			local m = PetModels.Build(parts[2], parts[3], { scale = 1.25, hat = hat })
-			local extra = PetModels.Build(parts[4], parts[5], { scale = 0.6 })
+			local ra, sa = rar(parts[3])
+			local rb, sb = rar(parts[5])
+			local m = PetModels.Build(parts[2], ra, { scale = 1.25, hat = hat, shiny = sa })
+			local extra = PetModels.Build(parts[4], rb, { scale = 0.6, shiny = sb })
 			m.Parent = folder
 			extra.Parent = folder
 			entry = { model = m, extra = extra, fusion = true }
@@ -61,7 +68,8 @@ local function rebuild(player)
 			m.Parent = folder
 			entry = { model = m }
 		elseif PetCatalog.Get(parts[1]) then
-			local m = PetModels.Build(parts[1], parts[2], { scale = 0.85, hat = hat })
+			local r, sh = rar(parts[2])
+			local m = PetModels.Build(parts[1], r, { scale = 0.85, hat = hat, shiny = sh })
 			m.Parent = folder
 			entry = { model = m }
 		end

@@ -28,8 +28,13 @@ end
 
 local STATUS = { equipped = "Equipado", working = "Trabajando", fused = "Fusionado", free = "" }
 
+-- Etiqueta Shiny provisional (solo apariencia; no cambia estadisticas)
+function Common.ShinyTag(shiny)
+	return shiny and (" " .. K.color("✨ Shiny", Color3.fromRGB(255, 225, 120))) or ""
+end
+
 function Common.EntryLabel(e)
-	local s = Common.PetName(e.s, e.r, e.lv)
+	local s = Common.PetName(e.s, e.r, e.lv) .. Common.ShinyTag(e.shiny)
 	if e.kind == "stack" then
 		s = s .. "  x" .. e.count
 		local where = {}

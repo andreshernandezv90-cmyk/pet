@@ -103,6 +103,8 @@ src/shared/   → ReplicatedStorage.Shared
   PetModels.luau            Modelos de PETs: plantilla importada si existe (PetAssets), si no procedural
   PetAssets.luau            Registro de modelos importados por especie (Lumi), validación y respaldo
   PetAnimator.luau          Animaciones Idle/Walk/Run/Jump/CaptureReaction con respaldos
+  ShinyStyle.luau           Apariencia Shiny (paleta, particulas ligeras, estilos por especie)
+  MineVeins.luau            Reparto privado de vetas de las Minas de Zuar
 src/server/   → ServerScriptService.Server
   init.server.luau          Arranque y entrada de jugadores
   Services/
@@ -244,6 +246,10 @@ lua5.4 tools/sim/mines.lua
 lua5.4 tools/sim/persistence.lua
 ```
 
+```bash
+lua5.4 tools/sim/shiny.lua
+```
+
 Qué cubre cada prueba:
 
 - `shared.lua`: reglas del GDD (63 variantes, 6750 esencias, pilas de 50, mochila, recetas y topes).
@@ -256,6 +262,7 @@ Qué cubre cada prueba:
 
 Validación de los modelos reales de `assets/pets` (usa Rojo para leer los `.rbxm`): `python tools/check_pet_assets.py --require Lumi,Lumi_rare,Lumi_epic,Lumi_legendary`.
 - `mines.lua`: Minas de Zuar como mundo propio (hub, Cantera libre, 5 galerías con sus vetas, cortinas, terreno excavado, presupuesto), reparto de vetas fiel a `mine.chances`, flujo completo (Cantera, galería abierta y bloqueada, pico necesario, distancia, privacidad entre jugadores, ciclo nuevo), enlace con las bocas de mina del Reino y sello de guardián desactivable.
+- `shiny.lua`: claves Shiny, tasa 1/500 e independencia de la rareza (400.000 tiradas), captura Shiny decidida por el servidor, intentos de manipulación del cliente, pilas separadas, individuos, compañeros y fusiones, mismas estadísticas y producción, protección en el Reactor, persistencia, migración v3 → v4 y apariencia (paleta, partículas y variante importada).
 - `persistence.lua`: perfiles ajenos o futuros (p. ej. Astra v0.6, esquema 4) nunca se migran ni se sobrescriben; migración v2 → v3 sin pérdidas.
 - `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables, áreas señalizadas y fogata en las 8 parcelas, portal central único, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, hacha por niveles, regalos (privados, validados y únicos) y presupuesto de partes.
 

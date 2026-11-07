@@ -6,11 +6,14 @@
 -- En ambos casos el modelo tiene una parte raiz (PrimaryPart) anclada; el resto va
 -- unido a ella, por lo que basta con :PivotTo para mover todo el PET. El pivote
 -- queda en el centro del PET y el frente mira hacia -Z.
--- Atributos comunes: Radius, Species, Rarity, Source ("procedural" | "asset").
+-- Atributos comunes: Radius, Species, Rarity, Shiny, Source ("procedural" | "asset").
 -- El aspecto nunca altera la especie, la rareza, el inventario ni los datos.
+-- Shiny (opts.shiny): paleta alternativa (ShinyStyle) + particulas ligeras. Es
+-- solo visual; un modelo importado puede tener su variante "<Modelo>_shiny".
 
 local PetCatalog = require(script.Parent.PetCatalog)
 local PetAssets = require(script.Parent.PetAssets)
+local ShinyStyle = require(script.Parent.ShinyStyle)
 
 local PetModels = {}
 
@@ -398,29 +401,65 @@ local function buildFromAsset(template, cfg, assetName, sp, rar, u, opts)
 	return model
 end
 
--- opts: { scale = 1, hat = bool, label = string|nil, anchored = true, procedural = bool }
+-- Particulas Shiny ligeras (pocas, cortas, sin luz extra: aptas para moviles)
+local function shinyParticles(body, u, color)
+	local P = ShinyStyle.Particles
+	local pe = Instance.new("ParticleEmitter")
+	pe.Name = "ShinySparkles"
+	pe.Rate = P.rate
+	pe.Lifetime = NumberRange.new(P.lifetime[1], P.lifetime[2])
+	pe.Speed = NumberRange.new(P.speed[1], P.speed[2])
+	pe.SpreadAngle = Vector2.new(180, 180)
+	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.3, u * P.size),
+		NumberSequenceKeypoint.new(1, 0) })
+	pe.Transparency = NumberSequence.new(0.15, 1)
+	pe.LightEmission = P.lightEmission
+	pe.LightInfluence = 0
+	pe.Color = ColorSequence.new(color)
+	pe.Parent = body
+	return pe
+end
+
+-- opts: { scale = 1, hat = bool, label = string|nil, anchored = true, procedural = bool, shiny = bool }
 function PetModels.Build(speciesId, rarityId, opts)
 	opts = opts or {}
 	local sp = PetCatalog.Get(speciesId) or PetCatalog.Species[1]
 	local rar = PetCatalog.Rarity(rarityId) or PetCatalog.Rarities[1]
 	local u = 2 * (opts.scale or 1) * rar.size
+	local shiny = opts.shiny == true
+	local palette = shiny and ShinyStyle.Palette(sp) or nil
 	local model = nil
+	local tinted = false
 	if not opts.procedural then
-		local template, cfg, assetName = PetAssets.Find(sp.id, rar.id)
+		local template, cfg, assetName, shinyVariant = PetAssets.Find(sp.id, rar.id, shiny)
 		if template then
 			local ok, res = pcall(buildFromAsset, template, cfg, assetName, sp, rar, u, opts)
 			if ok and res then
 				model = res
+				tinted = shinyVariant == true
 			else
 				warn("[PetModels] fallo el modelo importado de " .. sp.name .. "; se usa el procedural. " .. tostring(res))
 			end
 		end
 	end
 	if not model then
-		model = buildProcedural(sp, rar, u, opts)
+		-- el procedural Shiny usa la paleta alternativa con la misma silueta
+		local look = sp
+		if palette then
+			look = setmetatable({ color = palette.color, color2 = palette.color2 }, { __index = sp })
+			tinted = true
+		end
+		model = buildProcedural(look, rar, u, opts)
 	end
 	model:SetAttribute("Species", sp.id)
 	model:SetAttribute("Rarity", rar.id)
+	if shiny then
+		model:SetAttribute("Shiny", true)
+		model:SetAttribute("ShinyTinted", tinted)
+		if model.PrimaryPart then
+			shinyParticles(model.PrimaryPart, u, palette.particle)
+		end
+	end
 	return model
 end
 

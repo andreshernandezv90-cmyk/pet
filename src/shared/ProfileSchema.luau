@@ -32,13 +32,14 @@ function ProfileSchema.Default()
 		stations = stations,
 
 		zones = { unlocked = 1, parkour = {} },
-		dex = {}, -- ["lumi:common"] = true
+		dex = {}, -- ["lumi:common"] = true (coleccion de 63 variantes; Shiny no cuenta aparte)
+		shinyDex = {}, -- v4: ["lumi:common"] = true -> encontraste esa variante en Shiny
 		captured = {}, -- [speciesId] = total capturados
 		story = { visitedMines = false, finished = false },
 
 		-- PETs: pilas agregadas (ordinarios) + individuos con identidad propia
 		stacks = { tank = {}, storage = {} },
-		units = {}, -- [id] = { id, s, r, lv, st = "free"|"equipped"|"working"|"fused", lock, loc = "tank"|"storage" }
+		units = {}, -- [id] = { id, s, r, lv, st = "free"|"equipped"|"working"|"fused", lock, loc = "tank"|"storage", shiny = true|nil }
 		nextUnitId = 1,
 		team = {}, -- lista ordenada de ids (1 = principal)
 
@@ -154,6 +155,11 @@ function ProfileSchema.Migrate(profile)
 		-- v2 -> v3: solo AGREGA el linaje y el registro de galerias visitadas.
 		-- Quien ya habia entrado a las minas antiguas conserva esa marca.
 		profile.lineage = ProfileSchema.Lineage
+	end
+	if v < 4 then
+		-- v3 -> v4 (Shiny): solo AGREGA shinyDex. Las pilas ("especie:rareza") y los
+		-- individuos sin campo shiny se consideran NORMALES; no se toca nada mas.
+		profile.shinyDex = profile.shinyDex or {}
 	end
 	profile.schemaVersion = Config.SchemaVersion
 	return profile

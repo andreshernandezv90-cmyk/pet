@@ -20,15 +20,19 @@ function Inventory.RefreshPlayer(player)
 	end
 	local now = os.time()
 	local agg = Stats.Aggregate(profile, now)
+	-- Formato: "especie:rareza:nivel"; una rareza con "*" indica Shiny (solo visual)
+	local function rt(r, shiny)
+		return shiny and (r .. "*") or r
+	end
 	local parts = {}
 	for _, id in ipairs(profile.team) do
 		local u = profile.units[id]
 		if u then
-			table.insert(parts, u.s .. ":" .. u.r .. ":" .. u.lv)
+			table.insert(parts, u.s .. ":" .. rt(u.r, u.shiny) .. ":" .. u.lv)
 		end
 	end
 	for _, f in ipairs(Stats.ActiveFusions(profile, now)) do
-		table.insert(parts, "F:" .. f.a.s .. ":" .. f.a.r .. ":" .. f.b.s .. ":" .. f.b.r)
+		table.insert(parts, "F:" .. f.a.s .. ":" .. rt(f.a.r, f.a.shiny) .. ":" .. f.b.s .. ":" .. rt(f.b.r, f.b.shiny))
 	end
 	if profile.cosmetics.visualpet and not profile.cosmetics.hide_visualpet then
 		table.insert(parts, "V:lumi:legendary")
