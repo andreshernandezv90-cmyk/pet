@@ -22,14 +22,14 @@ local UPV = Vector3.new(0, 1, 0)
 local folder = Instance.new("Folder")
 folder.Name = "PetAssets"
 folder.Parent = RS
-local function makeLumi()
+local function makeLumi(name, size)
 	local real = Instance.new("Model")
-	real.Name = "Lumi"
+	real.Name = name or "Lumi"
 	real:SetAttribute("Rig", "Lumi_v7")
 	local body = Instance.new("MeshPart")
-	body.Name = "Lumi_Comun_Body"
-	body.Size = Vector3.new(1.1831539, 1.6666665, 1.5838034)
-	body.CFrame = CFrame.new(0, 0.8333, 0)
+	body.Name = "Lumi_Body"
+	body.Size = size or Vector3.new(1.1831539, 1.6666665, 1.5838034)
+	body.CFrame = CFrame.new(0, body.Size.Y / 2, 0)
 	body.Anchored = true
 	body.Parent = real
 	local prev = body
@@ -44,6 +44,8 @@ local function makeLumi()
 	return real
 end
 makeLumi()
+-- Variantes por rareza (malla de 1.646 de alto en reposo, como los FBX de Raro/Epico/Legendario)
+for _, r in ipairs({ "rare", "epic", "legendary" }) do makeLumi("Lumi_" .. r, Vector3.new(1.18, 1.6462, 1.58)) end
 
 -- Pies = pivote - arriba_del_modelo * GroundOffset
 local function feet(m)

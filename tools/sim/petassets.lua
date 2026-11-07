@@ -471,7 +471,8 @@ local Schema = require(RS.Shared.ProfileSchema)
 check(profile.version == Schema.Default().version, "perfil sin cambios de version")
 local unexpected = {}
 for _, w in ipairs(warnings) do
-	if not (w:find("PetAssets") and (w:find("no tiene partes") or w:find("partes %(maximo") or w:find("trae scripts"))) then
+	if not (w:find("PetAssets") and (w:find("no tiene partes") or w:find("partes %(maximo") or w:find("trae scripts")
+		or w:find("Falta (o no es valida) la plantilla", 1, true))) then -- esta suite solo usa la plantilla Lumi
 		table.insert(unexpected, w)
 	end
 end

@@ -115,8 +115,13 @@ PetAssets.Species = {
 		footInset = 0,
 		animationSet = "Lumi_v7",
 		animations = {},
+		-- Plantillas propias por rareza (assets/pets/Lumi_<rareza>.rbxm). Comparten el rig
+		-- de 34 huesos (Rig = "Lumi_v7"), asi que reutilizan Lumi_v7 sin configurar nada.
+		-- Si falta alguna, ese Lumi usa la plantilla "Lumi" con sus efectos de rareza y se
+		-- avisa una vez en Output. Mitico aun no tiene modelo propio (usa "Lumi", sin aviso).
+		rarityModels = { rare = true, epic = true, legendary = true },
 		variants = {
-			-- rare = { animationSet = "Lumi_v7" }, -- cuando exista Lumi_rare con el mismo rig
+			-- <rareza> = { animationSet = ..., animations = {...}, footInset = ... } solo si difiere
 		},
 	},
 }
@@ -219,9 +224,14 @@ function PetAssets.Find(speciesId, rarityId)
 		table.insert(candidates, cfg.model .. "_" .. rarityId)
 	end
 	table.insert(candidates, cfg.model)
-	for _, name in ipairs(candidates) do
+	for i, name in ipairs(candidates) do
 		local t = f:FindFirstChild(name)
 		if t and validate(name, t) then
+			if i > 1 and rarityId and cfg.rarityModels and cfg.rarityModels[rarityId] then
+				local want = cfg.model .. "_" .. rarityId
+				warnOnce(want .. ":missing", "Falta (o no es valida) la plantilla " .. want .. " en ReplicatedStorage.PetAssets (assets/pets/" .. want
+					.. ".rbxm); este PET usa " .. name .. " con los efectos de su rareza. Ver docs/ART_PIPELINE.md, seccion 14.")
+			end
 			return t, cfg, name
 		end
 	end
