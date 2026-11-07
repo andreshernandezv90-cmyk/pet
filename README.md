@@ -89,7 +89,7 @@ En un servidor publicado estos atajos no funcionan.
 
 ```
 default.project.json        Mapa de Rojo
-assets/pets/  → ReplicatedStorage.PetAssets   Modelos importados desde Studio (.rbxmx); ver docs/ART_PIPELINE.md
+assets/pets/  → ReplicatedStorage.PetAssets   Modelos importados desde Studio (.rbxm o .rbxmx; hoy Lumi.rbxm); ver docs/ART_PIPELINE.md
 src/shared/   → ReplicatedStorage.Shared
   Config.luau               Parámetros de balance, tiempos, IDs de productos
   PetCatalog.luau           15 especies, rarezas, habilidades, trabajos, costos de nivel

@@ -11,18 +11,25 @@ La forma recomendada sigue siendo `rojo build` o `rojo serve`; este script es
 una alternativa para abrir el juego directamente en Roblox Studio.
 
 Modelos importados (assets/pets): los archivos .rbxmx (XML) se incrustan tal cual
-(con sus SharedStrings). Los .rbxm binarios no se pueden convertir aqui: se avisa
-y hay que usar `rojo build` / `rojo serve` o guardar el modelo como .rbxmx.
+(con sus SharedStrings). Los .rbxm binarios se convierten primero a XML con Rojo
+(`rojo build` de un proyecto temporal de un solo modelo, sin tocar el original);
+si Rojo no esta instalado se avisa y el modelo no se incluye.
+Los referentes de cada modelo incrustado se prefijan para que no choquen entre si.
 """
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ref_counter = [0]
 shared_strings = []  # elementos <SharedString> de los .rbxmx incrustados
+shared_keys = set()
+model_counter = [0]
 
 
 def ref():
@@ -45,14 +52,24 @@ def script_item(cls, name, path):
     return cls, name, '<ProtectedString name="Source">%s</ProtectedString>' % cdata(src)
 
 
-def rbxmx_items(path):
+def rbxmx_items(path, stem=None):
     """Devuelve el XML de los <Item> raiz de un .rbxmx (y guarda sus SharedStrings)."""
     tree = ET.parse(path)
     root = tree.getroot()
     items = [c for c in root if c.tag == "Item"]
+    # Referentes unicos por modelo: las propiedades Ref (PrimaryPart, Part0...) siguen
+    # apuntando a su instancia aunque se incrusten varios modelos
+    model_counter[0] += 1
+    prefix = "M%d_" % model_counter[0]
+    for it in root.iter("Item"):
+        if it.get("referent"):
+            it.set("referent", prefix + it.get("referent"))
+    for ref in root.iter("Ref"):
+        if ref.text and ref.text.strip() not in ("null", "nil", ""):
+            ref.text = prefix + ref.text.strip()
     if len(items) == 1:
         # como Rojo: la instancia raiz toma el nombre del archivo
-        stem = os.path.basename(path)[:-len(".rbxmx")]
+        stem = stem or os.path.basename(path)[:-len(".rbxmx")]
         props = items[0].find("Properties")
         if props is not None:
             for prop in props:
@@ -64,16 +81,40 @@ def rbxmx_items(path):
             out += ET.tostring(child, encoding="unicode")
         elif child.tag == "SharedStrings":
             for ss in child:
-                shared_strings.append(ET.tostring(ss, encoding="unicode"))
+                key = ss.get("md5")
+                if key not in shared_keys:
+                    shared_keys.add(key)
+                    shared_strings.append(ET.tostring(ss, encoding="unicode"))
     return out
+
+
+def rbxm_items(path):
+    """Convierte un .rbxm binario a XML con Rojo y lo incrusta como un .rbxmx."""
+    stem = os.path.basename(path)[:-len(".rbxm")]
+    rojo = shutil.which("rojo")
+    if not rojo:
+        print("AVISO: %s es binario (.rbxm) y Rojo no esta instalado; no se incluye. "
+              "Instala Rojo (rokit install) o guarda el modelo como .rbxmx." % path)
+        return ""
+    with tempfile.TemporaryDirectory() as tmp:
+        project = os.path.join(tmp, "model.project.json")
+        with open(project, "w", encoding="utf-8") as f:
+            json.dump({"name": stem, "tree": {"$path": os.path.abspath(path).replace(os.sep, "/")}}, f)
+        out = os.path.join(tmp, stem + ".rbxmx")
+        res = subprocess.run([rojo, "build", project, "-o", out], capture_output=True, text=True)
+        if res.returncode != 0 or not os.path.isfile(out):
+            print("AVISO: Rojo no pudo convertir %s; no se incluye." % path)
+            print((res.stderr or res.stdout).strip())
+            return ""
+        print("Modelo binario convertido con Rojo:", os.path.relpath(path, ROOT))
+        return rbxmx_items(out, stem)
 
 
 def build_path(path, name):
     if os.path.isfile(path) and path.endswith(".rbxmx"):
         return rbxmx_items(path)
     if os.path.isfile(path) and path.endswith(".rbxm"):
-        print("AVISO: %s es binario (.rbxm); usa `rojo build` o guardalo como .rbxmx para este script." % path)
-        return ""
+        return rbxm_items(path)
     if os.path.isfile(path):
         base = os.path.basename(path)
         if base.endswith(".server.luau"):

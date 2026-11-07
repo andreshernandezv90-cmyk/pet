@@ -362,6 +362,67 @@ check(playingCapture, "CaptureReaction suena durante la succion")
 prompt.PromptButtonHoldEnded:Fire()
 RUN_DELAYS()
 
+-- 5b) Estructura real de assets/pets/Lumi.rbxm (comprobada con `rojo build`) ------------
+-- Model "Lumi" (Rig = "Lumi_v7", PrimaryPart = Lumi_Comun_Body)
+--   MeshPart Lumi_Comun_Body (1.18 x 1.67 x 1.58) > SurfaceAppearance, Bone Root > ... (34)
+--   AnimationController > Animator;  Folder InitialPoses (108 CFrameValue del importador)
+local fakeTemplate = folder:FindFirstChild("Lumi")
+fakeTemplate.Parent = nil
+local real = Instance.new("Model")
+real.Name = "Lumi"
+real:SetAttribute("Rig", "Lumi_v7")
+real:SetAttribute("RBX_ReimportId", "importador")
+local body = part("MeshPart", "Lumi_Comun_Body", real, Vector3.new(1.1831539, 1.6666665, 1.5838034), Vector3.new(0, 0.83, 0))
+Instance.new("SurfaceAppearance").Parent = body
+local HIER = { { "Root", nil }, { "Hips", "Root" }, { "Spine", "Hips" }, { "Chest", "Spine" }, { "Neck", "Chest" }, { "Head", "Neck" },
+	{ "Jaw", "Head" }, { "Ear_01.L", "Head" }, { "Ear_02.L", "Ear_01.L" }, { "Ear_03.L", "Ear_02.L" }, { "Ear_01.R", "Head" },
+	{ "Ear_02.R", "Ear_01.R" }, { "Ear_03.R", "Ear_02.R" }, { "Shoulder.L", "Chest" }, { "UpperArm.L", "Shoulder.L" },
+	{ "Forearm.L", "UpperArm.L" }, { "FrontPaw.L", "Forearm.L" }, { "Shoulder.R", "Chest" }, { "UpperArm.R", "Shoulder.R" },
+	{ "Forearm.R", "UpperArm.R" }, { "FrontPaw.R", "Forearm.R" }, { "Tail_01", "Hips" }, { "Tail_02", "Tail_01" },
+	{ "Tail_03", "Tail_02" }, { "Tail_04", "Tail_03" }, { "Tail_05", "Tail_04" }, { "Thigh.L", "Hips" }, { "Shin.L", "Thigh.L" },
+	{ "BackFoot.L", "Shin.L" }, { "BackPaw.L", "BackFoot.L" }, { "Thigh.R", "Hips" }, { "Shin.R", "Thigh.R" },
+	{ "BackFoot.R", "Shin.R" }, { "BackPaw.R", "BackFoot.R" } }
+local bonesByName = {}
+for _, h in ipairs(HIER) do
+	local b = Instance.new("Bone")
+	b.Name = h[1]
+	b.Parent = h[2] and bonesByName[h[2]] or body
+	bonesByName[h[1]] = b
+end
+local poses = Instance.new("Folder")
+poses.Name = "InitialPoses"
+poses.Parent = real
+for i = 1, 108 do local v = Instance.new("CFrameValue"); v.Name = "Pose" .. i; v.Parent = poses end
+local realAC = Instance.new("AnimationController")
+realAC.Parent = real
+Instance.new("Animator").Parent = realAC
+real.PrimaryPart = body
+real.Parent = folder
+local nwReal = #warnings
+check(#HIER == 34 and PetAssets.Find("lumi", "common") == real, "estructura real de Lumi.rbxm: plantilla valida (1 parte, 34 huesos)")
+local rm = PetModels.Build("lumi", "common", { label = "Lumi · Comun" })
+check(rm:GetAttribute("Source") == "asset" and rm.PrimaryPart.Name == "Lumi_Comun_Body" and rm.PrimaryPart.Anchored,
+	"PrimaryPart = Lumi_Comun_Body (MeshPart con huesos), anclada")
+check(rm:GetAttribute("Rig") == "Lumi_v7" and near(rm:GetExtentsSize().Y, 2, 1e-3), "conserva Rig = Lumi_v7 y se escala a 2 studs")
+local nBones = 0
+for _, d in ipairs(rm:GetDescendants()) do if d.ClassName == "Bone" then nBones = nBones + 1 end end
+check(nBones == 34 and rm.Lumi_Comun_Body:FindFirstChildOfClass("SurfaceAppearance") ~= nil, "clon con 34 huesos y SurfaceAppearance")
+local ra = PetAnimator.Attach(rm)
+local acs = 0
+for _, c in ipairs(rm:GetChildren()) do if c.ClassName == "AnimationController" then acs = acs + 1 end end
+check(ra ~= nil and acs == 1, "reutiliza el AnimationController del importador (no crea otro)")
+local all7 = true
+for _, s in ipairs(LUMI7) do all7 = all7 and ra:Has(s) and ra.tracks[s].Animation.AnimationId == EXPECTED[s] end
+check(all7, "las 7 animaciones publicadas se cargan sobre el modelo real")
+check(ra:SetMoveSpeed(0) == "Idle" and ra:Sleep() and ra:GetState() == "Sleep_Enter", "Idle y Sleep_Enter sobre el modelo real")
+ra.tracks.Sleep_Enter:__finish()
+check(ra:GetState() == "Sleep_Loop", "Sleep_Enter -> Sleep_Loop")
+ra:Wake()
+check(ra:GetState() == "Idle", "despertar -> Idle")
+check(#warnings == nwReal, "sin avisos con la estructura real")
+real.Parent = nil
+fakeTemplate.Parent = folder
+
 -- 6) Datos intactos ----------------------------------------------------------
 local profile = S.DataService.Get(P)
 local Schema = require(RS.Shared.ProfileSchema)

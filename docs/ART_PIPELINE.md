@@ -16,7 +16,7 @@ Estados de cada asset (regla de `roblox-visual-director`). Nunca se da por integ
 
 **Estado actual de Lumi Común V1.0:**
 - Animaciones: `Referenciado en código con respaldo`. Los 7 ids publicados están en `PetAssets.AnimationSets.Lumi_v7` (sección 10).
-- Modelo: `Importado en Studio`, pero solo en un proyecto de prueba. **Falta guardarlo en `assets/pets/Lumi.rbxmx`.** Hasta entonces, el juego usa el Lumi procedural.
+- Modelo: `Guardado en assets/pets`, como `assets/pets/Lumi.rbxm` (binario). Su estructura se comprobó con `rojo build` (sección 11).
 - **Nada está verificado todavía dentro de Portal Pets en Studio.**
 
 ---
@@ -286,3 +286,36 @@ Usa **Play** (o **Test → Clients and Servers** con 2 jugadores para la réplic
 | Despertar | Panel **Dev** → "Animacion: despertar", o muévete: vuelve a `Idle` / `Walk` |
 
 Revisa también la orientación (que la cara mire hacia donde camina; si no, ajusta `yaw`), los pies sobre el suelo, la textura y que la captura con **F** siga funcionando. Mientras se le succiona, Lumi usa `Idle` porque no tiene `CaptureReaction`. La sección 9 tiene la lista completa (rarezas, fusiones, jefe, rendimiento).
+
+## 11. `assets/pets/Lumi.rbxm`: cómo entra en el proyecto
+
+### Estructura comprobada (`rojo build`, sin abrir Studio)
+
+```
+Lumi                          Model · atributos Rig = "Lumi_v7", RBX_ReimportId · PrimaryPart = Lumi_Comun_Body
+├─ Lumi_Comun_Body            MeshPart 1,18 × 1,67 × 1,58 · MeshContent rbxassetid://85702700458518
+│  ├─ SurfaceAppearance       ColorMap rbxassetid://116789412849410
+│  └─ Bone Root → Hips → …    34 huesos, misma jerarquía que el FBX
+├─ AnimationController
+│  └─ Animator
+└─ InitialPoses               Folder con 108 CFrameValue (los crea el importador para reimportar; no molestan)
+```
+
+- No tiene scripts ni carpeta `Animations`. Las 7 animaciones salen de `PetAssets.AnimationSets.Lumi_v7`.
+- `PetModels` lo acepta (1 parte y 34 huesos, dentro de los límites), ancla `Lumi_Comun_Body` y lo escala de 1,67 a 2 studs en el Lumi común. `PetAnimator` reutiliza su `AnimationController`. La prueba `tools/sim/petassets.lua` (sección 5b) reproduce esta estructura.
+
+### Construcción
+
+| Vía | Resultado |
+|---|---|
+| `rojo build default.project.json -o PortalPets.rbxlx` | **Verificado.** `ReplicatedStorage.PetAssets.Lumi` sale completo, con malla, textura, 34 huesos, `AnimationController`, atributos y `PrimaryPart`. No hizo falta cambiar `default.project.json`: Rojo convierte cada `.rbxm` de `assets/pets` en una instancia con el nombre del archivo. |
+| `python tools/build_rbxlx.py` | **Verificado.** Convierte el `.rbxm` con Rojo, en una carpeta temporal y sin tocar el original, y lo incrusta. Si Rojo no está instalado, avisa y genera el lugar sin el modelo (Lumi procedural). |
+| `rojo serve` (sincronización en vivo) | **No verificado.** Un plugin de Studio quizá no pueda escribir la malla ni la textura (`MeshContent` / `ColorMapContent`) de un MeshPart; depende de la versión de Rojo y de Studio. Ver "Flujo recomendado". |
+
+### Flujo recomendado en Studio
+
+1. `rojo build default.project.json -o PortalPets.rbxlx` y abre `PortalPets.rbxlx` en Studio. Así Lumi entra desde el archivo con todas sus propiedades.
+2. Para editar código en vivo, `rojo serve` y conecta el plugin a ese mismo lugar.
+3. Comprueba en `ReplicatedStorage → PetAssets → Lumi` que la malla y la textura se ven.
+4. **Si tras conectar Rojo, Lumi aparece sin malla o sin textura,** no lo arregles a mano en el árbol de Rojo: avisa. La solución es un `serve.project.json` sin `assets/pets`, para que el servidor en vivo no toque a Lumi, que seguiría viniendo de `rojo build`. Como `PetAssets` tiene `$ignoreUnknownInstances`, nada se borra.
+5. Para incorporarlo a mano en un lugar abierto sin Rojo: **Model → Model → Insert from File…** (o arrastra el archivo) con `assets/pets/Lumi.rbxm` y colócalo en `ReplicatedStorage → PetAssets`. El archivo del repositorio sigue siendo la fuente; si cambias el modelo en Studio, vuelve a guardarlo en esa misma ruta.
