@@ -232,6 +232,7 @@ lua5.4 tools/sim/petworld.lua
 
 ```bash
 lua5.4 tools/sim/petassets.lua
+lua5.4 tools/sim/grounding.lua
 ```
 
 ```bash
@@ -249,6 +250,7 @@ Qué cubre cada prueba:
 - `raid.lua`: bucles reales (áreas, caídas, zonas bloqueadas) y una incursión completa con recompensa en la arena de su zona (viaje validado).
 - `petworld.lua`: largo compacto (1.400–1.600 studs), una arena temática por zona (dentro de la zona, junto al camino y sin pisar claros ni regalos), cinco retos con mecánica propia (pasos alcanzables, checkpoints, caminos temporales que alternan), puntos de llegada y teletransportes válidos, estructura del Mundo PET (barreras, faros, minas selladas, retos, NPCs), áreas, barreras validadas en el servidor, viajes por faro, PETs en su pradera, Comerciante (cobro exacto, nonce, zona, cantidades), cupo de regalos, perfil antiguo intacto y presupuesto de partes.
 - `petassets.lua`: integración de modelos importados con una plantilla **simulada**: respaldo procedural en las 15 especies, Lumi importado (escala, raíz anclada, sin colisión, soldaduras, scripts eliminados, efectos de rareza), variantes por rareza, interruptores, plantillas inválidas, animaciones con respaldos y PETs salvajes y compañeros en el cliente.
+- `grounding.lua`: apoyo vertical de los PETs importados: referencia de reposo por rareza, suelas en el suelo (llano, colinas, laderas inclinadas hasta 20°), suavizado sin saltos, salvajes, compañeros (también al correr y saltar), Happy y Sleep sin cambiar la altura, trabajadores en su estación y PETs procedurales sin cambios.
 - `mines.lua`: Minas de Zuar como mundo propio (hub, Cantera libre, 5 galerías con sus vetas, cortinas, terreno excavado, presupuesto), reparto de vetas fiel a `mine.chances`, flujo completo (Cantera, galería abierta y bloqueada, pico necesario, distancia, privacidad entre jugadores, ciclo nuevo), enlace con las bocas de mina del Reino y sello de guardián desactivable.
 - `persistence.lua`: perfiles ajenos o futuros (p. ej. Astra v0.6, esquema 4) nunca se migran ni se sobrescriben; migración v2 → v3 sin pérdidas.
 - `sanctuary.lua`: distribución de la parcela sin superposiciones, bosque, árboles talables, áreas señalizadas y fogata en las 8 parcelas, portal central único, casa en los 5 niveles, estaciones con interacción, trabajadores visibles, hacha por niveles, regalos (privados, validados y únicos) y presupuesto de partes.

@@ -324,6 +324,12 @@ local function buildFromAsset(template, cfg, assetName, sp, rar, u, opts)
 	local pivot = CFrame.new(root.Position.X, bb.Position.Y, root.Position.Z) * rot * CFrame.Angles(0, math.rad(cfg.yaw or 0), 0)
 	root.PivotOffset = root.CFrame:Inverse() * pivot
 	local height = size.Y
+	-- Referencia de apoyo: del pivote a la base de la malla en REPOSO (las suelas).
+	-- footInset (fraccion del alto, opcional por especie o rareza) corrige mallas cuya
+	-- parte mas baja no son las patas (p. ej. una cola que cuelga).
+	local variant = cfg.variants and cfg.variants[rar.id] or nil
+	local inset = (variant and variant.footInset) or cfg.footInset or 0
+	model:SetAttribute("GroundOffset", (pivot.Position.Y - (bb.Position.Y - size.Y / 2)) - inset * height)
 
 	if opts.hat then
 		local function hatPart(name, size3, color, offset)

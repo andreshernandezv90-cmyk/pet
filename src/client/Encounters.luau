@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local PetCatalog = require(Shared.PetCatalog)
 local PetModels = require(Shared.PetModels)
 local PetAnimator = require(Shared.PetAnimator)
+local PetGrounding = require(Shared.PetGrounding)
 local Stats = require(Shared.Stats)
 
 local State = require(script.Parent.State)
@@ -133,6 +134,13 @@ local function spawnPet(e)
 		phase = math.random() * 6, radius = radius }
 	pets[e.id] = p
 	p.anim = PetAnimator.Attach(model) -- nil con el modelo procedural (sin rig)
+	-- Modelo importado: se apoya en el terreno real (colinas incluidas) por sus suelas
+	p.offset = PetGrounding.Offset(model)
+	if p.offset then
+		p.ground = PetGrounding.Tracker()
+		local gy, n = p.ground:Step(home.X, home.Z, 0, 0)
+		model:PivotTo(PetGrounding.PivotCFrame(Vector3.new(home.X, gy, home.Z), n, model:GetPivot().LookVector, p.offset))
+	end
 	updatePrompt(p)
 
 	prompt.PromptButtonHoldBegan:Connect(function()
@@ -260,12 +268,29 @@ function Encounters.Init()
 				end
 				local look = (p.target - p.pos)
 				local cf
-				if look.Magnitude > 0.1 then
+				if p.ground then
+					-- Importado: suelas sobre el suelo bajo (x, z); la animacion pone el resto
+					local gy, n = p.ground:Step(p.pos.X, p.pos.Z, 0, dt)
+					local face = Vector3.new(look.X, 0, look.Z)
+					if face.Magnitude <= 0.1 then
+						face = p.model:GetPivot().LookVector
+					end
+					local shake = CFrame.new()
+					if id == capturing then
+						local char = player.Character
+						local hrp = char and char:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							face = hrp.Position - p.pos
+							shake = CFrame.new(math.sin(now * 40) * 0.15, 0, 0)
+						end
+					end
+					cf = PetGrounding.PivotCFrame(Vector3.new(p.pos.X, gy, p.pos.Z), n, face, p.offset) * shake
+				elseif look.Magnitude > 0.1 then
 					cf = CFrame.lookAt(p.pos, p.pos + Vector3.new(look.X, 0, look.Z))
 				else
 					cf = CFrame.new(p.pos) * (p.model:GetPivot() - p.model:GetPivot().Position)
 				end
-				if id == capturing then
+				if id == capturing and not p.ground then
 					local char = player.Character
 					local hrp = char and char:FindFirstChild("HumanoidRootPart")
 					if hrp then

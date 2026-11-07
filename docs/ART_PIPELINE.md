@@ -319,3 +319,64 @@ Lumi                          Model · atributos Rig = "Lumi_v7", RBX_ReimportId
 3. Comprueba en `ReplicatedStorage → PetAssets → Lumi` que la malla y la textura se ven.
 4. **Si tras conectar Rojo, Lumi aparece sin malla o sin textura,** no lo arregles a mano en el árbol de Rojo: avisa. La solución es un `serve.project.json` sin `assets/pets`, para que el servidor en vivo no toque a Lumi, que seguiría viniendo de `rojo build`. Como `PetAssets` tiene `$ignoreUnknownInstances`, nada se borra.
 5. Para incorporarlo a mano en un lugar abierto sin Rojo: **Model → Model → Insert from File…** (o arrastra el archivo) con `assets/pets/Lumi.rbxm` y colócalo en `ReplicatedStorage → PetAssets`. El archivo del repositorio sigue siendo la fuente; si cambias el modelo en Studio, vuelve a guardarlo en esa misma ruta.
+
+## 12. Apoyo en el suelo (PETs importados)
+
+### Diagnóstico (Lumi Común)
+
+**Las animaciones no causan el problema.** La cinemática directa sobre los FBX da:
+
+| Animación | Pata más baja respecto a la base de reposo | Comentario |
+|---|---|---|
+| Idle / Walk | 0,0 % del alto | Las patas quedan justo en la base |
+| Run | de +1 % a +5 % | Despega en la zancada (intencional) |
+| Happy | hasta +12 % | Salta (intencional) |
+| Sleep_Enter / Sleep_Loop | de 0 % a +3 %; `Hips` −11 % | Se tumba |
+| Work | de +1 % a +2 % | — |
+
+La base de la malla en reposo (`MeshPart.Size`) son las suelas, así que es una referencia estable.
+
+**El error estaba en la colocación, heredada de los PETs procedurales (bolas), que suponía el suelo en `y = 0`:**
+- Salvajes: el pivote iba a `y = radio + 0.2` fijo. Lumi levitaba 0,2 studs en llano y se hundía en las colinas (de 4 a 7 studs); al deambular por una pendiente no cambiaba de altura.
+- Compañeros: el centro iba a `hrp.Y − 1.5` para cualquier tamaño. Un Lumi común levitaba 0,65 studs, la altura cambiaba con la rareza y el compañero subía con cada salto del jugador.
+- Trabajadores: el centro iba a 1,6 studs sobre la parcela (2,0 en el huerto). Un Lumi de 1,4 studs levitaba entre 0,9 y 1,3.
+
+### Solución (`src/shared/PetGrounding.luau`)
+
+- `PetModels` guarda en cada modelo importado el atributo `GroundOffset`, la distancia del pivote a la base de la malla en reposo. La animación no lo modifica.
+- El suelo se busca con un raycast hacia abajo. Respeta `CanCollide` (la decoración sin colisión no cuenta), ignora el agua, los personajes y los PETs, que no tienen colisión.
+- Pivote = punto de apoyo + arriba × `GroundOffset`. **Nunca se fuerza la malla animada contra el suelo:** los saltos de Run y Happy y la postura de Sleep salen del rig tal cual.
+- **Pendientes:** el cuerpo se inclina hacia la normal del suelo, con un máximo de 20°.
+- **Suavizado:** la altura y la inclinación se suavizan, así que un escalón de 1,5 studs se sube en unos 0,2 s, sin teletransportes ni vibraciones. Los raycasts se lanzan solo al moverse 0,3 studs o cada 0,25 s.
+- **Rayos:** empiezan 3 studs sobre el último suelo, para que los techos no cuenten. Si el rayo nace dentro del terreno (desnivel brusco), se repite desde más arriba.
+
+**Por sistema:**
+- Salvajes: suelo real bajo cada PET.
+- Compañeros: suelo bajo el compañero, no la altura del jugador. Al saltar el jugador, el compañero se queda en el suelo.
+- Trabajadores: se apoyan una vez cuando la parcela está en `workspace`, sobre el terreno o la base de la estación.
+- El jefe de incursión flota a propósito y no cambia.
+- Los PETs procedurales conservan exactamente su colocación anterior.
+
+**Rarezas:** cada rareza calcula su propio `GroundOffset` con su tamaño. Si una variante futura tiene la parte más baja de la malla en otro sitio (una cola que cuelga, por ejemplo), se ajusta con `footInset` (fracción del alto) en `PetAssets.Species.<especie>` o en `variants.<rareza>`. Lumi usa 0.
+
+Los ajustes están en `PetGrounding.Config`: `maxTilt`, `heightRate`, `tiltRate`, `probeAbove`, `probeBelow`, `firstProbeAbove`, `reprobeDistance` y `reprobeTime`.
+
+### Comprobación visual en Studio (pendiente)
+
+1. **Zona 1, Lumi quieto:** con cámara a ras de suelo, las patas tocan el césped, sin hueco ni hundimiento.
+2. **Lumi deambulando:** sube y baja las colinas apoyado e inclinado con la ladera.
+3. **Compañero:** al caminar, correr y saltar, se queda en el suelo. Al correr, el rebote propio de Run se ve.
+4. **Panel Dev, Happy:** salta y aterriza en el mismo sitio.
+5. **Panel Dev, Sleep:** se tumba con el cuerpo apoyado.
+6. **Trabajador en el extractor:** patas en el suelo (o sobre la base de piedra si queda encima).
+7. **Superficies inclinadas:** rampas o laderas de las zonas; inclinación hasta 20°.
+8. **Rarezas:** compañero raro, épico y legendario apoyados igual.
+
+Para medir el apoyo, en la barra de comandos con un PET seleccionado:
+
+```lua
+local m = game.Selection:Get()[1]
+print(m:GetPivot().Y - m:GetAttribute("GroundOffset"))
+```
+
+Compara el resultado con la altura del suelo.

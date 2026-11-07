@@ -77,8 +77,11 @@ PetAssets.Limits = { maxParts = 40, maxBones = 64 }
 --   yaw: grados para corregir la orientacion si la cara no mira hacia -Z.
 --   animationSet: conjunto de PetAssets.AnimationSets que usa la especie.
 --   animations: AnimationId por estado que sustituyen a los del conjunto (opcional).
---   variants[rareza]: { animationSet = ..., animations = {...} } para una rareza con
---          rig propio. Sin entrada, la rareza reutiliza el conjunto de la especie.
+--   variants[rareza]: { animationSet = ..., animations = {...}, footInset = ... } para
+--          una rareza con rig propio. Sin entrada, la rareza reutiliza lo de la especie.
+--   footInset: fraccion del alto que se hunde el apoyo cuando la parte mas baja de la
+--          malla en reposo no son las patas (0 si la base de la malla son las suelas,
+--          como en Lumi: comprobado con el FBX). Ver PetGrounding.
 -- Orden de busqueda por estado: carpeta "Animations" de la plantilla ->
 -- variants[rareza].animations -> animations -> conjunto (de la variante o especie).
 PetAssets.Species = {
@@ -86,6 +89,7 @@ PetAssets.Species = {
 		model = "Lumi",
 		heightFactor = 1.0,
 		yaw = 0,
+		footInset = 0,
 		animationSet = "Lumi_v7",
 		animations = {},
 		variants = {

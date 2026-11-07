@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local PetModels = require(Shared.PetModels)
 local PetAnimator = require(Shared.PetAnimator)
+local PetGrounding = require(Shared.PetGrounding)
 local PetCatalog = require(Shared.PetCatalog)
 
 local Followers = {}
@@ -62,6 +63,11 @@ local function rebuild(player)
 		end
 		if entry then
 			entry.anim = PetAnimator.Attach(entry.model) -- nil con el modelo procedural
+			-- Modelo importado: apoyado en el suelo bajo sus patas, no a la altura del jugador
+			entry.offset = PetGrounding.Offset(entry.model)
+			if entry.offset then
+				entry.ground = PetGrounding.Tracker(3) -- busca poco por encima: un techo no es suelo
+			end
 			entry.phase = math.random() * 6
 			table.insert(data.list, entry)
 		end
@@ -247,7 +253,17 @@ function Followers.Init()
 						end
 					end
 					local look = base.LookVector
-					local cf = CFrame.lookAt(f.pos, f.pos + Vector3.new(look.X, 0, look.Z))
+					local cf
+					if f.ground then
+						-- Suelo bajo el compañero; si no hay (vacio), a la altura de los pies del jugador
+						local feet = hrp.Position.Y - hrp.Size.Y / 2
+							- ((hum and hum.RigType == Enum.HumanoidRigType.R15) and hum.HipHeight or 2)
+						local gy, n = f.ground:Step(f.pos.X, f.pos.Z, airborne and (f.groundY or feet) or feet, dt)
+						f.groundY = gy
+						cf = PetGrounding.PivotCFrame(Vector3.new(f.pos.X, gy, f.pos.Z), n, look, f.offset)
+					else
+						cf = CFrame.lookAt(f.pos, f.pos + Vector3.new(look.X, 0, look.Z))
+					end
 					f.model:PivotTo(cf)
 					if f.extra then
 						f.extra:PivotTo(cf * CFrame.new(0, 2.6, 0) * CFrame.Angles(0, math.sin(f.phase) * 0.3, 0))

@@ -386,6 +386,22 @@ function methods.GetConnectedParts(o)
 	end
 	return out
 end
+-- Raycast simulado sobre un terreno de alturas: SIM_GROUND(x, z) -> altura o nil.
+-- Por defecto, suelo plano en y = 0 (como Terrain.Ground del juego).
+SIM_GROUND = function() return 0 end
+SIM_RAYS = 0
+RaycastParams = { new = function() return { FilterDescendantsInstances = {} } end }
+function methods.Raycast(o, origin, dir)
+	SIM_RAYS = SIM_RAYS + 1
+	local x, z = origin.X, origin.Z
+	local h = SIM_GROUND(x, z)
+	if h == nil or origin.Y < h or origin.Y + dir.Y > h then return nil end
+	local e = 0.05
+	local hx = (SIM_GROUND(x + e, z) or h) - (SIM_GROUND(x - e, z) or h)
+	local hz = (SIM_GROUND(x, z + e) or h) - (SIM_GROUND(x, z - e) or h)
+	local n = Vector3.new(-hx / (2 * e), 1, -hz / (2 * e))
+	return { Position = Vector3.new(x, h, z), Normal = n.Unit, Instance = o }
+end
 -- Animator simulado: registra pistas y estados de reproduccion
 function methods.LoadAnimation(o, anim)
 	-- Length = 0 imita una pista cuya duracion aun no se conoce (el final llega por Stopped)
@@ -555,8 +571,11 @@ function MAKE_PLAYER(id, name)
 	local hrp = newInstance("Part")
 	hrp.__props.Name = "HumanoidRootPart"
 	hrp.__props.AssemblyLinearVelocity = Vector3.new()
+	hrp.__props.Size = Vector3.new(2, 2, 1)
 	hrp.Parent = char
 	local hum = newInstance("Humanoid")
+	hum.__props.HipHeight = 2
+	hum.__props.RigType = Enum.HumanoidRigType.R15
 	hum.Parent = char
 	local head = newInstance("Part"); head.__props.Name = "Head"; head.Parent = char
 	char.__props.PrimaryPart = hrp

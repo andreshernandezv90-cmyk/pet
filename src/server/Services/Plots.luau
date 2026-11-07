@@ -10,6 +10,7 @@ local CollectionService = game:GetService("CollectionService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local PetModels = require(Shared.PetModels)
 local PetAnimator = require(Shared.PetAnimator)
+local PetGrounding = require(Shared.PetGrounding)
 local Items = require(Shared.Items)
 
 local WorldFolder = script.Parent:WaitForChild("World")
@@ -187,7 +188,10 @@ local function buildStation(parent, base, spotId, level, profile, index, rng)
 	return main
 end
 
+-- Devuelve los trabajadores con modelo importado, para apoyarlos en el suelo cuando
+-- la parcela ya este en workspace (el raycast solo ve lo que esta en workspace)
 local function buildWorkers(parent, base, profile)
+	local imported = {}
 	for stationId, st in pairs(profile.stations) do
 		local spot = PlotLayout.Spots[stationId]
 		if spot and st.level >= 1 then
@@ -207,6 +211,9 @@ local function buildWorkers(parent, base, profile)
 					end
 					m:PivotTo(base * CFrame.new(spot.x, 0, spot.z) * off)
 					m.Parent = parent
+					if PetGrounding.Offset(m) then
+						table.insert(imported, m)
+					end
 					CollectionService:AddTag(m, "WorkerPet")
 					local anim = PetAnimator.Attach(m) -- solo modelos importados con animaciones
 					if anim then
@@ -214,6 +221,19 @@ local function buildWorkers(parent, base, profile)
 					end
 				end
 			end
+		end
+	end
+	return imported
+end
+
+-- Trabajadores importados: suelas sobre el suelo real de su sitio (terreno o base de
+-- la estacion). El rayo empieza a 3 studs sobre la parcela: los techos no cuentan.
+local function groundWorkers(list, base)
+	for _, m in ipairs(list) do
+		local pv = m:GetPivot()
+		local cf = PetGrounding.Snap(m, pv.X, pv.Z, base.Y, pv.LookVector, 3, 4)
+		if cf then
+			m:PivotTo(cf)
 		end
 	end
 end
@@ -286,7 +306,7 @@ function Plots.Refresh(player)
 	for spotId, info in pairs(STATIONS) do
 		buildStation(model, base, spotId, stationLevel(profile, info), profile, i, srng)
 	end
-	buildWorkers(model, base, profile)
+	local importedWorkers = buildWorkers(model, base, profile)
 
 	for id, fn in pairs(DECOS) do
 		if profile.decorations[id] then
@@ -307,6 +327,7 @@ function Plots.Refresh(player)
 	end
 	model:SetAttribute("RoofY", ridgeY)
 	model.Parent = plotFolder
+	groundWorkers(importedWorkers, base)
 	folders[i] = model
 end
 
