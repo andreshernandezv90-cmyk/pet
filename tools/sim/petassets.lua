@@ -423,6 +423,48 @@ check(#warnings == nwReal, "sin avisos con la estructura real")
 real.Parent = nil
 fakeTemplate.Parent = folder
 
+-- 5c) Efectos visuales: perfil moderado en importados, procedurales sin cambios ----------
+local function fxOf(mdl)
+	local lights, sparkles, emitters, hl = {}, 0, {}, mdl:FindFirstChildOfClass("Highlight")
+	for _, d in ipairs(mdl:GetDescendants()) do
+		if d.ClassName == "PointLight" then table.insert(lights, d)
+		elseif d.ClassName == "Sparkles" then sparkles = sparkles + 1
+		elseif d.ClassName == "ParticleEmitter" then table.insert(emitters, d) end
+	end
+	return lights, sparkles, emitters, hl
+end
+local FX = PetAssets.Effects
+local lc, sc, ec = fxOf(PetModels.Build("lumi", "common"))
+check(#lc == 1 and lc[1].Brightness == FX.ownLight.brightness and lc[1].Range == FX.ownLight.range + 1 and sc == 0 and #ec == 0,
+	string.format("Lumi comun importado: una luz suave (brillo %.2f, alcance %d; antes 1 y 12) y sin destellos", lc[1].Brightness, lc[1].Range))
+local lr, sr, er = fxOf(PetModels.Build("lumi", "rare"))
+check(sr == 0 and #er == 1 and er[1].Name == "PP_Sparkles" and er[1].LightEmission <= 0.3 and er[1].Rate == 3,
+	"Lumi raro importado: destellos con ParticleEmitter ajustable (emision 0.25, 3/s) en lugar de Sparkles")
+local le = fxOf(PetModels.Build("lumi", "epic"))
+local maxB = 0
+for _, l in ipairs(le) do maxB = math.max(maxB, l.Brightness) end
+check(#le == 2 and maxB <= 0.4, "Lumi epico importado: luz de rareza moderada (brillo max " .. maxB .. "; antes 1.5)")
+local _, _, emL, hlL = fxOf(PetModels.Build("lumi", "legendary"))
+check(hlL ~= nil and hlL.OutlineTransparency == FX.outlineTransparency and hlL.FillTransparency == 1 and #emL == 1,
+	"Lumi legendario importado: contorno mas suave, sin relleno que tape la textura")
+local _, _, emM = fxOf(PetModels.Build("lumi", "mythic"))
+check(emM[1].Rate == 7.5, "mitico: mas destellos que raro (7.5/s), sigue siendo discreto")
+local pl, ps = fxOf(PetModels.Build("lumi", "rare", { procedural = true }))
+local pl2 = fxOf(PetModels.Build("lumi", "epic", { procedural = true }))
+check(#pl == 1 and pl[1].Brightness == 1 and pl[1].Range == 14 and ps == 1 and #pl2 == 2 and pl2[2].Brightness == 1.5,
+	"procedurales: luces y Sparkles de siempre (sin cambios)")
+-- Poder "Aporta luz" del jugador: fuente sobre la cabeza y brillo moderado
+P:SetAttribute("Flags", "light")
+RUN_DELAYS()
+local hrpL = P.Character.HumanoidRootPart
+local anchorL = hrpL:FindFirstChild("PP_LightAnchor")
+local lightL = anchorL and anchorL:FindFirstChild("PP_Light")
+check(lightL ~= nil and hrpL:FindFirstChild("PP_Light") == nil and anchorL.Position.Y == 4.5 and lightL.Brightness == 1.1 and lightL.Range == 22,
+	"luz del jugador: sobre la cabeza (4.5), brillo 1.1 (antes 1.6 pegada al centro), mismo alcance 22")
+P:SetAttribute("Flags", "")
+RUN_DELAYS()
+check(hrpL:FindFirstChild("PP_LightAnchor") == nil, "sin el poder, la luz desaparece")
+
 -- 6) Datos intactos ----------------------------------------------------------
 local profile = S.DataService.Get(P)
 local Schema = require(RS.Shared.ProfileSchema)

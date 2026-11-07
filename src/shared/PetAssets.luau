@@ -69,6 +69,29 @@ PetAssets.AnimationSets = {
 -- Limites de seguridad para plantillas (avisos, no bloqueos, salvo maxParts)
 PetAssets.Limits = { maxParts = 40, maxBones = 64 }
 
+-- Efectos de rareza para modelos importados (texturas reales: el pelaje claro se
+-- sobreexpone con las luces pensadas para las bolas procedurales). Los procedurales
+-- conservan sus efectos de siempre. Rangos en studs; "order" = 1 comun ... 5 mitico.
+PetAssets.Effects = {
+	-- luz propia de especies luminosas (Lumi): resplandor corto que no blanquea vecinos
+	ownLight = { brightness = 0.35, range = 5, rangePerOrder = 1 },
+	-- luz extra de epico+ (color de la rareza)
+	rarityLight = { brightness = 0.4, range = 4, rangePerOrder = 1 },
+	-- destellos de raro+: ParticleEmitter ajustable en lugar de Sparkles (fijo e intenso)
+	sparkles = {
+		texture = "rbxasset://textures/particles/sparkles_main.dds",
+		ratePerOrder = 1.5, -- raro 3/s ... mitico 7.5/s
+		size = 0.09, -- fraccion del alto del PET
+		lightEmission = 0.25,
+		lightInfluence = 0.5,
+		transparency = 0.35,
+		lifetime = { 0.8, 1.4 },
+		speed = { 0.2, 0.6 },
+	},
+	-- contorno de legendario+
+	outlineTransparency = 0.4,
+}
+
 -- Especies con modelo importado. Solo las especies listadas aqui buscan plantilla.
 --   model: nombre de la plantilla en ReplicatedStorage.PetAssets. Antes se busca
 --          "<model>_<rareza>" (variante opcional por rareza) y despues "<model>".

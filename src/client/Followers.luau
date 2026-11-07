@@ -13,6 +13,10 @@ local PetGrounding = require(Shared.PetGrounding)
 local PetCatalog = require(Shared.PetCatalog)
 
 local Followers = {}
+
+-- Luz del poder "Aporta luz" (ver cosmetics)
+local LIGHT = { height = 4.5, range = 22, brightness = 1.1, color = Color3.fromRGB(255, 236, 200) }
+Followers.LightConfig = LIGHT
 local folder
 local byPlayer = {} -- [player] = { key = string, list = { {model, extra, pos} } }
 
@@ -180,18 +184,26 @@ local function cosmetics(player)
 			tag:Destroy()
 		end
 	end
+	-- Poder "Aporta luz" (compañero luminoso, p. ej. Lumi): ilumina el entorno del
+	-- jugador. La fuente va por encima de la cabeza y con brillo moderado: pegada al
+	-- HumanoidRootPart (antes, 1.6 de brillo) quemaba a blanco al compañero, que
+	-- camina a 3-4 studs de ella.
 	local flags = player:GetAttribute("Flags") or ""
 	local wantLight = string.find(flags, "light") ~= nil
-	local light = hrp:FindFirstChild("PP_Light")
-	if wantLight and not light then
-		light = Instance.new("PointLight")
+	local anchor = hrp:FindFirstChild("PP_LightAnchor")
+	if wantLight and not anchor then
+		anchor = Instance.new("Attachment")
+		anchor.Name = "PP_LightAnchor"
+		anchor.Position = Vector3.new(0, LIGHT.height, 0)
+		anchor.Parent = hrp
+		local light = Instance.new("PointLight")
 		light.Name = "PP_Light"
-		light.Range = 22
-		light.Brightness = 1.6
-		light.Color = Color3.fromRGB(255, 240, 180)
-		light.Parent = hrp
-	elseif not wantLight and light then
-		light:Destroy()
+		light.Range = LIGHT.range
+		light.Brightness = LIGHT.brightness
+		light.Color = LIGHT.color
+		light.Parent = anchor
+	elseif not wantLight and anchor then
+		anchor:Destroy()
 	end
 end
 

@@ -42,33 +42,67 @@ local function attach(model, body, className, props, offset)
 end
 
 -- Efectos de rareza y etiqueta (comunes a ambos tipos de modelo)
-local function rarityEffects(model, body, sp, rar, u, opts, labelHeight)
+-- Destellos ajustables para modelos importados (PetAssets.Effects.sparkles):
+-- pocas particulas pequeñas en la superficie de una esfera alrededor del cuerpo
+local function softSparkles(body, rar, height)
+	local cfg = PetAssets.Effects.sparkles
+	local pe = Instance.new("ParticleEmitter")
+	pe.Name = "PP_Sparkles"
+	pe.Texture = cfg.texture
+	pe.Color = ColorSequence.new(rar.color)
+	pe.LightEmission = cfg.lightEmission
+	pe.LightInfluence = cfg.lightInfluence
+	pe.Brightness = 1
+	local s = cfg.size * height
+	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.25, s), NumberSequenceKeypoint.new(1, 0) })
+	pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, cfg.transparency), NumberSequenceKeypoint.new(1, 1) })
+	pe.Lifetime = NumberRange.new(cfg.lifetime[1], cfg.lifetime[2])
+	pe.Speed = NumberRange.new(cfg.speed[1], cfg.speed[2])
+	pe.Rate = cfg.ratePerOrder * rar.order
+	pe.SpreadAngle = Vector2.new(180, 180)
+	pe.RotSpeed = NumberRange.new(-60, 60)
+	pcall(function()
+		pe.Shape = Enum.ParticleEmitterShape.Sphere
+		pe.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+		pe.ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward
+	end)
+	pe.Parent = body
+	return pe
+end
+
+-- imported: modelo importado con textura real -> perfil moderado (PetAssets.Effects)
+local function rarityEffects(model, body, sp, rar, u, opts, labelHeight, imported)
 	local order = rar.order
 	local c2 = sp.color2
+	local fx = imported and PetAssets.Effects or nil
 	if sp.shape == "round" or sp.flags.light then
 		local l = Instance.new("PointLight")
 		l.Color = c2
-		l.Range = 10 + order * 2
-		l.Brightness = 1
+		l.Range = fx and (fx.ownLight.range + order * fx.ownLight.rangePerOrder) or (10 + order * 2)
+		l.Brightness = fx and fx.ownLight.brightness or 1
 		l.Parent = body
 	end
 	if order >= 2 then
-		local sparkles = Instance.new("Sparkles")
-		sparkles.SparkleColor = rar.color
-		sparkles.Parent = body
+		if fx then
+			softSparkles(body, rar, u)
+		else
+			local sparkles = Instance.new("Sparkles")
+			sparkles.SparkleColor = rar.color
+			sparkles.Parent = body
+		end
 	end
 	if order >= 3 then
 		local l = Instance.new("PointLight")
 		l.Color = rar.color
-		l.Range = 8 + order * 2
-		l.Brightness = 1.5
+		l.Range = fx and (fx.rarityLight.range + order * fx.rarityLight.rangePerOrder) or (8 + order * 2)
+		l.Brightness = fx and fx.rarityLight.brightness or 1.5
 		l.Parent = body
 	end
 	if order >= 4 then
 		local hl = Instance.new("Highlight")
 		hl.FillTransparency = 1
 		hl.OutlineColor = rar.color
-		hl.OutlineTransparency = 0.1
+		hl.OutlineTransparency = fx and fx.outlineTransparency or 0.1
 		hl.DepthMode = Enum.HighlightDepthMode.Occluded
 		hl.Parent = model
 	end
@@ -357,7 +391,7 @@ local function buildFromAsset(template, cfg, assetName, sp, rar, u, opts)
 			CFrame.new(0, height * 0.5 + u * 0.18, 0) * CFrame.Angles(0, 0, math.rad(90)))
 	end
 
-	rarityEffects(model, root, sp, rar, u, opts, height * 0.6 + 1.2)
+	rarityEffects(model, root, sp, rar, u, opts, height * 0.6 + 1.2, true)
 	model:SetAttribute("Radius", height * 0.5)
 	model:SetAttribute("Source", "asset")
 	model:SetAttribute("AssetName", assetName)

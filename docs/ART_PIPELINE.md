@@ -380,3 +380,39 @@ print(m:GetPivot().Y - m:GetAttribute("GroundOffset"))
 ```
 
 Compara el resultado con la altura del suelo.
+
+## 13. Brillo y efectos de los PETs importados
+
+### Diagnóstico: por qué el Lumi equipado se veía blanco
+
+Los Lumi salvajes y los equipados se construyen igual (`PetModels.Build`) y tienen los mismos efectos de rareza. La diferencia viene de fuera del modelo:
+- Al equipar a Lumi, su poder **"Aporta luz"** (`flags.light`) activa el atributo `Flags = light`. Entonces `Followers` crea la luz `PP_Light` en el `HumanoidRootPart`: una `PointLight` de brillo 1,6 y alcance 22, casi blanca. El compañero camina a 3–4 studs de esa fuente y su pelaje claro con textura real (`SurfaceAppearance`) se quema a blanco. **Era la causa principal.**
+- La luz propia de Lumi (brillo 1, alcance de 12 a 20, color casi blanco) se diseñó para las bolas procedurales. Con modelos texturizados, cada Lumi blanquea a los Lumi que tiene cerca, y se nota en grupos.
+- Raro y superior usaban `Sparkles`, un objeto antiguo de tamaño, ritmo y emisión fijos, muy intenso. Épico y superior sumaban otra luz de brillo 1,5.
+- **Bloom global** (`PP_Bloom`: Intensity 0,15, Threshold 2,2): solo actúa sobre superficies sobreexpuestas, así que amplificaba el halo pero no lo causaba. **No se modifica**, ni tampoco la iluminación global.
+
+### Cambios
+
+| Elemento | Antes | Ahora |
+|---|---|---|
+| Luz del poder "Aporta luz" (jugador) | En el `HumanoidRootPart`, brillo 1,6, alcance 22 | En `PP_LightAnchor`, 4,5 studs sobre el centro (encima de la cabeza), brillo 1,1, mismo alcance 22, color cálido menos blanco. Sigue iluminando el entorno |
+| Luz propia de Lumi importado | Brillo 1, alcance 12–20 | Brillo 0,35, alcance 6–10 |
+| Luz de rareza (épico+) importado | Brillo 1,5, alcance 14–18 | Brillo 0,4, alcance 7–9 |
+| Destellos (raro+) importado | `Sparkles` | `ParticleEmitter` `PP_Sparkles`: tamaño 9 % del alto, `LightEmission` 0,25, `LightInfluence` 0,5, de 3 (raro) a 7,5 (mítico) partículas/s, en una esfera alrededor del cuerpo |
+| Contorno (legendario+) importado | `OutlineTransparency` 0,1 | 0,4, sin relleno |
+
+- Los valores de los modelos importados están en `PetAssets.Effects`, y los de la luz del jugador en `Followers.LightConfig`.
+- **Los PETs procedurales conservan sus efectos de siempre.** El orden de rareza se mantiene: las rarezas altas tienen más destellos, luz de color y contorno.
+- **Móvil:** como mucho unas 10 partículas vivas por PET (7,5/s × 1,4 s) y luces de menos alcance, así que el coste baja respecto a antes.
+
+### Comprobación en Studio (pendiente)
+
+No hay ciclo de día y noche; cada zona tiene su hora y su tono (`WorldFx.LOOKS`).
+- Zonas de día: Zona 1 y parcela.
+- Zonas oscuras: Zona 3 (18:36), Zona 5 y las Minas, donde importa el poder de luz.
+
+1. Lumi común salvaje junto a un Lumi común equipado: deben verse iguales, con los ojos, los patrones azules y el pelaje blanco sin quemar.
+2. Lumi raro equipado: destellos azules pequeños y discretos que no tapan la cara.
+3. Varios Lumi juntos (Zona 1): sin halo blanco entre ellos.
+4. Épico, legendario y mítico (comando Dev "pets"): más llamativos, pero la textura siempre visible.
+5. Zona 3 o Minas con Lumi equipado: el entorno del jugador sigue iluminado.
