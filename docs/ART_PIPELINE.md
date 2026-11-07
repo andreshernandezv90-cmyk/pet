@@ -490,6 +490,8 @@ Repite estos pasos para Raro → `Lumi_rare`, Épico → `Lumi_epic` y Legendari
 
 ## 15. Rocón Común, Raro, Épico y Legendario
 
+**Fase R cerrada (2026-11-07).** Las cuatro variantes de Rocón y sus siete animaciones están integradas y aprobadas visualmente por el usuario en Roblox Studio. Rocón no tiene variante mítica. Las variantes míticas de todos los PETs quedan para el final del desarrollo.
+
 ### Estado
 
 | Pieza | Estado |
@@ -498,7 +500,7 @@ Repite estos pasos para Raro → `Lumi_rare`, Épico → `Lumi_epic` y Legendari
 | Animaciones | `Referenciado en código con respaldo`: los 7 ids publicados están en `PetAssets.AnimationSets.Rocon_v3`, compartidos por las 4 rarezas. |
 | Modelos | `Guardado en assets/pets`: `Rocon.rbxm`, `Rocon_rare.rbxm`, `Rocon_epic.rbxm` y `Rocon_legendary.rbxm`, todos con `Rig = Rocon_v3`. Entran en `rojo build` y en `tools/build_rbxlx.py`. |
 | Validación estructural | **Aprobada** (2026-11-07). `tools/check_pet_assets.py` pasa con los 4 Rocón y los 4 Lumi, y pasan las 12 suites de `tools/sim`. |
-| Dentro de Portal Pets | Modelos, texturas y animaciones **confirmados por el usuario en Roblox Studio**. Apoyo en el suelo validado con Rocón equipado; quedan pendientes las comprobaciones de salvaje, trabajador y Legendario (ver "Apoyo en el suelo"). |
+| Dentro de Portal Pets | **`Verificado en Studio`: aprobado visualmente por el usuario** (2026-11-07). Cubre las cuatro rarezas, el movimiento, la altura y los Rocón salvajes, equipados y trabajando. **Fase R cerrada.** |
 
 ### Ids publicados (Rocon_v3)
 
@@ -630,8 +632,9 @@ El código fuerza el bucle y la prioridad al cargar cada pista. Las animaciones 
 - Se eligió `Root` porque es constante (no depende de la animación) y porque evita el hundimiento.
 
 **Estado:**
-- **Validado visualmente por el usuario en Roblox Studio** (2026-11-07) con **Rocón equipado** como compañero: apoyado en el suelo, sin el hundimiento anterior.
-- **Pendiente de confirmar en Studio:** Rocón salvaje (zona 2), Rocón trabajando en el extractor de piedra y **Rocón Legendario**. Para Legendario se usa el valor de Épico, sin medición propia.
+- **Validado visualmente por el usuario en Roblox Studio** (2026-11-07):
+  - primero con Rocón equipado;
+  - después con las cuatro rarezas (Legendario incluido, con el valor de Épico) y en los tres contextos: salvaje en la zona 2, equipado y trabajando en el extractor de piedra.
 - La prueba de regresión está en `tools/sim/rocon.lua`.
 
 ### Velocidad de Walk y Run (deslizamiento de pies)
@@ -651,13 +654,13 @@ Rocón es un gólem pesado: su paso nativo es lento (0,27 alturas/s), mientras q
 - (b) subir el límite de velocidad solo para Rocón (`maxRate`), aunque a ×4–×7 el gólem se vería frenético;
 - (c) que los Rocón salvajes deambulen más despacio (p. ej. 1 studs/s, `Encounters`).
 
-**Decisión actual:** se mantiene esta configuración; el ajuste queda pendiente de la prueba visual en Studio.
+**Decisión:** se mantiene esta configuración. En la prueba visual del usuario (2026-11-07) el movimiento de Rocón se aprobó tal cual, sin cambiar velocidades ni límites.
 
 ### Pruebas automáticas
 
 `lua5.4 tools/sim/rocon.lua`: 144 comprobaciones con plantillas **simuladas** y los 7 ids **reales** de `Rocon_v3`. Comprueba que los ids son exactamente los publicados y que los de Lumi no cambian. Las 11 suites anteriores siguen pasando con las mismas comprobaciones.
 
-### Comprobación en Studio (pendiente de la prueba visual del usuario)
+### Comprobación en Studio (aprobada por el usuario el 2026-11-07; repetir si cambian los modelos o las animaciones)
 
 1. `rojo build default.project.json -o PortalPets.rbxlx`, abre el lugar y pulsa **Play**.
    - Output no debe mostrar `Falta (o no es valida) la plantilla Rocon_…`, `[PetAnimator]` ni `Failed to load animation`.
