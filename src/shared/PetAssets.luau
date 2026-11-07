@@ -122,7 +122,8 @@ PetAssets.Effects = {
 --          una rareza con rig propio. Sin entrada, la rareza reutiliza lo de la especie.
 --   footInset: fraccion del alto que se hunde el apoyo cuando la parte mas baja de la
 --          malla en reposo no son las patas (0 si la base de la malla son las suelas,
---          como en Lumi: comprobado con el FBX). Ver PetGrounding.
+--          como en Lumi: comprobado con el FBX). Negativo sube el apoyo cuando el rig
+--          animado queda por debajo de la base de reposo (Rocon, medido en Studio). Ver PetGrounding.
 --   locomotion: { walk = ..., run = ... } velocidad nativa de Walk y Run en alturas del
 --          PET por segundo (opcional). Si existe, PetAnimator ajusta la velocidad de
 --          reproduccion a velocidad real / (nativa * alto del modelo); si no, usa las
@@ -152,12 +153,28 @@ PetAssets.Species = {
 		model = "Rocon",
 		heightFactor = 1.0,
 		yaw = 0, -- exportado con la misma convencion que Lumi (frente -Y en Blender)
-		footInset = 0, -- la base de la malla en reposo son las suelas (comprobado en los FBX)
+		-- Apoyo corregido con medidas en Studio (2026-11-07, PETs salvajes en la zona 2, modo
+		-- Cliente): con la animacion sonando, el hueso Root (padre de todo el esqueleto, y por
+		-- tanto de la malla deformada) queda por debajo de la base de reposo de la MeshPart,
+		-- que es la referencia de GroundOffset. Root no se mueve en los FBX, asi que es un
+		-- desplazamiento constante del rig animado en Roblox, proporcional al alto:
+		--   Comun   Root -0,576 studs con alto 2,0 -> -0,288 del alto
+		--   Raro    Root -0,599 studs con alto 2,2 -> -0,272 del alto
+		--   Epico   Root -0,692 studs con alto 2,4 -> -0,288 del alto
+		-- footInset negativo sube el apoyo esa fraccion (GroundOffset = alto/2 - footInset*alto).
+		-- Legendario usa la misma malla, huesos y tamaño de reposo que Epico (validador):
+		-- mismo valor, PENDIENTE de medir en Studio. Docs: ART_PIPELINE.md, seccion 15.
+		footInset = 0,
 		animationSet = "Rocon_v3",
 		animations = {},
 		-- Rocon_rare / Rocon_epic / Rocon_legendary (assets/pets). Rocon no tiene mitico.
 		rarityModels = { rare = true, epic = true, legendary = true },
-		variants = {},
+		variants = {
+			common = { footInset = -0.288 },
+			rare = { footInset = -0.2723 },
+			epic = { footInset = -0.2883 },
+			legendary = { footInset = -0.2883 },
+		},
 		-- Velocidad nativa de la cinta de Walk y Run en ALTURAS DEL PET por segundo, medida
 		-- en los FBX (Comun: 0,457 m/s y 1,313 m/s con 1,697 m de alto; Raro y Epico/
 		-- Legendario difieren < 1 %). PetAnimator la convierte a studs/s con el alto real

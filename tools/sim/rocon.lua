@@ -93,6 +93,11 @@ check(not warned("Rocon"), "sin plantillas de Rocon no hay avisos en Output")
 check(PetModels.Build("lumi", "common"):GetAttribute("AssetName") == "Lumi", "Lumi sigue usando su plantilla")
 
 -- 2) Con las 4 plantillas: cada rareza usa su modelo, textura, alto y apoyo ----------------
+-- Medidas reales en Studio (2026-11-07, modo Cliente, zona 2): Root animado respecto a la base
+-- de reposo, en studs, y alto del modelo en ese momento. Legendario no se midio (= Epico).
+local MEASURED = { common = -0.576, rare = -0.599, epic = -0.692 }
+local MEASURED_H = { common = 2.0, rare = 2.2, epic = 2.4 }
+local FOOT_INSET = { common = -0.288, rare = -0.2723, epic = -0.2883, legendary = -0.2883 }
 for _, r in ipairs(rarities) do
 	makeTemplate(MODELS[r], BODIES[r], SIZES[r], "SIM_textura_rocon_" .. r, "Rocon_v3")
 end
@@ -106,13 +111,26 @@ for _, r in ipairs(rarities) do
 	check(m:GetAttribute("AssetName") == MODELS[r] and m:GetAttribute("Rig") == "Rocon_v3" and colorMapOf(m) == "SIM_textura_rocon_" .. r
 		and m.PrimaryPart.Name == BODIES[r], r .. ": modelo " .. MODELS[r] .. " con su textura y su MeshPart")
 	local _, size = m:GetBoundingBox()
-	check(near(size.Y, 2 * rar.size, 1e-3) and near(m:GetAttribute("GroundOffset"), rar.size, 1e-3),
-		r .. ": alto " .. string.format("%.2f", size.Y) .. " studs (igual que el procedural) y GroundOffset en las suelas")
+	local h = 2 * rar.size
+	check(near(size.Y, h, 1e-3), r .. ": alto " .. string.format("%.2f", size.Y) .. " studs (igual que el procedural)")
+	-- Regresion del apoyo (medidas en Studio): con la animacion, Root queda MEASURED[r] studs
+	-- por debajo de la base de reposo; GroundOffset debe compensarlo exactamente.
+	local inset = PetAssets.Species.rocon.variants[r].footInset
+	check(near(inset, FOOT_INSET[r], 1e-9) and near(m:GetAttribute("GroundOffset"), h / 2 - inset * h, 1e-3),
+		r .. ": GroundOffset = alto/2 - footInset*alto (footInset " .. inset .. ")")
 	m:PivotTo(PetGrounding.PivotCFrame(Vector3.new(0, 5, 0), Vector3.new(0, 1, 0), Vector3.new(0, 0, -1), m:GetAttribute("GroundOffset")))
 	local bb, s2 = m:GetBoundingBox()
-	check(near(bb.Position.Y - s2.Y / 2, 5, 1e-3), r .. ": suelas apoyadas en el suelo")
+	local restBase = bb.Position.Y - s2.Y / 2
+	if MEASURED[r] then
+		check(math.abs(restBase + MEASURED[r] * h / MEASURED_H[r] - 5) < 0.002,
+			r .. ": el Root animado medido en Studio queda en el suelo (error " .. string.format("%.4f", restBase + MEASURED[r] * h / MEASURED_H[r] - 5) .. " studs)")
+	end
+	check(restBase > 5 and near(restBase - 5, -inset * h, 1e-3), r .. ": la base de REPOSO queda elevada lo que baja el rig animado")
 end
 check(not warned("Rocon"), "con las 4 plantillas no hay avisos de Rocon")
+local ml = PetModels.Build("lumi", "common")
+check(near(ml:GetAttribute("GroundOffset"), 1.0, 1e-3) and (PetAssets.Species.lumi.footInset or 0) == 0 and next(PetAssets.Species.lumi.variants) == nil,
+	"Lumi conserva su apoyo (GroundOffset = alto/2, sin footInset)")
 check(PetModels.Build("lumi", "rare"):GetAttribute("AssetName") == "Lumi", "Lumi raro sin cambios (sigue con su respaldo actual)")
 -- Shiny: misma plantilla de su rareza + particulas; Shiny no es una rareza ni cambia el modelo
 local ms = PetModels.Build("rocon", "epic", { shiny = true })
@@ -315,6 +333,9 @@ if worker then
 	end
 end
 check(worker and worker:GetAttribute("AssetName") == "Rocon_epic" and working, "el trabajador Rocon usa Rocon_epic y reproduce Work")
+local hW = worker:GetAttribute("Radius") * 2
+check(near(worker:GetAttribute("GroundOffset"), hW / 2 + 0.2883 * hW, 1e-3) and math.abs(worker:GetPivot().Y - worker:GetAttribute("GroundOffset")) < 1e-3,
+	"el trabajador epico se apoya con la correccion medida (pivote - GroundOffset = suelo)")
 -- produccion: el Rocon produce piedra con la tasa del catalogo
 local Production = S.Production
 local t0 = os.time()

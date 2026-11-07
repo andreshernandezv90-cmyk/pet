@@ -498,7 +498,7 @@ Repite estos pasos para Raro → `Lumi_rare`, Épico → `Lumi_epic` y Legendari
 | Animaciones | `Referenciado en código con respaldo`: los 7 ids publicados están en `PetAssets.AnimationSets.Rocon_v3`, compartidos por las 4 rarezas. |
 | Modelos | `Guardado en assets/pets`: `Rocon.rbxm`, `Rocon_rare.rbxm`, `Rocon_epic.rbxm` y `Rocon_legendary.rbxm`, todos con `Rig = Rocon_v3`. Entran en `rojo build` y en `tools/build_rbxlx.py`. |
 | Validación estructural | **Aprobada** (2026-11-07). `tools/check_pet_assets.py` pasa con los 4 Rocón y los 4 Lumi, y pasan las 12 suites de `tools/sim`. |
-| Dentro de Portal Pets | **Falta la prueba visual en Roblox Studio** (abajo, "Comprobación en Studio"). Hasta que el usuario la confirme, no se da por verificado. |
+| Dentro de Portal Pets | Modelos, texturas y animaciones **confirmados por el usuario en Roblox Studio**. Apoyo en el suelo validado con Rocón equipado; quedan pendientes las comprobaciones de salvaje, trabajador y Legendario (ver "Apoyo en el suelo"). |
 
 ### Ids publicados (Rocon_v3)
 
@@ -595,6 +595,44 @@ El código fuerza el bucle y la prioridad al cargar cada pista. Las animaciones 
   | Walk / Run | según la velocidad |
   | Work | trabajando en el extractor de piedra (el servidor lo replica) |
   | Happy, Sleep_Enter → Sleep_Loop | panel **Dev** (preparadas; todavía sin mecánica de juego, igual que en Lumi) |
+
+### Apoyo en el suelo (corrección medida en Studio)
+
+**Síntoma:** en Studio, Rocón se veía parcialmente hundido.
+
+**Medición** (2026-11-07, modo Cliente, salvajes de la zona 2; el raycast detectó `Terrain`):
+
+| Modelo | Suela de reposo calculada | Root | Toe_L / Toe_R | Alto en juego | Root / alto |
+|---|---|---|---|---|---|
+| `Rocon` | 0,000 | −0,576 | ≈ −0,468 | 2,0 | −0,288 |
+| `Rocon_rare` | 0,000 | −0,599 | ≈ −0,480 | 2,2 | −0,272 |
+| `Rocon_epic` | 0,000 | −0,692 | ≈ −0,561 | 2,4 | −0,288 |
+
+**Causa:**
+- La colocación (`PetGrounding` con `GroundOffset`) funciona como se diseñó: la base de reposo de la MeshPart queda exactamente sobre el terreno.
+- En los `.rbxm`, esa base coincide con el hueso `Root` y con las suelas, igual que en Lumi.
+- Pero con la animación sonando, el esqueleto completo (`Root`, padre de todos los huesos, y por tanto la malla deformada) queda por debajo de esa base, en una fracción constante del alto.
+- En los FBX, `Root` nunca se mueve, así que el desplazamiento aparece al reproducir el rig de Rocón en Roblox. Lumi no lo tiene.
+- Diferencias de Rocón con Lumi en los `.rbxm`:
+  - el hueso `Root` está girado 180°;
+  - la pelvis se desplaza mucho más (hasta −11 cm en Blender).
+
+**Corrección mínima:**
+- Es solo configuración, en `PetAssets.Species.rocon.variants[rareza].footInset`.
+- Valores medidos: Común −0,288; Raro −0,2723; Épico −0,2883. Legendario −0,2883: tiene la misma malla, huesos y tamaño de reposo que Épico, pero **está pendiente de medir**.
+- `GroundOffset = alto/2 − footInset × alto`, así que el apoyo sube exactamente lo que baja `Root`.
+- Lumi, la colocación general y las animaciones no cambian.
+- Al estar en `GroundOffset`, la corrección vale igual para PETs salvajes, compañeros y trabajadores.
+
+**Margen:** las puntas de los pies (`Toe`) bajaron un poco menos que `Root`.
+- Estimando la suela desde `Toe` (cabeza de `Toe` a 0,034 del alto sobre la suela, como en Blender), la suela queda en unos −0,268 del alto.
+- Con la corrección por `Root`, los pies podrían quedar elevados como mucho ≈ 0,02 del alto (0,04 studs en Común).
+- Se eligió `Root` porque es constante (no depende de la animación) y porque evita el hundimiento.
+
+**Estado:**
+- **Validado visualmente por el usuario en Roblox Studio** (2026-11-07) con **Rocón equipado** como compañero: apoyado en el suelo, sin el hundimiento anterior.
+- **Pendiente de confirmar en Studio:** Rocón salvaje (zona 2), Rocón trabajando en el extractor de piedra y **Rocón Legendario**. Para Legendario se usa el valor de Épico, sin medición propia.
+- La prueba de regresión está en `tools/sim/rocon.lua`.
 
 ### Velocidad de Walk y Run (deslizamiento de pies)
 
