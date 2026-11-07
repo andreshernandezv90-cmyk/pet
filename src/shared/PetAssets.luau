@@ -51,11 +51,17 @@ PetAssets.AnimationSets = {
 	-- Lumi Comun: Lumi_Comun_rig_v7.blend, 34 huesos (Root, Hips, Spine, Chest, Neck,
 	-- Head, Jaw, Ear_01-03.L/R, Shoulder/UpperArm/Forearm/FrontPaw.L/R, Tail_01-05,
 	-- Thigh/Shin/BackFoot/BackPaw.L/R), 30 fps, sin root motion.
+	-- Ids publicados en Roblox por el dueño del proyecto (no modificar sin republicar).
 	Lumi_v7 = {
 		rig = "Lumi_v7",
 		ids = {
-			-- Idle = "rbxassetid://<id real>",
-			-- Walk, Run, Happy, Sleep_Enter, Sleep_Loop, Work
+			Idle = "rbxassetid://123787685829164",
+			Walk = "rbxassetid://98626202379591",
+			Run = "rbxassetid://139144120637137",
+			Happy = "rbxassetid://98260166738628",
+			Sleep_Enter = "rbxassetid://124146121312676",
+			Sleep_Loop = "rbxassetid://87678883964103",
+			Work = "rbxassetid://138174795961249",
 		},
 	},
 }

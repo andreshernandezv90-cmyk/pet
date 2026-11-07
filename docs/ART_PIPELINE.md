@@ -14,7 +14,10 @@ Estados de cada asset (regla de `roblox-visual-director`). Nunca se da por integ
 
 `Propuesto → Exportado desde Blender → Importado en Studio → Guardado en assets/pets → Referenciado en código con respaldo → Verificado en Studio`
 
-**Estado actual de Lumi Común V1.0:** `Exportado desde Blender` (modelo + 7 animaciones, analizados en la sección 10). El código está preparado para las 7 animaciones. **Todavía no hay nada importado en Roblox ni ningún id publicado.**
+**Estado actual de Lumi Común V1.0:**
+- Animaciones: `Referenciado en código con respaldo`. Los 7 ids publicados están en `PetAssets.AnimationSets.Lumi_v7` (sección 10).
+- Modelo: `Importado en Studio`, pero solo en un proyecto de prueba. **Falta guardarlo en `assets/pets/Lumi.rbxmx`.** Hasta entonces, el juego usa el Lumi procedural.
+- **Nada está verificado todavía dentro de Portal Pets en Studio.**
 
 ---
 
@@ -236,4 +239,50 @@ Pasos generales en las secciones 6 y 7. Resumen para Lumi Común:
 3. Importa cada FBX de animación en el Animation Editor sobre `Lumi`. Activa el bucle en `Idle`, `Walk`, `Run`, `Work` y `Sleep_Loop`, y desactívalo en `Happy` y `Sleep_Enter`.
 4. Publica cada animación con la cuenta o el grupo dueño de la experiencia.
 5. Antes de guardar `assets/pets/Lumi.rbxmx`, borra la carpeta `AnimSaves` si el editor la creó.
-6. Los 7 ids van en `PetAssets.AnimationSets.Lumi_v7.ids`.
+6. Los 7 ids van en `PetAssets.AnimationSets.Lumi_v7.ids` (ya registrados).
+
+### Ids publicados (Lumi_v7)
+
+| Estado | AnimationId | Bucle | Prioridad |
+|---|---|---|---|
+| `Idle` | `rbxassetid://123787685829164` | sí | Idle |
+| `Walk` | `rbxassetid://98626202379591` | sí | Movement |
+| `Run` | `rbxassetid://139144120637137` | sí | Movement |
+| `Happy` | `rbxassetid://98260166738628` | no | Action |
+| `Sleep_Enter` | `rbxassetid://124146121312676` | no | Action |
+| `Sleep_Loop` | `rbxassetid://87678883964103` | sí | Action |
+| `Work` | `rbxassetid://138174795961249` | sí | Action |
+
+- El código fuerza el bucle y la prioridad al cargar cada pista, así que no depende de cómo se publicó cada animación.
+- Las animaciones pertenecen a la cuenta o grupo que las publicó, no al lugar. Funcionan en Portal Pets solo si la experiencia tiene el **mismo dueño**. Si Portal Pets es de un grupo y se publicaron desde una cuenta personal, hay que volver a publicarlas desde el grupo y cambiar los ids.
+- **Rarezas:** común, raro, épico, legendario y mítico usan hoy la plantilla `Lumi` con estos 7 ids. Una futura `Lumi_<rareza>` con el mismo esqueleto de 34 huesos los reutiliza sin tocar código si lleva el atributo `Rig = "Lumi_v7"`. Si tiene otro esqueleto (por ejemplo, un mítico distinto), dale otro valor de `Rig` y su propio conjunto en `PetAssets.AnimationSets` + `variants.<rareza>.animationSet`.
+- **Sin modelo:** si no existe la plantilla `Lumi`, los ids no se usan, porque el modelo procedural no tiene rig.
+
+### Llevar el modelo del proyecto de prueba a Portal Pets
+
+1. En el proyecto de prueba, revisa `Lumi`:
+   - nombre exacto `Lumi`;
+   - `PrimaryPart` asignado;
+   - atributo `Rig = "Lumi_v7"`;
+   - sin scripts;
+   - sin la carpeta `AnimSaves`;
+   - sin carpeta `Animations` (los ids ya están en el código; si la dejas, sus `Animation` tienen prioridad).
+2. Clic derecho en `Lumi` → **Save to File…** → tipo **.rbxmx** → `assets/pets/Lumi.rbxmx` dentro del repositorio.
+3. Abre Portal Pets en Studio y conecta Rojo (`rojo serve` + plugin). Rojo crea `ReplicatedStorage → PetAssets → Lumi` a partir del archivo.
+   - Sin Rojo: arrastra el mismo archivo a `ReplicatedStorage → PetAssets`, o regenera el lugar con `python tools/build_rbxlx.py`, que incrusta los `.rbxmx`.
+4. La malla y la textura viven en Roblox como assets. Si se subieron desde la cuenta dueña de la experiencia, el `.rbxmx` las referencia y cargan igual.
+
+### Validar las 7 animaciones dentro del juego
+
+Usa **Play** (o **Test → Clients and Servers** con 2 jugadores para la réplica) y revisa la ventana **Output**. No debe aparecer ningún aviso `[PetAssets]`, `[PetModels]` ni `[PetAnimator]`. Un `Failed to load animation` indica un problema de dueño o de id.
+
+| Animación | Cómo verla |
+|---|---|
+| `Idle` / `Walk` | Lumi salvajes de la Zona 1: deambulan y se paran |
+| `Run` | Equipa un Lumi como compañero y corre: a partir de 7 studs/s pasa a `Run` |
+| `Work` | Asigna un Lumi a una estación de tu parcela. Con 2 jugadores, el otro también lo ve trabajar |
+| `Happy` | Panel **Dev** → "Animacion: Happy", con un Lumi equipado y tú quieto. Al terminar vuelve a `Idle` |
+| `Sleep_Enter` → `Sleep_Loop` | Panel **Dev** → "Animacion: Sleep": se acuesta y enlaza sin salto con el bucle |
+| Despertar | Panel **Dev** → "Animacion: despertar", o muévete: vuelve a `Idle` / `Walk` |
+
+Revisa también la orientación (que la cara mire hacia donde camina; si no, ajusta `yaw`), los pies sobre el suelo, la textura y que la captura con **F** siga funcionando. Mientras se le succiona, Lumi usa `Idle` porque no tiene `CaptureReaction`. La sección 9 tiene la lista completa (rarezas, fusiones, jefe, rendimiento).

@@ -17,6 +17,25 @@ local PetAssets = require(RS.Shared.PetAssets)
 local PetAnimator = require(RS.Shared.PetAnimator)
 local PetCatalog = require(RS.Shared.PetCatalog)
 
+-- 0) Ids publicados de Lumi Comun: exactamente los que dio el dueño del proyecto ----------
+local SET = PetAssets.AnimationSets.Lumi_v7
+local LUMI7 = { "Idle", "Walk", "Run", "Happy", "Sleep_Enter", "Sleep_Loop", "Work" }
+local EXPECTED = {
+	Idle = "rbxassetid://123787685829164", Walk = "rbxassetid://98626202379591", Run = "rbxassetid://139144120637137",
+	Happy = "rbxassetid://98260166738628", Sleep_Enter = "rbxassetid://124146121312676",
+	Sleep_Loop = "rbxassetid://87678883964103", Work = "rbxassetid://138174795961249",
+}
+local nIds = 0
+for k, v in pairs(SET.ids) do
+	nIds = nIds + 1
+	check(EXPECTED[k] == v and PetAssets.IsAnimationId(v), "id publicado " .. k .. " = " .. v)
+end
+check(nIds == 7, "Lumi_v7 trae exactamente 7 ids")
+check(PetAssets.Species.lumi.animationSet == "Lumi_v7" and SET.rig == "Lumi_v7", "Lumi usa el conjunto Lumi_v7")
+-- Las secciones 1-3 prueban plantillas con y sin animaciones propias: conjunto vacio temporal
+local PUBLISHED = SET.ids
+SET.ids = {}
+
 -- 1) Sin carpeta de assets: todo es procedural, igual que antes ------------------------
 check(RS:FindFirstChild("PetAssets") == nil, "sin carpeta PetAssets en el simulador")
 check(PetAssets.Find("lumi", "common") == nil, "sin plantilla: Find devuelve nil")
@@ -163,16 +182,23 @@ PetAssets.Species.lumi.animations.Idle = nil
 check(next(PetAssets.Species.lumi.animations) == nil, "la configuracion publicada no trae ids inventados")
 
 -- 3b) Conjunto completo de Lumi Comun (7 animaciones) y controlador por capas ------
--- Ids marcadores de prueba (no son assets reales); se vacian al terminar.
-local SET = PetAssets.AnimationSets.Lumi_v7
-local LUMI7 = { "Idle", "Walk", "Run", "Happy", "Sleep_Enter", "Sleep_Loop", "Work" }
-for i, s in ipairs(LUMI7) do SET.ids[s] = "rbxassetid://90" .. i end
+-- Con los ids publicados reales (el Animator es simulado: no se descargan).
+SET.ids = PUBLISHED
 local m7 = PetModels.Build("lumi", "rare") -- Lumi_rare: sin carpeta Animations, usa el conjunto
 local a7 = PetAnimator.Attach(m7)
 check(a7 ~= nil, "conjunto Lumi_v7: animador conectado")
 local allSeven = true
 for _, s in ipairs(LUMI7) do allSeven = allSeven and a7:Has(s) end
 check(allSeven and not a7:Has("Jump") and not a7:Has("CaptureReaction"), "carga las 7 animaciones de Lumi y nada mas")
+local idsOk = true
+for _, s in ipairs(LUMI7) do idsOk = idsOk and a7.tracks[s].Animation.AnimationId == EXPECTED[s] and a7.tracks[s].Animation.Name == s end
+check(idsOk, "cada pista usa su id publicado")
+for _, r in ipairs({ "rare", "epic", "legendary" }) do
+	local ar = PetAnimator.Attach(PetModels.Build("lumi", r))
+	local all = ar ~= nil
+	for _, s in ipairs(LUMI7) do all = all and ar:Has(s) end
+	check(all, "rareza " .. r .. ": mismo rig de 34 huesos, reutiliza las 7 animaciones")
+end
 local t7 = a7.tracks
 check(t7.Idle.Looped and t7.Walk.Looped and t7.Run.Looped and t7.Work.Looped and t7.Sleep_Loop.Looped
 	and not t7.Happy.Looped and not t7.Sleep_Enter.Looped, "bucles: Idle/Walk/Run/Work/Sleep_Loop si; Happy/Sleep_Enter no")
@@ -250,7 +276,7 @@ local partialOnly = PetAnimator.Attach(PetModels.Build("lumi", "common"))
 check(partialOnly:Sleep() == false and partialOnly:Celebrate() == nil and partialOnly:SetMoveSpeed(0) == "Idle",
 	"sin Sleep/Happy: Sleep() = false, Celebrate() = nil y sigue en Idle")
 check(partial ~= nil, "plantilla con carpeta Animations y conjunto a la vez")
-check(next(SET.ids) == nil, "el conjunto publicado no trae ids inventados")
+SET.ids = PUBLISHED
 noAnim.Parent = nil
 
 -- 4) Plantillas invalidas -> respaldo con aviso ------------------------------------
@@ -292,7 +318,6 @@ for _, w in ipairs(wildModels) do if w:GetAttribute("Source") ~= "asset" then al
 check(allAsset, "los Lumi salvajes usan el modelo importado")
 for _ = 1, 30 do RunService.RenderStepped:Fire(1 / 30) end
 check(true, "animacion de PETs salvajes por fotograma sin errores")
-for i, s in ipairs(LUMI7) do SET.ids[s] = "rbxassetid://90" .. i end -- marcadores de prueba
 P:SetAttribute("Followers", "lumi:legendary,V:lumi:common")
 for _ = 1, 10 do RunService.RenderStepped:Fire(1 / 30) end
 local Followers = require(CLIENT_SCRIPT.Followers)
@@ -314,7 +339,6 @@ for _, c in ipairs(workspace:FindFirstChild("Compañeros"):GetChildren()) do
 end
 P.Character.Humanoid.FloorMaterial = Enum.Material.Grass
 check(moving == 2, "compañero en el aire sin animacion Jump: sigue caminando/corriendo (" .. moving .. ")")
-SET.ids = {}
 local comp = workspace:FindFirstChild("Compañeros")
 local ca = 0
 for _, c in ipairs(comp and comp:GetChildren() or {}) do if c:GetAttribute("Source") == "asset" then ca = ca + 1 end end
