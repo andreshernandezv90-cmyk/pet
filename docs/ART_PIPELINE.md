@@ -423,11 +423,24 @@ No hay ciclo de día y noche; cada zona tiene su hora y su tono (`WorldFx.LOOKS`
 
 | Rareza | Plantilla | Archivo | Estado |
 |---|---|---|---|
-| Común | `Lumi` | `assets/pets/Lumi.rbxm` | Verificado en Studio |
-| Raro | `Lumi_rare` | `assets/pets/Lumi_rare.rbxm` | Código listo; **falta importar en Studio** |
-| Épico | `Lumi_epic` | `assets/pets/Lumi_epic.rbxm` | Código listo; **falta importar en Studio** |
-| Legendario | `Lumi_legendary` | `assets/pets/Lumi_legendary.rbxm` | Código listo; **falta importar en Studio** |
+| Común | `Lumi` | `assets/pets/Lumi.rbxm` | Importado; **validado visualmente por el usuario en Roblox Studio** (2026-11-06) |
+| Raro | `Lumi_rare` | `assets/pets/Lumi_rare.rbxm` | Importado; **validado visualmente por el usuario en Roblox Studio** (2026-11-06) |
+| Épico | `Lumi_epic` | `assets/pets/Lumi_epic.rbxm` | Importado; **validado visualmente por el usuario en Roblox Studio** (2026-11-06) |
+| Legendario | `Lumi_legendary` | `assets/pets/Lumi_legendary.rbxm` | Importado; **validado visualmente por el usuario en Roblox Studio** (2026-11-06) |
 | Mítico | — (usa `Lumi`) | — | Sin modelo propio todavía |
+
+Las cuatro variantes de Lumi fueron probadas visualmente por el usuario en Roblox Studio y funcionan correctamente. Además pasan `tools/check_pet_assets.py --require Lumi,Lumi_rare,Lumi_epic,Lumi_legendary` y las 10 suites de `tools/sim`.
+
+Datos de los archivos guardados (leídos por el validador):
+
+| Plantilla | PrimaryPart | Malla | Textura (ColorMap) |
+|---|---|---|---|
+| `Lumi` | `Lumi_Comun_Body` | `rbxassetid://85702700458518` | `rbxassetid://116789412849410` |
+| `Lumi_rare` | `Lumi_Raro_Body` | `rbxassetid://99859815912404` | `rbxassetid://116220629047041` |
+| `Lumi_epic` | `Lumi_Epico_Body` | `rbxassetid://106946233331711` | `rbxassetid://75192529583080` |
+| `Lumi_legendary` | `Lumi_Legendario_Body` | `rbxassetid://130109281460178` | `rbxassetid://99272336846687` |
+
+Todas tienen `Rig = Lumi_v7`, 34 huesos y comparten los 7 ids de animación de `PetAssets.AnimationSets.Lumi_v7`.
 
 `PetAssets.Find` busca `Lumi_<rareza>` y, si no existe, usa `Lumi`. Las rarezas con plantilla prevista (`PetAssets.Species.lumi.rarityModels`) avisan una vez en Output si falta la suya: `Falta (o no es valida) la plantilla Lumi_rare...`. La rareza, el inventario y los datos guardados no dependen del modelo.
 
@@ -436,7 +449,7 @@ No hay ciclo de día y noche; cada zona tiene su hora y su tono (`WorldFx.LOOKS`
 - **Rig:** 34 huesos con los mismos nombres y jerarquía que Lumi Común, 30 fps, sin root motion. La base de la malla en reposo son las suelas (alto 1,646). En Idle y Walk las patas quedan a ±0,7 % del alto de esa base.
 - **Malla:** propia de las variantes, idéntica en las tres (7.901 vértices, 15.801 triángulos).
 - **Reposo de los huesos:** difiere del rig Común hasta 13,6° (`Spine`, `Chest`, `Shoulder.R`) y 2,5 cm.
-- **Animaciones: no hace falta publicar nada nuevo.** Roblox aplica cada pose relativa al reposo del hueso. Al simular los 7 ids de Lumi Común sobre el reposo de cada variante, el resultado coincide con la animación validada de esa variante con un error máximo de **0,37° y 1 mm** en todos los fotogramas. Cálculo hecho con los FBX; queda confirmarlo en Studio.
+- **Animaciones: no hace falta publicar nada nuevo.** Roblox aplica cada pose relativa al reposo del hueso. Al simular los 7 ids de Lumi Común sobre el reposo de cada variante, el resultado coincide con la animación validada de esa variante con un error máximo de **0,37° y 1 mm** en todos los fotogramas. Cálculo hecho con los FBX y confirmado después en la prueba visual del usuario en Studio.
 - **Texturas originales:** `Lumi_*_Texture.png` son **JPEG de 4096 px con extensión .png**. No conviene usarlas.
 - **Versión optimizada:** `*_Model_1024.fbx` (72 % más ligero) tiene el mismo rig, pesos y UV, verificado; su textura es un PNG real de 1024 px. Es la resolución que Roblox mostraría de todos modos.
 - **Mapas extra:** metal ≈ 0 en toda la textura, normales prácticamente planas (desviación de unos 2/255) y alfa opaco. Basta el **mapa de color**, igual que en la Común.
@@ -464,7 +477,7 @@ Repite estos pasos para Raro → `Lumi_rare`, Épico → `Lumi_epic` y Legendari
    Comprueba la PrimaryPart, `Rig`, los 34 huesos y su jerarquía, la textura propia (distinta en cada rareza), el `AnimationController`/`Animator`, que no haya scripts y que no haya carpeta `Animations`.
 6. La malla y la textura se suben al importar. Deben pertenecer al mismo dueño que la experiencia (cuenta o grupo); si no, no cargarán en el juego publicado.
 
-### Comprobación en Studio (pendiente)
+### Comprobación en Studio (validada por el usuario; repetir si cambian los modelos)
 
 1. `rojo build default.project.json -o PortalPets.rbxlx`, abrir y **Play**. Output no debe mostrar `Falta (o no es valida) la plantilla` ni `Failed to load animation`.
 2. Panel Dev → "pets" (+3 de cada variante). Equipa un Lumi raro, uno épico y uno legendario: cada uno con su textura, animado (Idle, Walk, Run), apoyado y sin blanquearse.
