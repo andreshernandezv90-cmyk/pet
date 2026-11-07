@@ -2,13 +2,14 @@
 """Valida los modelos importados de assets/pets (.rbxm / .rbxmx) sin abrir Studio.
 
 Uso:  python tools/check_pet_assets.py [--require Lumi,Lumi_rare,...] [--dir carpeta]
+      python tools/check_pet_assets.py --require Rocon,Rocon_rare,Rocon_epic,Rocon_legendary
 
 Los .rbxm se convierten a XML con Rojo en una carpeta temporal (el original no se
 toca). Para cada modelo comprueba:
   - Model raiz con PrimaryPart que apunta a una MeshPart con los huesos dentro;
-  - atributo Rig (texto) = "Lumi_v7" en los modelos de Lumi;
-  - los 34 huesos esperados con su jerarquia;
-  - SurfaceAppearance con mapa de color (y que cada variante tenga uno distinto);
+  - atributo Rig (texto) = "Lumi_v7" en los modelos de Lumi y "Rocon_v3" en los de Rocon;
+  - los huesos esperados con su jerarquia (34 en Lumi, 29 en Rocon);
+  - textura de color (SurfaceAppearance.ColorMap o MeshPart.TextureContent), distinta en cada variante;
   - AnimationController con Animator;
   - sin scripts y sin carpeta Animations (los ids viven en PetAssets.AnimationSets).
 Sale con codigo 1 si hay errores. --require exige que existan esos modelos.
@@ -36,7 +37,15 @@ LUMI_V7 = {
     "Tail_05": "Tail_04", "Thigh.L": "Hips", "Shin.L": "Thigh.L", "BackFoot.L": "Shin.L", "BackPaw.L": "BackFoot.L",
     "Thigh.R": "Hips", "Shin.R": "Thigh.R", "BackFoot.R": "Shin.R", "BackPaw.R": "BackFoot.R",
 }
-RIGS = {"Lumi": ("Lumi_v7", LUMI_V7)}  # prefijo de nombre -> (Rig esperado, huesos)
+# Rig Rocon_v3 (Rocon_<Rareza>_Anim_v3.blend, igual en las 4 rarezas): 29 huesos
+ROCON_V3 = {"Root": None, "Pelvis": "Root", "Spine": "Pelvis", "Chest": "Spine", "Head": "Chest",
+            "Thigh_L": "Pelvis", "Shin_L": "Thigh_L", "Foot_L": "Shin_L", "Toe_L": "Foot_L",
+            "Thigh_R": "Pelvis", "Shin_R": "Thigh_R", "Foot_R": "Shin_R", "Toe_R": "Foot_R"}
+for _s in ("L", "R"):
+    ROCON_V3.update({"Shoulder_" + _s: "Chest", "UpperArm_" + _s: "Shoulder_" + _s, "Forearm_" + _s: "UpperArm_" + _s,
+                     "Hand_" + _s: "Forearm_" + _s, "Fingers_01_" + _s: "Hand_" + _s, "Fingers_02_" + _s: "Fingers_01_" + _s,
+                     "Thumb_01_" + _s: "Hand_" + _s, "Thumb_02_" + _s: "Thumb_01_" + _s})
+RIGS = {"Lumi": ("Lumi_v7", LUMI_V7), "Rocon": ("Rocon_v3", ROCON_V3)}  # prefijo de nombre -> (Rig esperado, huesos)
 
 
 def to_xml(path, tmp):
@@ -149,14 +158,23 @@ def check_model(path, tmp):
             moved = sorted(b for b in bones if b in rig[1] and bones[b] != rig[1][b])
             errors.append("huesos distintos del rig (faltan %s, sobran %s, padre distinto %s)" % (missing, extra, moved))
         info["huesos"] = len(bones)
+    # Textura de color: SurfaceAppearance.ColorMap (Lumi) o, si no hay SurfaceAppearance,
+    # la textura de la propia MeshPart (TextureContent / TextureID), como en Rocon.
     sa = [it for it in refs.values() if it.get("class") == "SurfaceAppearance"]
     color = None
-    if not sa:
-        errors.append("sin SurfaceAppearance")
-    else:
+    if sa:
         color = text(prop(sa[0], "ColorMapContent")) or text(prop(sa[0], "ColorMap"))
         if not color:
             errors.append("SurfaceAppearance sin mapa de color")
+    elif primary is not None:
+        color = text(prop(primary, "TextureContent")) or text(prop(primary, "TextureID"))
+        if color:
+            info["textura_en"] = "MeshPart.TextureContent"
+        else:
+            errors.append("sin textura (ni SurfaceAppearance ni TextureContent en la MeshPart)")
+    else:
+        errors.append("sin textura")
+    if color:
         info["textura"] = color
     ac = [it for it in refs.values() if it.get("class") == "AnimationController"]
     if not ac or not any(c.get("class") == "Animator" for c in ac[0].findall("Item")):
@@ -189,17 +207,18 @@ def main():
             if info.get("textura"):
                 textures.setdefault(info["textura"], []).append(f)
             print("%s %s" % ("OK  " if not errors else "FALLO", f))
-            for k in ("PrimaryPart", "huesos", "atributos", "malla", "textura", "tamano"):
+            for k in ("PrimaryPart", "huesos", "atributos", "malla", "textura", "textura_en", "tamano"):
                 if k in info:
                     print("      %-11s %s" % (k, info[k]))
             for e in errors:
                 print("      ERROR: " + e)
             failed = failed or bool(errors)
     for tex, owners in textures.items():
-        lumis = [o for o in owners if o.startswith("Lumi")]
-        if len(lumis) > 1:
-            print("FALLO textura repetida en %s (%s): cada rareza debe tener la suya" % (lumis, tex))
-            failed = True
+        for prefix in RIGS:
+            same = [o for o in owners if o == prefix + ".rbxm" or o == prefix + ".rbxmx" or o.startswith(prefix + "_")]
+            if len(same) > 1:
+                print("FALLO textura repetida en %s (%s): cada rareza debe tener la suya" % (same, tex))
+                failed = True
     for r in require:
         if r not in found:
             print("FALLO falta assets/pets/%s.rbxm" % r)

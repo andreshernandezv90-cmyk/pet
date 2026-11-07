@@ -64,6 +64,24 @@ PetAssets.AnimationSets = {
 			Work = "rbxassetid://138174795961249",
 		},
 	},
+	-- Rocon (Comun, Raro, Epico y Legendario): Rocon_<Rareza>_Anim_v3.blend, 29 huesos
+	-- (Root, Pelvis, Spine, Chest, Head, Shoulder/UpperArm/Forearm/Hand/Fingers_01-02/
+	-- Thumb_01-02_L/R, Thigh/Shin/Foot/Toe_L/R), 30 fps, sin root motion. Las 4 rarezas
+	-- tienen la misma orientacion de reposo (<= 0,0001 grados), asi que comparten los 7 ids.
+	-- FBX en Downloads/Rocon_Rig/Etapa4_Roblox_Export/Animaciones (docs/ART_PIPELINE.md, seccion 15).
+	-- Ids publicados en Roblox por el dueño del proyecto (no modificar sin republicar).
+	Rocon_v3 = {
+		rig = "Rocon_v3",
+		ids = {
+			Idle = "rbxassetid://99191665025042",
+			Walk = "rbxassetid://79078597091924",
+			Run = "rbxassetid://119802077605294",
+			Happy = "rbxassetid://139430381617586",
+			Sleep_Enter = "rbxassetid://80979103631192",
+			Sleep_Loop = "rbxassetid://124646034769643",
+			Work = "rbxassetid://100611091362223",
+		},
+	},
 }
 
 -- Limites de seguridad para plantillas (avisos, no bloqueos, salvo maxParts)
@@ -105,6 +123,10 @@ PetAssets.Effects = {
 --   footInset: fraccion del alto que se hunde el apoyo cuando la parte mas baja de la
 --          malla en reposo no son las patas (0 si la base de la malla son las suelas,
 --          como en Lumi: comprobado con el FBX). Ver PetGrounding.
+--   locomotion: { walk = ..., run = ... } velocidad nativa de Walk y Run en alturas del
+--          PET por segundo (opcional). Si existe, PetAnimator ajusta la velocidad de
+--          reproduccion a velocidad real / (nativa * alto del modelo); si no, usa las
+--          referencias globales de PetAssets.Locomotion (caso de Lumi).
 -- Orden de busqueda por estado: carpeta "Animations" de la plantilla ->
 -- variants[rareza].animations -> animations -> conjunto (de la variante o especie).
 PetAssets.Species = {
@@ -123,6 +145,24 @@ PetAssets.Species = {
 		variants = {
 			-- <rareza> = { animationSet = ..., animations = {...}, footInset = ... } solo si difiere
 		},
+	},
+	-- Rocon: golem de piedra (zona 2). Las reglas de juego (rarezas sin mitico, zona,
+	-- trabajo en el extractor de piedra) estan en PetCatalog; aqui solo el aspecto.
+	rocon = {
+		model = "Rocon",
+		heightFactor = 1.0,
+		yaw = 0, -- exportado con la misma convencion que Lumi (frente -Y en Blender)
+		footInset = 0, -- la base de la malla en reposo son las suelas (comprobado en los FBX)
+		animationSet = "Rocon_v3",
+		animations = {},
+		-- Rocon_rare / Rocon_epic / Rocon_legendary (assets/pets). Rocon no tiene mitico.
+		rarityModels = { rare = true, epic = true, legendary = true },
+		variants = {},
+		-- Velocidad nativa de la cinta de Walk y Run en ALTURAS DEL PET por segundo, medida
+		-- en los FBX (Comun: 0,457 m/s y 1,313 m/s con 1,697 m de alto; Raro y Epico/
+		-- Legendario difieren < 1 %). PetAnimator la convierte a studs/s con el alto real
+		-- del modelo para que el ritmo de los pasos siga a la velocidad de desplazamiento.
+		locomotion = { walk = 0.269, run = 0.774 },
 	},
 }
 

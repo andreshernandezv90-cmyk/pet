@@ -487,3 +487,161 @@ Repite estos pasos para Raro → `Lumi_rare`, Épico → `Lumi_epic` y Legendari
 4. Asigna un Lumi épico al extractor: animación Work, patas en el suelo.
 5. Salir y volver a entrar: el equipo y los trabajadores conservan su rareza y su modelo.
 6. Varios Lumi visibles (Zona 1 y compañeros): fluidez en el emulador de móvil (MicroProfiler o Stats).
+
+## 15. Rocón Común, Raro, Épico y Legendario
+
+### Estado
+
+| Pieza | Estado |
+|---|---|
+| Especie `rocon` en el juego | **Ya existía** en `PetCatalog`, sin cambios: n.º 2, zona 2 (Valle de los Engranajes, con Chispa), sin mítico, cebo `root`, extractor de piedra (0,25/s), compañero "Mayor fuerza en minerales duros". |
+| Animaciones | `Referenciado en código con respaldo`: los 7 ids publicados están en `PetAssets.AnimationSets.Rocon_v3`, compartidos por las 4 rarezas. |
+| Modelos | `Guardado en assets/pets`: `Rocon.rbxm`, `Rocon_rare.rbxm`, `Rocon_epic.rbxm` y `Rocon_legendary.rbxm`, todos con `Rig = Rocon_v3`. Entran en `rojo build` y en `tools/build_rbxlx.py`. |
+| Validación estructural | **Aprobada** (2026-11-07). `tools/check_pet_assets.py` pasa con los 4 Rocón y los 4 Lumi, y pasan las 12 suites de `tools/sim`. |
+| Dentro de Portal Pets | **Falta la prueba visual en Roblox Studio** (abajo, "Comprobación en Studio"). Hasta que el usuario la confirme, no se da por verificado. |
+
+### Ids publicados (Rocon_v3)
+
+| Estado | AnimationId | Bucle | Prioridad |
+|---|---|---|---|
+| `Idle` | `rbxassetid://99191665025042` | sí | Idle |
+| `Walk` | `rbxassetid://79078597091924` | sí | Movement |
+| `Run` | `rbxassetid://119802077605294` | sí | Movement |
+| `Happy` | `rbxassetid://139430381617586` | no | Action |
+| `Sleep_Enter` | `rbxassetid://80979103631192` | no | Action |
+| `Sleep_Loop` | `rbxassetid://124646034769643` | sí | Action |
+| `Work` | `rbxassetid://100611091362223` | sí | Action |
+
+El código fuerza el bucle y la prioridad al cargar cada pista. Las animaciones solo cargan en el juego si las publicó el mismo dueño (cuenta o grupo) que la experiencia.
+
+### Modelos guardados (leídos por `tools/check_pet_assets.py`)
+
+| Plantilla | PrimaryPart | Huesos | `Rig` | Malla | Textura (`MeshPart.TextureContent`) | Tamaño en reposo |
+|---|---|---|---|---|---|---|
+| `Rocon` | `Rocon_Comun_Body` | 29 | `Rocon_v3` | `rbxassetid://116612514049739` | `rbxassetid://74730886442037` | 1,898 × 1,697 × 1,076 |
+| `Rocon_rare` | `Rocon_Raro_Body` | 29 | `Rocon_v3` | `rbxassetid://102027818243174` | `rbxassetid://92664743474619` | 1,898 × 1,661 × 1,075 |
+| `Rocon_epic` | `Rocon_Epico_Body` | 29 | `Rocon_v3` | `rbxassetid://102121702855412` | `rbxassetid://97813604923897` | 2,000 × 1,788 × 1,134 |
+| `Rocon_legendary` | `Rocon_Legendario_Body` | 29 | `Rocon_v3` | `rbxassetid://86832758145413` | `rbxassetid://111379690298983` | 2,000 × 1,788 × 1,134 |
+
+- Los cuatro tienen:
+  - la jerarquía de 29 huesos idéntica a la del FBX;
+  - un `AnimationController` con `Animator`;
+  - malla y textura propias, distintas en cada rareza;
+  - ni scripts ni carpeta `Animations`;
+  - la carpeta `InitialPoses` del importador, que no molesta.
+- **Textura:** a diferencia de Lumi, va en la propia MeshPart (`TextureContent`), no en una `SurfaceAppearance`. El juego no lee ni cambia texturas, así que funciona igual. Por eso el validador acepta ahora las dos formas.
+- **Atributo `Rig`:** los cuatro tienen `Rig = Rocon_v3`. Raro, Épico y Legendario lo recibieron en Studio después de la primera validación y se guardaron de nuevo.
+
+### Datos de los FBX
+
+- **Rig `Rocon_v3`:** 29 huesos, iguales en las 4 rarezas:
+  ```
+  Root → Pelvis → Spine → Chest → Head
+  Chest → Shoulder_L/R → UpperArm → Forearm → Hand → Fingers_01 → Fingers_02
+                                                    Hand → Thumb_01 → Thumb_02
+  Pelvis → Thigh_L/R → Shin → Foot → Toe
+  ```
+  - `Root` no deforma; 30 fps; sin root motion.
+  - Mismos ajustes de exportación que Lumi (Y arriba, frente +Z del FBX = −Z de Roblox), así que `yaw = 0`.
+- **Reposo:** la misma orientación en las 4 rarezas (≤ 0,0001°). Solo cambia la posición de los huesos (Raro ×0,979; Épico y Legendario ×1,054). Por eso **los 7 ids se publican una sola vez** y sirven para las cuatro, como con Lumi.
+- **Mallas:**
+
+  | Rareza | Triángulos | Reposo en Blender (ancho con brazos × alto × fondo, m) |
+  |---|---|---|
+  | Común | 5.191 | 1,898 × 1,697 × 1,076 |
+  | Raro | 5.221 | 1,898 × 1,661 × 1,075 |
+  | Épico / Legendario | 5.191 | 2,000 × 1,788 × 1,134 |
+
+  - Máximo 4 influencias por vértice.
+  - La base de la malla en reposo son las suelas (`footInset = 0`).
+- **Texturas:**
+  - El color base de 1024 va incrustado en cada FBX.
+  - Hay una alternativa de 2048 en cada carpeta, sin alfa.
+  - Sin mapas de normales ni de rugosidad, igual que Lumi.
+- **Animaciones:**
+
+  | Animación | Duración | Bucle |
+  |---|---|---|
+  | Idle | 3,0 s | sí |
+  | Walk | 1,2 s | sí |
+  | Run | 0,8 s | sí |
+  | Happy | 1,5 s | no; vuelve al reposo |
+  | Sleep_Enter | 1,5 s | no; acaba en la pose de `Sleep_Loop` |
+  | Sleep_Loop | 4,0 s | sí |
+  | Work | 1,5 s | sí |
+
+  En los bucles, el primer fotograma y el último son iguales.
+
+### Qué hace el código
+
+- `PetAssets.Find("rocon", rareza)` busca `Rocon_<rareza>` y, si no existe, `Rocon`.
+  - Si falta una plantilla prevista (`rarityModels`), avisa una vez en Output y usa `Rocon` con los efectos de su rareza.
+  - Sin ninguna plantilla, Rocón sigue siendo procedural, sin avisos.
+  - Rocón no tiene mítico: `PetCatalog.RaritiesFor("rocon")` nunca lo devuelve.
+- **Shiny:**
+  - se buscan primero `Rocon_<rareza>_shiny` y `Rocon_shiny`, que hoy no existen;
+  - si no hay, se usa el modelo de su rareza con las partículas Shiny;
+  - Shiny no es una rareza y no sustituye a los cuatro modelos.
+- **Tamaño:** igual que el procedural de su rareza (alto 2 × tamaño de rareza: 2; 2,2; 2,4 y 2,7 studs) y apoyado en el suelo con `PetGrounding`.
+- **Animaciones:**
+  - las mismas capas y respaldos que Lumi (`PetAnimator`);
+  - pistas cargadas una vez por modelo y 7 objetos `Animation` compartidos por las 4 rarezas;
+  - pedir el mismo estado no reinicia la pista.
+- **Dónde se ve cada animación:**
+
+  | Estado | Cuándo |
+  |---|---|
+  | Idle | quieto |
+  | Walk / Run | según la velocidad |
+  | Work | trabajando en el extractor de piedra (el servidor lo replica) |
+  | Happy, Sleep_Enter → Sleep_Loop | panel **Dev** (preparadas; todavía sin mecánica de juego, igual que en Lumi) |
+
+### Velocidad de Walk y Run (deslizamiento de pies)
+
+- **Ajuste nuevo y opcional por especie:** `PetAssets.Species.rocon.locomotion = { walk = 0.269, run = 0.774 }`. Es la velocidad nativa de la cinta en **alturas del PET por segundo**, medida en los FBX.
+- `PetAnimator` la convierte a studs/s con el alto real del modelo y reproduce Walk/Run a `velocidad real / velocidad nativa`, con los límites de siempre (Walk 0,5–1,8, Run 0,6–1,8).
+- **Lumi no tiene `locomotion`, así que conserva exactamente sus referencias globales** (4 y 12 studs/s).
+
+| Caso (Rocón Común, 2 studs) | Desplazamiento | Nativa | Velocidad pedida | Aplicada | Pies |
+|---|---|---|---|---|---|
+| Hasta 0,97 studs/s | ≤ 0,97 | 0,54 (Walk) | ≤ 1,8 | igual | **sin deslizamiento** |
+| Salvaje deambulando (`Encounters`, 4 studs/s) | 4,0 | 0,54 (Walk) | 7,4 | 1,8 | los pies cubren 0,97 studs/s y **el resto se desliza** |
+| Compañero de un jugador que camina (16 studs/s) | ~16 | 1,55 (Run) | 10,3 | 1,8 | igual |
+
+Rocón es un gólem pesado: su paso nativo es lento (0,27 alturas/s), mientras que el juego mueve todos los PETs salvajes a 4 studs/s (2 alturas/s) y los compañeros a la velocidad del jugador. **No se cambió ninguna velocidad de movimiento**, porque es diseño de juego. Hay tres opciones, y la decisión es tuya:
+- (a) aceptar el deslizamiento a velocidades altas, como hoy;
+- (b) subir el límite de velocidad solo para Rocón (`maxRate`), aunque a ×4–×7 el gólem se vería frenético;
+- (c) que los Rocón salvajes deambulen más despacio (p. ej. 1 studs/s, `Encounters`).
+
+**Decisión actual:** se mantiene esta configuración; el ajuste queda pendiente de la prueba visual en Studio.
+
+### Pruebas automáticas
+
+`lua5.4 tools/sim/rocon.lua`: 144 comprobaciones con plantillas **simuladas** y los 7 ids **reales** de `Rocon_v3`. Comprueba que los ids son exactamente los publicados y que los de Lumi no cambian. Las 11 suites anteriores siguen pasando con las mismas comprobaciones.
+
+### Comprobación en Studio (pendiente de la prueba visual del usuario)
+
+1. `rojo build default.project.json -o PortalPets.rbxlx`, abre el lugar y pulsa **Play**.
+   - Output no debe mostrar `Falta (o no es valida) la plantilla Rocon_…`, `[PetAnimator]` ni `Failed to load animation`.
+   - En **ReplicatedStorage → PetAssets** deben verse `Rocon`, `Rocon_rare`, `Rocon_epic` y `Rocon_legendary` con su malla y su textura. Si alguno sale sin malla o textura tras conectar Rojo, ver la sección 11 ("Flujo recomendado").
+2. **Zona 2** (Valle de los Engranajes): los Rocón salvajes usan su modelo según la rareza.
+   - Común: piedra marrón. Raro: gris con cristales turquesa. Épico: amatista. Legendario: magma.
+   - Están apoyados, miran hacia donde caminan (si no, cambia `yaw` en `PetAssets.Species.rocon`) y usan Idle y Walk.
+3. Captura un Rocón con **F**. Llega al tanque con su rareza y aparece en el inventario. Captura varios: cada captura suma uno.
+4. **Equipo:**
+   - equipa y desequipa un Rocón;
+   - cambia a Lumi y de vuelta a Rocón;
+   - al seguirte camina o corre, y salta contigo sin despegarse del suelo.
+5. Panel **Dev** → "pets" (+3 de cada variante): equipa un Rocón raro, uno épico y uno legendario, y prueba Happy, Sleep y despertar.
+6. **Trabajo:**
+   - asigna un Rocón al **Extractor de piedra**: reproduce Work con los pies en el suelo;
+   - con 2 clientes, el otro jugador también lo ve;
+   - recoge la piedra producida.
+7. Sal y vuelve a entrar: el equipo, los trabajadores y las rarezas de Rocón y de Lumi siguen igual.
+8. **Test → Clients and Servers** con 2 jugadores:
+   - cada uno ve sus propios salvajes;
+   - los compañeros del otro se ven animados;
+   - las capturas de uno no afectan al otro.
+9. **Shiny:** panel Dev con forzado Shiny en la zona 2. Un Rocón Shiny mantiene el modelo de su rareza y añade partículas.
+10. **Lumi:** repite una captura, un equipo y un trabajo con Lumi para confirmar que nada cambió.
+11. **Rendimiento:** zona 2 con varios Rocón y compañeros en el emulador de móvil (MicroProfiler o Stats).

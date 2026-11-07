@@ -89,7 +89,7 @@ En un servidor publicado estos atajos no funcionan.
 
 ```
 default.project.json        Mapa de Rojo
-assets/pets/  → ReplicatedStorage.PetAssets   Modelos importados desde Studio (.rbxm o .rbxmx; hoy Lumi.rbxm); ver docs/ART_PIPELINE.md
+assets/pets/  → ReplicatedStorage.PetAssets   Modelos importados desde Studio (.rbxm o .rbxmx; hoy Lumi y Rocón con sus variantes por rareza); ver docs/ART_PIPELINE.md
 src/shared/   → ReplicatedStorage.Shared
   Config.luau               Parámetros de balance, tiempos, IDs de productos
   PetCatalog.luau           15 especies, rarezas, habilidades, trabajos, costos de nivel
@@ -236,6 +236,7 @@ lua5.4 tools/sim/petworld.lua
 lua5.4 tools/sim/petassets.lua
 lua5.4 tools/sim/grounding.lua
 lua5.4 tools/sim/variants.lua
+lua5.4 tools/sim/rocon.lua
 ```
 
 ```bash
@@ -259,8 +260,9 @@ Qué cubre cada prueba:
 - `petassets.lua`: integración de modelos importados con una plantilla **simulada**: respaldo procedural en las 15 especies, Lumi importado (escala, raíz anclada, sin colisión, soldaduras, scripts eliminados, efectos de rareza), variantes por rareza, interruptores, plantillas inválidas, animaciones con respaldos y PETs salvajes y compañeros en el cliente.
 - `grounding.lua`: apoyo vertical de los PETs importados: referencia de reposo por rareza, suelas en el suelo (llano, colinas, laderas inclinadas hasta 20°), suavizado sin saltos, salvajes, compañeros (también al correr y saltar), Happy y Sleep sin cambiar la altura, trabajadores en su estación y PETs procedurales sin cambios.
 - `variants.lua`: Lumi Raro, Épico y Legendario con plantillas simuladas: modelo y textura por rareza, aviso y respaldo si falta una plantilla, los 7 ids de Lumi Común compartidos (sin duplicar pistas ni controladores), apoyo y efectos por rareza, salvajes, captura, equipo, trabajo y salir/volver con la rareza intacta.
+- `rocon.lua`: Rocón Común, Raro, Épico y Legendario (sin mítico) con plantillas **simuladas** del rig de 29 huesos: procedural sin plantillas, modelo, textura, alto y apoyo por rareza, Shiny sobre su rareza, los 7 ids publicados de `Rocon_v3` compartidos por las 4 rarezas (y los de Lumi sin cambios), velocidad de Walk/Run según el alto real, salvajes en la zona 2, capturas sin duplicados, equipo/desequipo, cambio Lumi ↔ Rocón, estados excluyentes, trabajo en el extractor de piedra, dos jugadores independientes y salir/volver.
 
-Validación de los modelos reales de `assets/pets` (usa Rojo para leer los `.rbxm`): `python tools/check_pet_assets.py --require Lumi,Lumi_rare,Lumi_epic,Lumi_legendary`.
+Validación de los modelos reales de `assets/pets` (usa Rojo para leer los `.rbxm`): `python tools/check_pet_assets.py --require Lumi,Lumi_rare,Lumi_epic,Lumi_legendary`. Para Rocón: `python tools/check_pet_assets.py --require Rocon,Rocon_rare,Rocon_epic,Rocon_legendary`.
 - `mines.lua`: Minas de Zuar como mundo propio (hub, Cantera libre, 5 galerías con sus vetas, cortinas, terreno excavado, presupuesto), reparto de vetas fiel a `mine.chances`, flujo completo (Cantera, galería abierta y bloqueada, pico necesario, distancia, privacidad entre jugadores, ciclo nuevo), enlace con las bocas de mina del Reino y sello de guardián desactivable.
 - `shiny.lua`: claves Shiny, tasa 1/500 e independencia de la rareza (400.000 tiradas), captura Shiny decidida por el servidor, intentos de manipulación del cliente, pilas separadas, individuos, compañeros y fusiones, mismas estadísticas y producción, protección en el Reactor, persistencia, migración v3 → v4 y apariencia (paleta, partículas y variante importada).
 - `persistence.lua`: perfiles ajenos o futuros (p. ej. Astra v0.6, esquema 4) nunca se migran ni se sobrescriben; migración v2 → v3 sin pérdidas.

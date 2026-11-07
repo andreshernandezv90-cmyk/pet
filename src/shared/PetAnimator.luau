@@ -77,7 +77,22 @@ function PetAnimator.Attach(model)
 		action = nil, -- reaccion en curso (Happy)
 		token = 0, -- invalida finales programados que ya no aplican
 		alive = true,
+		walkRef = PetAssets.Locomotion.referenceWalkSpeed, -- studs/s a velocidad 1 de Walk
+		runRef = PetAssets.Locomotion.referenceRunSpeed, -- studs/s a velocidad 1 de Run
 	}, PetAnimator)
+	-- Especies con velocidad nativa medida (alturas/s): referencia segun el alto real
+	-- del modelo ya escalado (Radius = alto / 2, lo fija PetModels). Se calcula una vez.
+	local cfg = PetAssets.Species[species]
+	local loc = cfg and cfg.locomotion
+	local height = (model:GetAttribute("Radius") or 0) * 2
+	if loc and height > 0 then
+		if type(loc.walk) == "number" and loc.walk > 0 then
+			self.walkRef = loc.walk * height
+		end
+		if type(loc.run) == "number" and loc.run > 0 then
+			self.runRef = loc.run * height
+		end
+	end
 	for state, anim in pairs(sources) do
 		local ok, track = pcall(function()
 			return animator:LoadAnimation(anim)
@@ -234,9 +249,9 @@ function PetAnimator:SetMoveSpeed(v)
 		self:Wake()
 	end
 	if v >= L.run then
-		return self:Play("Run", math.clamp(v / L.referenceRunSpeed, 0.6, 1.8))
+		return self:Play("Run", math.clamp(v / self.runRef, 0.6, 1.8))
 	elseif v >= L.walk then
-		return self:Play("Walk", math.clamp(v / L.referenceWalkSpeed, 0.5, 1.8))
+		return self:Play("Walk", math.clamp(v / self.walkRef, 0.5, 1.8))
 	end
 	return self:Play("Idle", 1)
 end
