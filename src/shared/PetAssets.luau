@@ -82,6 +82,24 @@ PetAssets.AnimationSets = {
 			Work = "rbxassetid://100611091362223",
 		},
 	},
+	-- Chispa (Comun, Raro, Epico y Legendario): Chispa_Master.blend, rig compartido de 22 huesos
+	-- (Root, Hips, Spine, Chest, Neck, Head, Antenna, Left/RightUpperArm/LowerArm/Hand, Tail1-3,
+	-- Left/RightUpperLeg/LowerLeg/Foot), 30 fps, sin root motion. Exportado con el reposo de los
+	-- huesos alineado (rotacion local nula) para que Studio no aplique dos veces esa rotacion.
+	-- FBX en Downloads/Chispa/Export/Animations (docs/ART_PIPELINE.md, seccion 16).
+	-- Ids publicados en Roblox por el dueño del proyecto (no modificar sin republicar).
+	Chispa_v1 = {
+		rig = "Chispa_v1",
+		ids = {
+			Idle = "rbxassetid://122236338807516",
+			Walk = "rbxassetid://100453215475992",
+			Run = "rbxassetid://107019646221510",
+			Happy = "rbxassetid://120703378701836",
+			Sleep_Enter = "rbxassetid://103551660461300",
+			Sleep_Loop = "rbxassetid://72480467022919",
+			Work = "rbxassetid://139469079471002",
+		},
+	},
 }
 
 -- Limites de seguridad para plantillas (avisos, no bloqueos, salvo maxParts)
@@ -180,6 +198,28 @@ PetAssets.Species = {
 		-- Legendario difieren < 1 %). PetAnimator la convierte a studs/s con el alto real
 		-- del modelo para que el ritmo de los pasos siga a la velocidad de desplazamiento.
 		locomotion = { walk = 0.269, run = 0.774 },
+	},
+	-- Chispa: espiritu electrico (zona 2). Las reglas de juego (rarezas sin mitico, zona,
+	-- extractor de cobre y apoyo en alquimia) estan en PetCatalog; aqui solo el aspecto.
+	chispa = {
+		model = "Chispa",
+		heightFactor = 1.0,
+		-- Frente hacia -Z (LookVector) comprobado en Studio con Idle y Walk: cola en +Z y
+		-- Root sin rotacion añadida por la animacion.
+		yaw = 0,
+		-- Apoyo medido en Studio (2026-11-08, las 4 mallas con los 7 ids publicados): Root esta en
+		-- la base de la malla en reposo y no se mueve; las suelas quedan entre 0,03 y 0,06 studs
+		-- sobre esa base en Idle, Walk, Run y Work (Happy salta; en Sleep_Loop esta tumbado sobre
+		-- la base). La base de reposo es el suelo: sin correccion, como Lumi. Seccion 16 de la doc.
+		footInset = 0,
+		animationSet = "Chispa_v1",
+		animations = {},
+		-- Chispa_rare / Chispa_epic / Chispa_legendary (assets/pets). Chispa no tiene mitico.
+		rarityModels = { rare = true, epic = true, legendary = true },
+		variants = {},
+		-- Sin locomotion propia: en Walk el pie de apoyo no barre hacia atras a ritmo constante y
+		-- Run casi no tiene fase de contacto (medido en Blender), asi que no hay una velocidad
+		-- nativa fiable; usa las referencias globales de PetAssets.Locomotion, como Lumi.
 	},
 }
 

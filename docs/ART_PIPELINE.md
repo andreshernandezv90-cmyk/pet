@@ -686,3 +686,138 @@ Rocón es un gólem pesado: su paso nativo es lento (0,27 alturas/s), mientras q
 9. **Shiny:** panel Dev con forzado Shiny en la zona 2. Un Rocón Shiny mantiene el modelo de su rareza y añade partículas.
 10. **Lumi:** repite una captura, un equipo y un trabajo con Lumi para confirmar que nada cambió.
 11. **Rendimiento:** zona 2 con varios Rocón y compañeros en el emulador de móvil (MicroProfiler o Stats).
+
+## 16. Chispa Común, Raro, Épico y Legendario
+
+**Fase C: integración estructural aprobada (2026-11-08). Falta la prueba visual del usuario en Roblox Studio.** Chispa no tiene variante mítica. Las variantes míticas quedan para el final del desarrollo.
+
+### Estado
+
+| Pieza | Estado |
+|---|---|
+| Especie `chispa` en el juego | **Ya existía** en `PetCatalog`, sin cambios: n.º 3, zona 2 (Valle de los Engranajes, con Rocón), sin mítico, cebo `berry`, extractor de cobre (0,18/s), bonus `copperFind` 0,15 y apoyo en alquimia (`Alchemy.luau`: 20 % de poción extra con una Chispa en el extractor de cobre). |
+| Animaciones | `Referenciado en código con respaldo`: los 7 ids publicados están en `PetAssets.AnimationSets.Chispa_v1`, compartidos por las 4 rarezas. |
+| Modelos | `Guardado en assets/pets`: `Chispa.rbxm`, `Chispa_rare.rbxm`, `Chispa_epic.rbxm` y `Chispa_legendary.rbxm`, todos con `Rig = Chispa_v1`. Entran en `rojo build` y en `tools/build_rbxlx.py`. |
+| Validación estructural | **Aprobada** (2026-11-08): `tools/check_pet_assets.py` pasa con los 12 modelos (Lumi, Rocón y Chispa) y pasan las 13 suites de `tools/sim`. |
+| Medición en Studio (MCP) | Apoyo, orientación y las 7 animaciones publicadas, medidos con las 4 mallas reales (ver abajo). |
+| Dentro de Portal Pets | **Pendiente de la prueba visual del usuario en Roblox Studio.** |
+
+### Ids publicados (Chispa_v1)
+
+| Estado | AnimationId | Duración | Bucle | Prioridad |
+|---|---|---|---|---|
+| `Idle` | `rbxassetid://122236338807516` | 2,00 s | sí | Idle |
+| `Walk` | `rbxassetid://100453215475992` | 0,80 s | sí | Movement |
+| `Run` | `rbxassetid://107019646221510` | 0,53 s | sí | Movement |
+| `Happy` | `rbxassetid://120703378701836` | 1,50 s | no | Action |
+| `Sleep_Enter` | `rbxassetid://103551660461300` | 1,67 s | no | Action |
+| `Sleep_Loop` | `rbxassetid://72480467022919` | 3,00 s | sí | Action |
+| `Work` | `rbxassetid://139469079471002` | 1,33 s | sí | Action |
+
+El código fuerza el bucle y la prioridad al cargar cada pista. Las duraciones se leyeron en Studio con los ids publicados.
+
+### Modelos guardados (leídos por `tools/check_pet_assets.py`)
+
+| Plantilla | PrimaryPart | Huesos | `Rig` | Malla | ColorMap (`SurfaceAppearance`) | Tamaño en reposo |
+|---|---|---|---|---|---|---|
+| `Chispa` | `Chispa_Comun_Mesh` | 22 | `Chispa_v1` | `rbxassetid://95916530001784` | `rbxassetid://86288214565047` | 1,284 × 2,000 × 1,026 |
+| `Chispa_rare` | `Chispa_Raro_Mesh` | 22 | `Chispa_v1` | `rbxassetid://103772742438278` | `rbxassetid://139086049987119` | 1,285 × 1,998 × 1,025 |
+| `Chispa_epic` | `Chispa_Epico_Mesh` | 22 | `Chispa_v1` | `rbxassetid://118938009282567` | `rbxassetid://130808495058855` | 1,284 × 2,000 × 1,026 |
+| `Chispa_legendary` | `Chispa_Legendario_Mesh` | 22 | `Chispa_v1` | `rbxassetid://118938009282567` | `rbxassetid://80778951503368` | 1,284 × 2,000 × 1,026 |
+
+- Épico y Legendario comparten la misma geometría (mismo MeshId). Cada uno tiene sus propios mapas: color, normales, rugosidad y metalicidad.
+- Los cuatro tienen `AnimationController` con `Animator`, sin scripts ni carpeta `Animations`.
+- **Correcciones hechas antes de integrar** (los originales están copiados en `Downloads/Chispa/Backups/rbxm_pre_fix_20261108/`):
+  - se quitó de los cuatro la carpeta temporal `InitialPoses` del Animation Editor (69 `CFrameValue`);
+  - `Chispa.rbxm` tenía `Rig = "chispa_v1"` en minúscula. Con ese valor, `PetAssets` no habría animado a Chispa Común. Se cambió a `Chispa_v1`;
+  - se comprobó, propiedad por propiedad, que malla, texturas, huesos y tamaños quedaron idénticos. Solo cambian el atributo y un redondeo de ~1e-14 en tres CFrames al reescribir con Rojo.
+- El validador conoce ahora el rig `Chispa_v1`. Trata `InitialPoses` como **error en Chispa** y como **aviso** en Lumi y Rocón, que se aprobaron con ella y no les afecta en el juego.
+
+### Datos del rig
+
+- **Rig `Chispa_v1`:** 22 huesos, iguales en las 4 rarezas:
+  ```
+  Root → Hips → Spine → Chest → Neck → Head → Antenna
+  Chest → LeftUpperArm / RightUpperArm → LowerArm → Hand
+  Hips → Tail1 → Tail2 → Tail3
+  Hips → LeftUpperLeg / RightUpperLeg → LowerLeg → Foot
+  ```
+  30 fps, sin root motion. `Root` nunca se mueve; solo `Hips` tiene traslación animada (rebote, salto, agacharse).
+- **Exportación** (`Downloads/Chispa/pipeline/05_export.py`): Y arriba, frente −Z, 1 unidad = 1 stud y **reposo de huesos alineado** (rotación local nula).
+  - Motivo: Studio guarda cada Pose importada de FBX con la rotación local *completa* del hueso y la suma a la de `Bone.CFrame`. Con huesos girados en reposo, esa rotación se aplicaba dos veces y brazos y piernas se plegaban dentro del cuerpo.
+  - Con el reposo alineado ya no ocurre. Lo verificó el usuario en Studio y se comprobó con las 7 animaciones publicadas.
+
+### Apoyo en el suelo y orientación (medidos en Studio, 2026-11-08)
+
+Método: las 4 mallas reales (`AssetService:CreateMeshPartAsync`), los huesos de los `.rbxm` y los 7 ids publicados, reproduciendo cada pista completa con `Animator:StepAnimations`.
+
+| Animación | Suela más baja sobre la base de reposo (studs, alto 2,0) | Hips (studs) |
+|---|---|---|
+| Idle | 0,03–0,06 | 0,27–0,30 |
+| Walk | 0,06 | 0,29–0,30 |
+| Run | 0,06 | 0,29–0,30 |
+| Happy | 0,06 (salta hasta 0,28) | 0,28–0,51 |
+| Sleep_Enter | 0,06 | 0,18–0,31 |
+| Sleep_Loop | tumbado; la malla se apoya en la base | 0,18 |
+| Work | 0,04–0,06 | 0,24–0,30 |
+
+- Los valores son iguales en las cuatro rarezas.
+- `Root` queda en la base de reposo en todas las animaciones. Rocón, en cambio, bajaba 0,288 del alto.
+- **Por tanto, `footInset = 0`**, como en Lumi: la base de reposo es el suelo y las suelas no se hunden. Las mediciones en Blender coinciden: la malla deformada nunca baja de Y = 0.
+- **Orientación:** con Idle y Walk, la cola queda en +Z y `Root` no recibe rotación de la animación. Chispa mira a −Z (LookVector), así que `yaw = 0`.
+
+### Velocidad de Walk y Run
+
+Se midió en Blender si Walk y Run tienen una velocidad nativa de cinta, como Rocón:
+- En Walk, el pie de apoyo no barre hacia atrás a ritmo constante: avanza y retrocede durante el contacto.
+- Run casi no tiene fase de contacto (2 de 16 fotogramas).
+
+No hay una velocidad nativa fiable, así que **Chispa no tiene `locomotion` y usa las referencias globales** (4 y 12 studs/s), igual que Lumi. No se cambió ninguna velocidad de movimiento.
+
+### Qué hace el código
+
+- `PetAssets.Species.chispa`:
+  - plantillas `Chispa`, `Chispa_rare`, `Chispa_epic` y `Chispa_legendary`;
+  - `heightFactor = 1`, `yaw = 0`, `footInset = 0`;
+  - conjunto de animaciones `Chispa_v1`;
+  - `rarityModels` para Raro, Épico y Legendario.
+- Sin plantillas, Chispa sigue siendo procedural y no hay avisos. Si falta una plantilla prevista, avisa una vez y usa `Chispa` con los efectos de su rareza.
+- **Shiny:** usa el modelo de su rareza con las partículas Shiny; no hay modelos `_shiny`. Shiny no es una rareza.
+- Aparición, captura, inventario, equipo, seguimiento, trabajo y persistencia usan los sistemas existentes, sin cambios de código.
+
+### Pruebas automáticas
+
+`lua5.4 tools/sim/chispa.lua`: 164 comprobaciones con plantillas **simuladas** del rig de 22 huesos y los 7 ids **reales**:
+- **Catálogo:** las reglas no cambian (rarezas, zona, extractor de cobre, sin mítico).
+- **Modelos:** procedural sin plantillas; modelo, textura, 22 huesos, alto y apoyo por rareza; Shiny en las 4 rarezas.
+- **Animaciones:**
+  - los 7 ids son compartidos: 7 objetos `Animation` para las 4 rarezas;
+  - bucles, transiciones y referencias de velocidad globales;
+  - los ids de Lumi y Rocón no cambian;
+  - una plantilla con otro `Rig` (p. ej. `chispa_v1`) no se anima.
+- **Juego:** salvajes de las 4 rarezas en la zona 2, capturas sin duplicados, equipo y desequipo, cambio Lumi ↔ Chispa y estados excluyentes.
+- **Trabajo:**
+  - en el extractor de cobre: Work, apoyo y producción de cobre;
+  - apoyo en alquimia: +1 poción con el azar forzado;
+  - Chispa no entra en el extractor de piedra.
+- **Jugadores y persistencia:** dos jugadores independientes; salir y volver con una Chispa Shiny en el inventario, sin cambios de esquema.
+
+Las 12 suites anteriores siguen pasando sin cambios.
+
+### Comprobación pendiente en Studio
+
+1. `rojo build default.project.json -o PortalPets.rbxlx`, abre el lugar y pulsa **Play**.
+   - Output no debe mostrar `Falta (o no es valida) la plantilla Chispa_…`, `[PetAnimator]` ni `Failed to load animation`.
+   - En **ReplicatedStorage → PetAssets** deben verse las 4 plantillas de Chispa con su malla y su textura.
+2. **Zona 2:** las Chispa salvajes usan el modelo de su rareza.
+   - Están de pie sobre el terreno, sin hundirse ni flotar, y miran hacia donde caminan.
+   - Usan Idle y Walk sin deformaciones en brazos ni piernas.
+3. Captura varias Chispa con **F**: cada captura suma una, con su rareza.
+4. **Equipo:** equipa y desequipa a Chispa; cambia a Lumi o Rocón y vuelve. Al seguirte camina o corre, y salta contigo sin despegarse del suelo.
+5. Panel **Dev** → "pets": prueba Raro, Épico y Legendario, y también Happy, Sleep y despertar.
+6. **Trabajo:**
+   - asigna una Chispa al **Extractor de cobre**: reproduce Work con los pies en el suelo y produce cobre;
+   - con una Chispa trabajando, prepara una poción en el laboratorio de alquimia: a veces sale una extra.
+7. Sal y vuelve a entrar: el equipo, las trabajadoras y las rarezas siguen igual.
+8. **Shiny:** con el forzado Shiny en la zona 2, una Chispa Shiny mantiene el modelo de su rareza y añade partículas.
+9. Repite una captura y un equipo con Lumi y con Rocón para confirmar que nada cambió.
