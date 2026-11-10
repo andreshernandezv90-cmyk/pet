@@ -100,6 +100,23 @@ PetAssets.AnimationSets = {
 			Work = "rbxassetid://139469079471002",
 		},
 	},
+	-- Talpa (Comun, Raro, Epico y Legendario): Talpa_Master.blend (v3), rig compartido de 25 huesos
+	-- (Root, Hips, Spine, Chest, Neck, Head, Snout, Tail1-4, Left/RightUpperArm/LowerArm/Hand/Claws,
+	-- Left/RightUpperLeg/LowerLeg/Foot), 30 fps, sin root motion, reposo alineado (rotacion local
+	-- nula, como Chispa). FBX en Downloads/Talpa/Export/Animations (docs/ART_PIPELINE.md, seccion 17).
+	-- Ids publicados en Roblox por el dueño del proyecto (no modificar sin republicar).
+	Talpa_v1 = {
+		rig = "Talpa_v1",
+		ids = {
+			Idle = "rbxassetid://136548107891720",
+			Walk = "rbxassetid://81290030630381",
+			Run = "rbxassetid://102908093464049",
+			Happy = "rbxassetid://140408446222794",
+			Sleep_Enter = "rbxassetid://81127893070487",
+			Sleep_Loop = "rbxassetid://101325040811253",
+			Work = "rbxassetid://79325542756265",
+		},
+	},
 }
 
 -- Limites de seguridad para plantillas (avisos, no bloqueos, salvo maxParts)
@@ -220,6 +237,27 @@ PetAssets.Species = {
 		-- Sin locomotion propia: en Walk el pie de apoyo no barre hacia atras a ritmo constante y
 		-- Run casi no tiene fase de contacto (medido en Blender), asi que no hay una velocidad
 		-- nativa fiable; usa las referencias globales de PetAssets.Locomotion, como Lumi.
+	},
+	-- Talpa: topo excavador (zona 3). Las reglas de juego (rarezas sin mitico, zona, extractor
+	-- de hierro y bonus al minar) estan en PetCatalog; aqui solo el aspecto.
+	talpa = {
+		model = "Talpa",
+		heightFactor = 1.0,
+		-- Frente hacia -Z (LookVector) en los 4 FBX y en los .rbxm (hocico en -Z, cola en +Z),
+		-- sin rotacion en ningun nodo: sin correccion.
+		yaw = 0,
+		-- Root esta en la base de la malla en reposo y no se mueve; las 7 animaciones se
+		-- exportaron con la malla apoyada en Y = 0 en cada fotograma (Hips resuelto contra el
+		-- suelo). La base de reposo es el suelo: sin correccion, como Lumi y Chispa.
+		-- PENDIENTE de comprobar en Studio dentro de Portal Pets. Seccion 17 de la doc.
+		footInset = 0,
+		animationSet = "Talpa_v1",
+		animations = {},
+		-- Talpa_rare / Talpa_epic / Talpa_legendary (assets/pets). Talpa no tiene mitico.
+		rarityModels = { rare = true, epic = true, legendary = true },
+		variants = {},
+		-- Sin locomotion propia: usa las referencias globales de PetAssets.Locomotion, como
+		-- Lumi y Chispa.
 	},
 }
 

@@ -821,3 +821,116 @@ Las 12 suites anteriores siguen pasando sin cambios.
 7. Sal y vuelve a entrar: el equipo, las trabajadoras y las rarezas siguen igual.
 8. **Shiny:** con el forzado Shiny en la zona 2, una Chispa Shiny mantiene el modelo de su rareza y añade partículas.
 9. Repite una captura y un equipo con Lumi y con Rocón para confirmar que nada cambió.
+
+## 17. Talpa Común, Raro, Épico y Legendario
+
+**Fase T: integración estructural aprobada (2026-11-09). Falta la prueba visual del usuario dentro de Portal Pets.** Talpa no tiene variante mítica.
+
+### Estado
+
+| Pieza | Estado |
+|---|---|
+| Especie `talpa` en el juego | **Ya existía** en `PetCatalog`, sin cambios: n.º 4, zona 3 (Cavernas Olvidadas), sin mítico, cebo `root`, extractor de hierro (0,12/s) y bonus `oreYield` 0,08 (rendimiento al minar). |
+| Animaciones | `Referenciado en código con respaldo`: los 7 ids publicados están en `PetAssets.AnimationSets.Talpa_v1`, compartidos por las 4 rarezas. |
+| Modelos | `Guardado en assets/pets`: `Talpa.rbxm`, `Talpa_rare.rbxm`, `Talpa_epic.rbxm` y `Talpa_legendary.rbxm`, todos con `Rig = Talpa_v1`. Entran en `rojo build` y en `tools/build_rbxlx.py`. |
+| Validación estructural | **Aprobada** (2026-11-09): `tools/check_pet_assets.py` pasa con los 16 modelos (Lumi, Rocón, Chispa y Talpa) y pasan las 14 suites de `tools/sim`. |
+| Dentro de Portal Pets | **Pendiente de la prueba visual del usuario en Roblox Studio** (apoyo y orientación incluidos). |
+
+### Ids publicados (Talpa_v1)
+
+| Estado | AnimationId | Duración | Bucle | Prioridad |
+|---|---|---|---|---|
+| `Idle` | `rbxassetid://136548107891720` | 2,40 s | sí | Idle |
+| `Walk` | `rbxassetid://81290030630381` | 0,80 s | sí | Movement |
+| `Run` | `rbxassetid://102908093464049` | 0,53 s | sí | Movement |
+| `Happy` | `rbxassetid://140408446222794` | 1,50 s | no | Action |
+| `Sleep_Enter` | `rbxassetid://81127893070487` | 1,67 s | no | Action |
+| `Sleep_Loop` | `rbxassetid://101325040811253` | 3,00 s | sí | Action |
+| `Work` | `rbxassetid://79325542756265` | 1,33 s | sí | Action |
+
+Las duraciones son las de los FBX exportados (30 fps). El código fuerza el bucle y la prioridad al cargar cada pista.
+
+### Modelos guardados (leídos por `tools/check_pet_assets.py`)
+
+| Plantilla | PrimaryPart | Huesos | `Rig` | Malla | ColorMap (`SurfaceAppearance`) | Tamaño en reposo |
+|---|---|---|---|---|---|---|
+| `Talpa` | `Talpa_Comun_Mesh` | 25 | `Talpa_v1` | `rbxassetid://83912443839407` | `rbxassetid://126676763484732` | 1,562 × 1,704 × 2,000 |
+| `Talpa_rare` | `Talpa_Raro_Mesh` | 25 | `Talpa_v1` | `rbxassetid://92050587503981` | `rbxassetid://93394888734581` | 1,562 × 1,704 × 2,000 |
+| `Talpa_epic` | `Talpa_Epico_Mesh` | 25 | `Talpa_v1` | `rbxassetid://92050587503981` | `rbxassetid://104815612190491` | 1,562 × 1,704 × 2,000 |
+| `Talpa_legendary` | `Talpa_Legendario_Mesh` | 25 | `Talpa_v1` | `rbxassetid://92050587503981` | `rbxassetid://109393523428848` | 1,562 × 1,704 × 2,000 |
+
+- **Geometría:** v3, de 4169 vértices y sin cortes. La corrección de manos y garras se hizo solo con pesos.
+  - Raro, Épico y Legendario comparten MeshId. Común tiene el mismo volumen con otro orden de vértices.
+  - Cada rareza tiene sus propios mapas.
+- Los cuatro tienen `AnimationController` con `Animator`, sin scripts ni carpeta `Animations`.
+- **Limpieza antes de integrar** (los originales están copiados en `Downloads/Talpa/Backups/rbxm_pre_fix_20261109/`):
+  - se quitó de los cuatro la carpeta temporal `InitialPoses` (81 `CFrameValue`);
+  - se quitó de `Talpa.rbxm` un `ObjectValue` `AnimSaves` vacío;
+  - malla, texturas, huesos y atributos quedaron sin cambios (lo confirma el validador).
+- El validador conoce el rig `Talpa_v1` y trata `InitialPoses` y `AnimSaves` como **error en Chispa y Talpa**.
+
+### Datos del rig
+
+- **Rig `Talpa_v1`:** 25 huesos, iguales en las 4 rarezas:
+  ```
+  Root → Hips → Spine → Chest → Neck → Head → Snout
+  Chest → LeftUpperArm / RightUpperArm → LowerArm → Hand → Claws
+  Hips → Tail1 → Tail2 → Tail3 → Tail4
+  Hips → LeftUpperLeg / RightUpperLeg → LowerLeg → Foot
+  ```
+  30 fps, sin root motion. `Root` nunca se mueve; solo `Hips` tiene traslación animada.
+- **Exportación** (`Downloads/Talpa/pipeline/05_export.py`, misma convención que Chispa):
+  - Y arriba, frente −Z y 1 unidad = 1 stud;
+  - reposo de huesos alineado (rotación local nula), así que Studio no aplica la rotación dos veces;
+  - verificado en `Downloads/Talpa/Export/verify_report.json`.
+
+### Apoyo en el suelo y orientación
+
+- `Root` está en la base de la malla en reposo y no se mueve.
+- Las 7 animaciones se exportaron con un ajuste de `Hips` por fotograma: la malla deformada se apoya en Y = 0 sin hundirse.
+- Por tanto, **`footInset = 0`**, como Lumi y Chispa.
+- **Orientación:** el hocico está en −Z y la cola en +Z, sin rotación en ningún nodo, así que `yaw = 0`.
+- **Pendiente:** medirlo en Studio dentro de Portal Pets. Si las suelas flotan o se hunden, se corrige con `footInset` (como Rocón), sin tocar los modelos.
+- **Velocidad:** Talpa no tiene `locomotion` propia y usa las referencias globales (4 y 12 studs/s), como Lumi y Chispa.
+
+### Qué hace el código
+
+- `PetAssets.Species.talpa`:
+  - plantillas `Talpa`, `Talpa_rare`, `Talpa_epic` y `Talpa_legendary`;
+  - `heightFactor = 1`, `yaw = 0`, `footInset = 0`;
+  - conjunto de animaciones `Talpa_v1`;
+  - `rarityModels` para Raro, Épico y Legendario.
+- **Shiny:** usa el modelo de su rareza con las partículas Shiny.
+- Aparición, captura, inventario, equipo, seguimiento, trabajo y persistencia usan los sistemas existentes, sin cambios de código.
+
+### Pruebas automáticas
+
+`lua5.4 tools/sim/talpa.lua`: 164 comprobaciones, con el patrón de `chispa.lua`. Usa plantillas **simuladas** del rig de 25 huesos y los 7 ids **reales**:
+- **Catálogo:** las reglas no cambian (rarezas, zona 3, extractor de hierro, `oreYield`, sin mítico).
+- **Modelos:**
+  - procedural sin plantillas;
+  - modelo, textura, 25 huesos, alto, apoyo y orientación por rareza;
+  - Shiny en las 4 rarezas;
+  - Lumi, Rocón y Chispa conservan su plantilla y su apoyo.
+- **Animaciones:**
+  - los 7 ids son compartidos: 7 objetos `Animation` para las 4 rarezas;
+  - bucles y transiciones;
+  - los ids de Lumi, Rocón y Chispa no cambian;
+  - una plantilla con otro `Rig` no se anima.
+- **Juego:** salvajes de las 4 rarezas en la zona 3, capturas sin duplicados, equipo y desequipo, cambio Lumi ↔ Talpa y estados excluyentes.
+- **Trabajo:** en el extractor de hierro hay Work, apoyo y producción de hierro. Talpa no entra en el extractor de piedra.
+- **Jugadores y persistencia:** dos jugadores independientes; salir y volver con una Talpa Shiny, sin cambios de esquema.
+
+### Comprobación pendiente en Studio
+
+1. `rojo build default.project.json -o PortalPets.rbxlx`, abre el lugar y pulsa **Play**.
+   - Output no debe mostrar `Falta (o no es valida) la plantilla Talpa_…`, `[PetAnimator]` ni `Failed to load animation`.
+2. **Zona 3:** las Talpa salvajes usan el modelo de su rareza.
+   - Están de pie sobre el terreno, sin hundirse ni flotar, y miran hacia donde caminan.
+   - Usan Idle y Walk sin deformar manos ni garras.
+3. Captura varias Talpa: cada captura suma una, con su rareza.
+4. **Equipo:** equipa y desequipa a Talpa; cambia a otro PET y vuelve. Al seguirte camina o corre, y salta contigo sin despegarse del suelo.
+5. Panel **Dev** → "pets": prueba Raro, Épico y Legendario, y también Happy, Sleep y despertar.
+6. **Trabajo:** asigna una Talpa al **Extractor de hierro**. Reproduce Work con los pies en el suelo y produce hierro.
+7. Sal y vuelve a entrar: el equipo, las trabajadoras y las rarezas siguen igual.
+8. **Shiny:** una Talpa Shiny mantiene el modelo de su rareza y añade partículas.
