@@ -117,6 +117,26 @@ PetAssets.AnimationSets = {
 			Work = "rbxassetid://79325542756265",
 		},
 	},
+	-- Nox (Comun, Raro, Epico y Legendario): Nox_Master.blend, rig compartido de 20 huesos
+	-- (Root, Hips, Spine, Head, Crown, Flame_Back, Tuft_L/R, Horn_L1-2, Horn_R1-2, Arm_L/R,
+	-- Hand_L/R, Tail_1-3, Wisp), 30 fps, sin root motion, reposo alineado (como Chispa y Talpa).
+	-- Espiritu flotante: Hips sube 0,08-0,16 studs sobre la base en reposo (Sleep la apoya).
+	-- Archivos en Downloads/Nox/Export (FBX y .rbxmx); docs/ART_PIPELINE.md, seccion 18.
+	-- Ids publicados en Roblox por el dueño del proyecto desde Export/RBXM/*.rbxmx y comprobados
+	-- en un Animator (2026-11-10). No modificar sin republicar. Los ids anteriores de Walk..Work
+	-- (102879104312994, ...) no cargan en Roblox: no usarlos.
+	Nox_v1 = {
+		rig = "Nox_v1",
+		ids = {
+			Idle = "rbxassetid://112605561747950",
+			Walk = "rbxassetid://70485972409894",
+			Run = "rbxassetid://129884516413247",
+			Happy = "rbxassetid://130648680492072",
+			Sleep_Enter = "rbxassetid://115262768771029",
+			Sleep_Loop = "rbxassetid://83704950434754",
+			Work = "rbxassetid://129838855420494",
+		},
+	},
 }
 
 -- Limites de seguridad para plantillas (avisos, no bloqueos, salvo maxParts)
@@ -258,6 +278,30 @@ PetAssets.Species = {
 		variants = {},
 		-- Sin locomotion propia: usa las referencias globales de PetAssets.Locomotion, como
 		-- Lumi y Chispa.
+	},
+	-- Nox: espiritu de sombra flotante (zona 3). Las reglas de juego (rarezas con mitico, zona,
+	-- extractor lunar, vision nocturna) estan en PetCatalog; aqui solo el aspecto.
+	nox = {
+		model = "Nox",
+		heightFactor = 1.0,
+		-- Frente hacia -Z (LookVector) en los 4 FBX y en los .rbxm (cara en -Z, cola en +Z), sin
+		-- rotacion en ningun nodo: sin correccion.
+		yaw = 0,
+		-- Root esta en la base de la malla en reposo (punta inferior, Y = 0) y no se mueve. Nox
+		-- flota: las animaciones suben Hips 0,08-0,16 studs sobre esa base (en Sleep baja hasta
+		-- tocarla). La base de reposo es el suelo y la flotacion la da la animacion, asi que sin
+		-- correccion. Aprobado por el usuario en Studio dentro de Portal Pets (2026-11-10). Seccion 18.
+		footInset = 0,
+		animationSet = "Nox_v1",
+		animations = {},
+		-- Nox_rare / Nox_epic / Nox_legendary (assets/pets). Mitico NO tiene modelo propio: su
+		-- diseño visual esta pendiente. Hasta entonces usa la plantilla "Nox" con los efectos de
+		-- rareza mitica (sin aviso) para que los datos existentes (nox:mythic) sigan funcionando.
+		-- No es el modelo mitico definitivo: no añadir "mythic" aqui hasta tener Nox_mythic.rbxm.
+		rarityModels = { rare = true, epic = true, legendary = true },
+		variants = {},
+		-- Sin locomotion propia: no tiene pasos que sincronizar (flota); usa las referencias
+		-- globales de PetAssets.Locomotion.
 	},
 }
 

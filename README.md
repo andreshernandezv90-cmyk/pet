@@ -239,6 +239,7 @@ lua5.4 tools/sim/variants.lua
 lua5.4 tools/sim/rocon.lua
 lua5.4 tools/sim/chispa.lua
 lua5.4 tools/sim/talpa.lua
+lua5.4 tools/sim/nox.lua
 ```
 
 ```bash
@@ -265,8 +266,13 @@ Qué cubre cada prueba:
 - `rocon.lua`: Rocón Común, Raro, Épico y Legendario (sin mítico) con plantillas **simuladas** del rig de 29 huesos: procedural sin plantillas, modelo, textura, alto y apoyo por rareza, Shiny sobre su rareza, los 7 ids publicados de `Rocon_v3` compartidos por las 4 rarezas (y los de Lumi sin cambios), velocidad de Walk/Run según el alto real, salvajes en la zona 2, capturas sin duplicados, equipo/desequipo, cambio Lumi ↔ Rocón, estados excluyentes, trabajo en el extractor de piedra, dos jugadores independientes y salir/volver.
 - `chispa.lua`: Chispa Común, Raro, Épico y Legendario (sin mítico) con plantillas **simuladas** del rig de 22 huesos: procedural sin plantillas, modelo, textura, alto y apoyo por rareza, Shiny sobre su rareza, los 7 ids publicados de `Chispa_v1` compartidos por las 4 rarezas (y los de Lumi y Rocón sin cambios), salvajes en la zona 2, capturas sin duplicados, equipo/desequipo, cambio Lumi ↔ Chispa, estados excluyentes, trabajo en el extractor de cobre con producción y apoyo en alquimia, dos jugadores independientes y salir/volver.
 - `talpa.lua`: Talpa Común, Raro, Épico y Legendario (sin mítico) con plantillas **simuladas** del rig de 25 huesos: procedural sin plantillas, modelo, textura, alto, apoyo y orientación por rareza, Shiny sobre su rareza, los 7 ids publicados de `Talpa_v1` compartidos por las 4 rarezas (y los de Lumi, Rocón y Chispa sin cambios), salvajes en la zona 3, capturas sin duplicados, equipo/desequipo, cambio Lumi ↔ Talpa, estados excluyentes, trabajo en el extractor de hierro con producción, dos jugadores independientes y salir/volver.
+- `nox.lua`: Nox Común, Raro, Épico y Legendario, y Mítico **provisional** con la plantilla Común, con plantillas **simuladas** del rig de 20 huesos. Cubre:
+  - modelos: procedural sin plantillas; modelo, textura, alto, apoyo y orientación por rareza; Shiny sobre su rareza;
+  - animaciones: los 7 ids publicados de `Nox_v1`, compartidos por todas las rarezas (ninguno de los ids descartados). Los ids de Lumi, Rocón, Chispa y Talpa no cambian;
+  - juego: salvajes en la zona 3 (Mítico incluido), capturas sin duplicados, equipo/desequipo, cambio Lumi ↔ Nox y estados excluyentes;
+  - trabajo en el extractor lunar con producción, dos jugadores independientes y salir/volver.
 
-Validación de los modelos reales de `assets/pets` (usa Rojo para leer los `.rbxm`): `python tools/check_pet_assets.py --require Lumi,Lumi_rare,Lumi_epic,Lumi_legendary`. Para Rocón: `python tools/check_pet_assets.py --require Rocon,Rocon_rare,Rocon_epic,Rocon_legendary`. Para Chispa: `python tools/check_pet_assets.py --require Chispa,Chispa_rare,Chispa_epic,Chispa_legendary`. Para Talpa: `python tools/check_pet_assets.py --require Talpa,Talpa_rare,Talpa_epic,Talpa_legendary`.
+Validación de los modelos reales de `assets/pets` (usa Rojo para leer los `.rbxm`): `python tools/check_pet_assets.py --require Lumi,Lumi_rare,Lumi_epic,Lumi_legendary`. Para Rocón: `python tools/check_pet_assets.py --require Rocon,Rocon_rare,Rocon_epic,Rocon_legendary`. Para Chispa: `python tools/check_pet_assets.py --require Chispa,Chispa_rare,Chispa_epic,Chispa_legendary`. Para Talpa: `python tools/check_pet_assets.py --require Talpa,Talpa_rare,Talpa_epic,Talpa_legendary`. Para Nox: `python tools/check_pet_assets.py --require Nox,Nox_rare,Nox_epic,Nox_legendary`.
 - `mines.lua`: Minas de Zuar como mundo propio (hub, Cantera libre, 5 galerías con sus vetas, cortinas, terreno excavado, presupuesto), reparto de vetas fiel a `mine.chances`, flujo completo (Cantera, galería abierta y bloqueada, pico necesario, distancia, privacidad entre jugadores, ciclo nuevo), enlace con las bocas de mina del Reino y sello de guardián desactivable.
 - `shiny.lua`: claves Shiny, tasa 1/500 e independencia de la rareza (400.000 tiradas), captura Shiny decidida por el servidor, intentos de manipulación del cliente, pilas separadas, individuos, compañeros y fusiones, mismas estadísticas y producción, protección en el Reactor, persistencia, migración v3 → v4 y apariencia (paleta, partículas y variante importada).
 - `persistence.lua`: perfiles ajenos o futuros (p. ej. Astra v0.6, esquema 4) nunca se migran ni se sobrescriben; migración v2 → v3 sin pérdidas.

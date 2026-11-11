@@ -5,18 +5,20 @@ Uso:  python tools/check_pet_assets.py [--require Lumi,Lumi_rare,...] [--dir car
       python tools/check_pet_assets.py --require Rocon,Rocon_rare,Rocon_epic,Rocon_legendary
       python tools/check_pet_assets.py --require Chispa,Chispa_rare,Chispa_epic,Chispa_legendary
       python tools/check_pet_assets.py --require Talpa,Talpa_rare,Talpa_epic,Talpa_legendary
+      python tools/check_pet_assets.py --require Nox,Nox_rare,Nox_epic,Nox_legendary
 
 Los .rbxm se convierten a XML con Rojo en una carpeta temporal (el original no se
 toca). Para cada modelo comprueba:
   - Model raiz con PrimaryPart que apunta a una MeshPart con los huesos dentro;
-  - atributo Rig (texto) = "Lumi_v7" en Lumi, "Rocon_v3" en Rocon, "Chispa_v1" en Chispa
-    y "Talpa_v1" en Talpa;
-  - los huesos esperados con su jerarquia (34 en Lumi, 29 en Rocon, 22 en Chispa, 25 en Talpa);
+  - atributo Rig (texto) = "Lumi_v7" en Lumi, "Rocon_v3" en Rocon, "Chispa_v1" en Chispa,
+    "Talpa_v1" en Talpa y "Nox_v1" en Nox;
+  - los huesos esperados con su jerarquia (34 en Lumi, 29 en Rocon, 22 en Chispa, 25 en Talpa,
+    20 en Nox);
   - textura de color (SurfaceAppearance.ColorMap o MeshPart.TextureContent), distinta en cada variante;
   - AnimationController con Animator;
   - sin scripts y sin carpeta Animations (los ids viven en PetAssets.AnimationSets);
-  - sin la carpeta temporal InitialPoses del Animation Editor: error en Chispa y Talpa, aviso en
-    Lumi y Rocon (aprobados con ella; son CFrameValue sin efecto en el juego).
+  - sin la carpeta temporal InitialPoses del Animation Editor: error en Chispa, Talpa y Nox, aviso
+    en Lumi y Rocon (aprobados con ella; son CFrameValue sin efecto en el juego).
 Sale con codigo 1 si hay errores. --require exige que existan esos modelos.
 """
 import base64
@@ -63,8 +65,16 @@ for _s in ("Left", "Right"):
     TALPA_V1.update({_s + "UpperArm": "Chest", _s + "LowerArm": _s + "UpperArm", _s + "Hand": _s + "LowerArm",
                      _s + "Claws": _s + "Hand", _s + "UpperLeg": "Hips", _s + "LowerLeg": _s + "UpperLeg",
                      _s + "Foot": _s + "LowerLeg"})
+# Rig Nox_v1 (Nox_Master.blend, compartido por las 4 rarezas): 20 huesos
+NOX_V1 = {"Root": None, "Hips": "Root", "Spine": "Hips", "Head": "Spine", "Crown": "Head", "Flame_Back": "Crown",
+          "Wisp": "Hips", "Tail_1": "Hips", "Tail_2": "Tail_1", "Tail_3": "Tail_2"}
+for _s in ("L", "R"):
+    NOX_V1.update({"Tuft_" + _s: "Crown", "Horn_" + _s + "1": "Crown", "Horn_" + _s + "2": "Horn_" + _s + "1",
+                   "Arm_" + _s: "Spine", "Hand_" + _s: "Arm_" + _s})
 RIGS = {"Lumi": ("Lumi_v7", LUMI_V7), "Rocon": ("Rocon_v3", ROCON_V3), "Chispa": ("Chispa_v1", CHISPA_V1),
-        "Talpa": ("Talpa_v1", TALPA_V1)}  # prefijo de nombre -> (Rig esperado, huesos)
+        "Talpa": ("Talpa_v1", TALPA_V1), "Nox": ("Nox_v1", NOX_V1)}  # prefijo de nombre -> (Rig esperado, huesos)
+# Especies integradas con la regla estricta: InitialPoses y AnimSaves son error (no aviso)
+STRICT = ("Chispa", "Talpa", "Nox")
 
 
 def to_xml(path, tmp):
@@ -203,10 +213,10 @@ def check_model(path, tmp):
         errors.append("contiene scripts: %s" % scripts)
     if any(it.get("class") == "Folder" and nm(it) == "Animations" for it in model.findall("Item")):
         errors.append("tiene carpeta Animations (los ids van en PetAssets.AnimationSets)")
-    if name.split("_")[0] in ("Chispa", "Talpa") and any(nm(it) == "AnimSaves" for it in model.findall("Item")):
+    if name.split("_")[0] in STRICT and any(nm(it) == "AnimSaves" for it in model.findall("Item")):
         errors.append("tiene AnimSaves del Animation Editor")
     if any(it.get("class") == "Folder" and nm(it) == "InitialPoses" for it in model.findall("Item")):
-        if name.split("_")[0] in ("Chispa", "Talpa"):
+        if name.split("_")[0] in STRICT:
             errors.append("tiene la carpeta temporal InitialPoses del Animation Editor")
         else:
             info["aviso"] = "carpeta temporal InitialPoses (sin efecto en el juego)"

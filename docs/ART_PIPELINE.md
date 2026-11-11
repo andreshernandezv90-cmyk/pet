@@ -934,3 +934,136 @@ Las duraciones son las de los FBX exportados (30 fps). El código fuerza el bucl
 6. **Trabajo:** asigna una Talpa al **Extractor de hierro**. Reproduce Work con los pies en el suelo y produce hierro.
 7. Sal y vuelve a entrar: el equipo, las trabajadoras y las rarezas siguen igual.
 8. **Shiny:** una Talpa Shiny mantiene el modelo de su rareza y añade partículas.
+
+## 18. Nox Común, Raro, Épico y Legendario
+
+**Fase N: integración aprobada (2026-11-10).** Las 7 animaciones están publicadas y comprobadas en un Animator, y el usuario aprobó a Nox dentro de Portal Pets en Roblox Studio. El Mítico usa la plantilla Común de forma **provisional**, porque su diseño visual está pendiente.
+
+### Estado
+
+| Pieza | Estado |
+|---|---|
+| Especie `nox` en el juego | **Ya existía** en `PetCatalog`, sin cambios: n.º 8, zona 3 (Cavernas Olvidadas), **con mítico**, cebo `root`, extractor lunar (0,06/s), `captureEase` 0,03 y visión nocturna. |
+| Animaciones | `Referenciado en código con respaldo`: los 7 ids publicados están en `PetAssets.AnimationSets.Nox_v1`, compartidos por todas las rarezas. |
+| Modelos | `Guardado en assets/pets`: `Nox.rbxm`, `Nox_rare.rbxm`, `Nox_epic.rbxm` y `Nox_legendary.rbxm`, todos con `Rig = Nox_v1`. Entran en `rojo build` y en `tools/build_rbxlx.py`. |
+| Mítico | **Provisional:** no hay `Nox_mythic.rbxm`. Usa `Nox` con los efectos de rareza mítica, sin aviso. No es el modelo mítico definitivo. |
+| Validación estructural | **Aprobada** (2026-11-10): `tools/check_pet_assets.py` pasa con los 20 modelos y pasan las 15 suites de `tools/sim` (1419 comprobaciones). |
+| Dentro de Portal Pets | **Verificado en Studio:** el usuario lo aprobó el 2026-11-10. |
+
+### Ids publicados (Nox_v1)
+
+| Estado | AnimationId | Duración | Bucle | Prioridad |
+|---|---|---|---|---|
+| `Idle` | `rbxassetid://112605561747950` | 2,40 s | sí | Idle |
+| `Walk` | `rbxassetid://70485972409894` | 0,80 s | sí | Movement |
+| `Run` | `rbxassetid://129884516413247` | 0,53 s | sí | Movement |
+| `Happy` | `rbxassetid://130648680492072` | 1,50 s | no | Action |
+| `Sleep_Enter` | `rbxassetid://115262768771029` | 1,67 s | no | Action |
+| `Sleep_Loop` | `rbxassetid://83704950434754` | 3,00 s | sí | Action |
+| `Work` | `rbxassetid://129838855420494` | 1,33 s | sí | Action |
+
+- **Origen:** publicados desde `Downloads/Nox/Export/RBXM/Nox_<Estado>.rbxmx`, generados con `Downloads/Nox/pipeline/07_rbxmx.py`.
+  - Las poses salen del FBX exportado y se pasan al espacio de Studio, que gira el rig 180° en Y.
+  - El error frente a Blender es ≤ 1,5e‑6 studs y 0°.
+  - Los ids están registrados en `Downloads/Nox/Export/RBXM/Nox_Animation_IDs.json`.
+- **Comprobación en Roblox (2026-11-10)**, con un Animator sobre un rig temporal `Nox_v1`:
+  - los 7 ids cargan con la duración, el bucle y la prioridad de la tabla;
+  - se mueven 18 o 19 de los 20 huesos y `Root` se queda fijo;
+  - la costura de los bucles es ≤ 1e‑5 y Sleep_Enter enlaza con Sleep_Loop sin salto.
+  - Idle se comparó además con la importación del FBX en Studio: poses iguales, a 1,5e‑5 studs y 0°.
+- **Ids anteriores descartados (no se borraron):** 102879104312994 (Walk), 104458487195839 (Run), 88530856883740 (Happy), 94564745666171 (Sleep_Enter), 138793674065150 (Sleep_Loop) y 85715077517869 (Work).
+  - Son assets de animación aprobados, pero Roblox no los carga ("KeyframeSequence loaded is not valid"; duración 0 en un Animator).
+  - **No usarlos.**
+
+### Modelos guardados (leídos por `tools/check_pet_assets.py`)
+
+| Plantilla | PrimaryPart | Huesos | `Rig` | Malla | ColorMap (`SurfaceAppearance`) | NormalMap | Tamaño en reposo |
+|---|---|---|---|---|---|---|---|
+| `Nox` | `Nox_Comun_Mesh` | 20 | `Nox_v1` | `rbxassetid://101037734743306` | `rbxassetid://93047259697946` | — | 1,526 × 2,000 × 1,495 |
+| `Nox_rare` | `Nox_Raro_Mesh` | 20 | `Nox_v1` | `rbxassetid://125433347598027` | `rbxassetid://75460561497433` | — | 1,525 × 2,000 × 1,492 |
+| `Nox_epic` | `Nox_Epico_Mesh` | 20 | `Nox_v1` | `rbxassetid://84455641387559` | `rbxassetid://72429796678209` | sí | 1,526 × 2,000 × 1,495 |
+| `Nox_legendary` | `Nox_Legendario_Mesh` | 20 | `Nox_v1` | `rbxassetid://84455641387559` | `rbxassetid://135524673660569` | sí | 1,526 × 2,000 × 1,495 |
+
+- **Geometría:**
+  - Épico y Legendario comparten MeshId.
+  - Común tiene la misma forma, con otro orden de vértices.
+  - Raro es otro remallado (4116 vértices) con los pesos transferidos del Épico.
+  - Cada rareza tiene sus propios mapas. Común y Raro no traían NormalMap.
+- Los cuatro tienen `AnimationController` con `Animator`, sin scripts ni carpeta `Animations`.
+- Los 20 huesos tienen los mismos nombres, jerarquía y reposo en las 4 rarezas (diferencia ≤ 1e‑4). El importador de Studio gira `Root` 180° en Y en las cuatro por igual.
+- **Limpieza antes de integrar** (los originales están en `Downloads/Nox/Backups/rbxm_pre_fix_20261110/`):
+  - Se quitó de los cuatro la carpeta temporal `InitialPoses` (66 `CFrameValue`) con `Downloads/Nox/pipeline/08_strip_initialposes.py`.
+  - El script convierte con Rojo de `.rbxm` a XML y de vuelta, y compara instancia por instancia.
+  - Las otras 25 instancias quedaron idénticas, salvo ruido de 8,7e‑8 en las CFrame giradas 180°, que el formato binario guarda como rotación exacta.
+  - No había `AnimSaves`.
+- El validador conoce el rig `Nox_v1` y trata `InitialPoses` y `AnimSaves` como **error en Chispa, Talpa y Nox**.
+
+### Datos del rig
+
+- **Rig `Nox_v1`:** 20 huesos, iguales en las 4 rarezas:
+  ```
+  Root → Hips → Spine → Head → Crown → Flame_Back / Tuft_L / Tuft_R / Horn_L1 → Horn_L2 / Horn_R1 → Horn_R2
+  Spine → Arm_L → Hand_L ;  Spine → Arm_R → Hand_R
+  Hips → Tail_1 → Tail_2 → Tail_3 ;  Hips → Wisp
+  ```
+  30 fps, sin root motion. `Root` nunca se mueve; solo `Hips` tiene traslación animada.
+- **Manos:** son piezas flotantes independientes, con su hueso al 100 %. Nunca entran en el cuerpo: la separación mínima es de 3,4 cm en todas las animaciones.
+- **Exportación** (`Downloads/Nox/pipeline/05_export.py`, misma convención que Chispa y Talpa):
+  - Y arriba, frente −Z y 1 unidad = 1 stud;
+  - reposo alineado (rotación local nula);
+  - verificado en `Downloads/Nox/Export/verify_report.json`.
+
+### Flotación, apoyo y orientación
+
+- `Root` está en la base de la malla en reposo y no se mueve; la base es la punta inferior, en Y = 0.
+- **Nox flota gracias a la animación:**
+  - Despierto, `Hips` sube entre 0,08 y 0,16 studs sobre esa base; en Happy salta hasta 0,46.
+  - En Sleep baja hasta tocarla.
+- Por tanto, **`footInset = 0`**: la base de reposo es el suelo y la flotación la añade la animación. No hay que compensarla en el código.
+- **Orientación:** la cara está en −Z y la cola en +Z, sin rotación en ningún nodo, así que `yaw = 0`.
+- **Velocidad:** Nox no tiene `locomotion` propia (no hay pasos que sincronizar) y usa las referencias globales.
+
+### Qué hace el código
+
+- `PetAssets.Species.nox`:
+  - plantillas `Nox`, `Nox_rare`, `Nox_epic` y `Nox_legendary`;
+  - `heightFactor = 1`, `yaw = 0`, `footInset = 0`;
+  - conjunto `Nox_v1`;
+  - `rarityModels` para Raro, Épico y Legendario. Mítico se omite a propósito, así que usa `Nox` sin aviso.
+- **Shiny:** usa el modelo de su rareza con las partículas Shiny.
+- Aparición (Mítico incluido), captura, inventario, equipo, seguimiento, trabajo y persistencia usan los sistemas existentes, sin cambios de código.
+- No cambian `PetAnimator`, `PetModels`, `PetGrounding`, `PetCatalog`, los datos ni los otros PETs.
+
+### Pruebas automáticas
+
+`lua5.4 tools/sim/nox.lua`: 201 comprobaciones, con el patrón de `talpa.lua`. Usa plantillas **simuladas** del rig de 20 huesos y los 7 ids **reales**:
+- **Catálogo:** las reglas no cambian (5 rarezas con mítico, zona 3, extractor lunar, `captureEase`, visión nocturna).
+- **Modelos:**
+  - procedural sin plantillas;
+  - modelo, textura, 20 huesos, alto, apoyo y orientación por rareza;
+  - el Mítico usa `Nox` sin aviso y con su tamaño de rareza;
+  - Shiny en las 5 rarezas;
+  - Lumi, Rocón, Chispa y Talpa conservan su plantilla y su apoyo.
+- **Animaciones:**
+  - los 7 ids son compartidos: 7 objetos `Animation` para las 5 rarezas, y ninguno de los ids descartados;
+  - bucles; Walk y Run con su velocidad; Happy y vuelta a la locomoción; Sleep_Enter → Sleep_Loop y despertar; Work;
+  - los ids de Lumi, Rocón, Chispa y Talpa no cambian;
+  - una plantilla con otro `Rig` no se anima.
+- **Juego:** salvajes de las 5 rarezas en la zona 3, capturas sin duplicados (Mítico incluido), equipo del Mítico y del Legendario, cambio Lumi ↔ Nox y estados excluyentes.
+- **Trabajo:** en el extractor lunar hay Work, apoyo y producción de cristal lunar. Nox no entra en el extractor de hierro.
+- **Jugadores y persistencia:** dos jugadores independientes; salir y volver con `nox:epic:shiny` y `nox:mythic`, sin cambios de esquema.
+
+### Comprobación en Studio (aprobada el 2026-11-10)
+
+1. `rojo build default.project.json -o PortalPets.rbxlx`, abre el lugar y pulsa **Play**.
+   - Output no debe mostrar `Falta (o no es valida) la plantilla Nox_…`, `[PetAnimator]` ni `Failed to load animation`.
+2. **Zona 3:** los Nox salvajes usan el modelo de su rareza.
+   - Flotan suavemente con Idle: la punta inferior queda unos 0,1 studs sobre el terreno y nunca se hunde.
+   - Miran hacia donde avanzan (−Z).
+   - Las manos se mueven separadas del cuerpo.
+3. Captura varios Nox: cada captura suma uno, con su rareza.
+4. **Equipo:** equipa y desequipa a Nox; cambia a otro PET y vuelve. Al seguirte planea con Walk o vuela con Run, inclinado hacia delante, sin tocar el suelo.
+5. Panel **Dev** → "pets": prueba Raro, Épico, Legendario y **Mítico**, y también Happy (giro de 360°), Sleep (baja hasta tocar el suelo) y despertar. El Mítico debe verse como Nox Común más grande, con efectos de rareza mítica (es provisional).
+6. **Trabajo:** asigna un Nox al **Extractor lunar**. Reproduce Work (manos orbitando delante de la cara) y produce cristal lunar.
+7. Sal y vuelve a entrar: el equipo, los trabajadores y las rarezas (Mítico incluido) siguen igual.
+8. **Shiny:** un Nox Shiny mantiene el modelo de su rareza y añade partículas.
